@@ -28,7 +28,7 @@ How to Use:
 
 Compile the program:
 
-g++ -o scheme_interpreter interface.cpp primitives.cpp execution.cpp syntax.cpp parsing.cpp interpreter.cpp
+g++ -o interpreter interface.hpp primitives.cpp execution.cpp syntax.cpp parsing.cpp interpreter.cpp
 
 Run the interpreter:
 
