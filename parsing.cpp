@@ -23,7 +23,7 @@ tokenize(const string& input) {
 
     if (c == '"') {
       insert_and_clear(&token);
-      insert_and_clear(new string("\""));
+      tokens.push_back("\"");
       is_string = !is_string;
     }
     else if (!is_string) {
@@ -33,7 +33,7 @@ tokenize(const string& input) {
 
       else if (find(specials.begin(), specials.end(), c) != specials.end()) {
         insert_and_clear(&token);
-        insert_and_clear(new string(1, c));
+        tokens.push_back(string(1, c));
       }
 
       else {
