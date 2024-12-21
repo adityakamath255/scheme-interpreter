@@ -5,9 +5,10 @@ using namespace std;
 namespace scheme {
 
 struct self_evaluating : public expression {
-  const sc_obj obj;
-  self_evaluating(sc_obj obj_):
-    obj {obj_}
+  sc_obj obj;
+  self_evaluating(sc_obj obj):
+    expression("self-evaluating"),
+    obj {obj}
   {}
 
   executor*
@@ -17,9 +18,10 @@ struct self_evaluating : public expression {
 };
 
 struct variable : public expression {
-  const symbol sym;
-  variable(symbol& obj_):
-    sym {obj_}
+  symbol sym;
+  variable(symbol& obj):
+    expression("variable"),
+    sym {obj}
   {}
 
   executor*
@@ -29,9 +31,10 @@ struct variable : public expression {
 };
 
 struct quoted : public expression {
-  const sc_obj text_of_quotation;
-  quoted(cons *obj_):
-    text_of_quotation {obj_->at("cadr")}
+  sc_obj text_of_quotation;
+  quoted(cons *obj):
+    expression("quoted", obj, 2, 2),
+    text_of_quotation {obj->at("cadr")}
   {}
 
   executor*
@@ -41,12 +44,19 @@ struct quoted : public expression {
 };
 
 struct assignment : public expression {
-  const symbol variable;
-  const expression *value;
-  assignment(cons *obj_):
-    variable {get<symbol>(obj_->at("cadr"))},
-    value {classify(obj_->at("caddr"))}
-  {}
+  symbol variable;
+  expression *value;
+
+  assignment(cons *obj):
+    expression("assignment", obj, 3, 3) 
+  {
+    if (!holds_alternative<symbol>(obj->at("cadr"))) {
+      throw runtime_error("tried to assign something to a non-variable");
+    }
+    variable = get<symbol>(obj->at("cadr"));
+    const auto cddr = obj->at("cddr");
+    value = classify(obj->at("caddr"));
+  }
 
   executor*
   analyze() const {
@@ -55,24 +65,28 @@ struct assignment : public expression {
 };
 
 struct if_expr : public expression {
-  const expression *predicate, *consequent, *alternative;
+  expression *predicate, *consequent, *alternative;
 
-  if_expr(cons *obj_):
-    predicate {classify(obj_->at("cadr"))},
-    consequent {classify(obj_->at("caddr"))},
+  if_expr(cons *obj):
+    expression("if", obj, 3, 4),
+    predicate {classify(obj->at("cadr"))},
+    consequent {classify(obj->at("caddr"))},
     alternative {
-      !is_null(obj_->at("cdddr"))
-    ? classify(obj_->at("cadddr"))
+      !is_null(obj->at("cdddr"))
+    ? classify(obj->at("cadddr"))
     : new self_evaluating("false")
     }
   {}
 
   if_expr(expression *p, expression *c, expression *a):
+    expression("if"),
     predicate {p},
     consequent {c},
-    alternative {a} {}
+    alternative {a} 
+  {}
 
   if_expr():
+    expression("if"),
     predicate {new self_evaluating(false)},
     consequent {new self_evaluating(false)},
     alternative {new self_evaluating(false)} {}
@@ -89,8 +103,9 @@ struct if_expr : public expression {
 
 struct begin_expr : public expression {
 public:
-  const vector<expression*> actions;
+  vector<expression*> actions;
   begin_expr(const vector<expression*>& seq):
+    expression("begin"),
     actions {seq}
   {}
 
@@ -116,15 +131,17 @@ combine_expr(sc_obj seq) {
 }
 
 struct lambda_expr : public expression {
-  const vector<symbol> parameters;
-  const expression *body;
+  vector<symbol> parameters;
+  expression *body;
 
-  lambda_expr(cons *obj_):
-    parameters {cons2symbols(obj_->at("cadr"))},
-    body {combine_expr(obj_->at("cddr"))}
+  lambda_expr(cons *obj):
+    expression("lambda", obj, 3, INFINITY),
+    parameters {cons2symbols(obj->at("cadr"))},
+    body {combine_expr(obj->at("cddr"))}
   {}
 
   lambda_expr(sc_obj parameters_, sc_obj body_):
+    expression("lambda"),
     parameters {cons2symbols(parameters_)},
     body {combine_expr(body_)}
   {}
@@ -136,13 +153,33 @@ struct lambda_expr : public expression {
 };
 
 struct definition : public expression {
-  const symbol variable;
-  const expression *value;
+  symbol variable;
+  expression *value;
 
-  definition(symbol v1, expression *v2):
-    variable {v1},
-    value {v2}
-  {}
+  definition(cons *obj):
+    expression("define", obj, 3, INFINITY)
+  {
+    const auto cadr = obj->at("cadr");
+
+    if (holds_alternative<symbol>(cadr)) {  
+      variable = get<symbol>(cadr);
+      value = classify(obj->at("caddr"));
+    }
+
+    else if (holds_alternative<cons*>(cadr)) {
+      const auto parameters = obj->at("cdadr");
+      const auto body = obj->at("cddr");
+      if (!holds_alternative<symbol>(obj->at("caadr"))) {
+        throw runtime_error("procedure name must be a symbol");
+      }
+      variable = get<symbol>(obj->at("caadr"));
+      value = new lambda_expr(parameters, body);
+    }
+
+    else {
+      throw runtime_error("bad definition identifier");
+    }
+  }
 
   executor*
   analyze() const {
@@ -151,8 +188,8 @@ struct definition : public expression {
 };
 
 struct let_expr : public expression {
-  const map<symbol, expression*> bindings;
-  const expression *body;
+  map<symbol, expression*> bindings;
+  expression *body;
 
   decltype(bindings)
   get_bindings(sc_obj li) {
@@ -184,9 +221,10 @@ struct let_expr : public expression {
     return pseudoframe;
   }
 
-  let_expr(cons *obj_):
-    bindings {get_bindings(obj_->at("cadr"))},
-    body {combine_expr(obj_->at("cddr"))}
+  let_expr(cons *obj):
+    expression("let", obj, 3, INFINITY),
+    bindings {get_bindings(obj->at("cadr"))},
+    body {combine_expr(obj->at("cddr"))}
   {}
 
   executor*
@@ -210,15 +248,15 @@ public:
   expression *predicate;
   expression *actions;
 
-  clause (cons *obj_) {
-    if (is_else_clause(obj_->car)) {
+  clause (cons *obj) {
+    if (is_else_clause(obj->car)) {
       is_else = 1;
       predicate = new self_evaluating(true);
     } else {
       is_else = 0;
-      predicate = classify(obj_->car);
+      predicate = classify(obj->car);
     }
-    actions = combine_expr(obj_->cdr);
+    actions = combine_expr(obj->cdr);
   }
 };
 
@@ -236,18 +274,20 @@ private:
 public:
   vector<clause> clauses;
 
-  cond_expr (sc_obj obj_) {
-    obj_ = get<cons*>(obj_)->cdr;
-    while (is_pair(obj_)) {
-      const auto as_cons = get<cons*>(obj_);
+  cond_expr (sc_obj obj):
+    expression("cond") 
+  {
+    obj = get<cons*>(obj)->cdr;
+    while (is_pair(obj)) {
+      const auto as_cons = get<cons*>(obj);
       if (!holds_alternative<cons*>(as_cons->car)) {
-        throw runtime_error("cond_expr::cond_expr: type error\n");
+        throw runtime_error("cond type error\n");
       }
       const auto new_clause = clause(get<cons*>(as_cons->car));
       clauses.push_back(new_clause);
       if (new_clause.is_else)
         break;
-      obj_ = as_cons->cdr;
+      obj = as_cons->cdr;
     }
   }
 
@@ -258,12 +298,13 @@ public:
 };
 
 struct application : public expression {
-  const expression *op;
-  const vector<expression*> args;
+  expression *op;
+  vector<expression*> args;
 
-  application(cons *obj_):
-    op {classify(obj_->car)},
-    args {cons2vec(obj_->cdr)}
+  application(cons *obj):
+    expression("application"),
+    op {classify(obj->car)},
+    args {cons2vec(obj->cdr)}
   {}
 
   executor*
@@ -273,10 +314,11 @@ struct application : public expression {
 };
 
 struct and_expr : public expression {
-  const vector<expression*> exprs;
+  vector<expression*> exprs;
 
-  and_expr(cons *obj_):
-    exprs {cons2vec(obj_->cdr)}
+  and_expr(cons *obj):
+    expression("and", obj, 2, INFINITY),
+    exprs {cons2vec(obj->cdr)}
   {}
 
   executor*
@@ -286,10 +328,11 @@ struct and_expr : public expression {
 };
 
 struct or_expr : public expression {
-  const vector<expression*> exprs;
+  vector<expression*> exprs;
 
-  or_expr(cons *obj_):
-    exprs {cons2vec(obj_->cdr)}
+  or_expr(cons *obj):
+    expression("or", obj, 2, INFINITY),
+    exprs {cons2vec(obj->cdr)}
   {}
 
   executor*
@@ -299,25 +342,20 @@ struct or_expr : public expression {
 };
 
 struct cons_set_expr : public expression {
-  symbol variable;
-  const expression *value;
-  const bool side;
+  expression *variable;
+  expression *value;
+  string side;
 
-  cons_set_expr(cons *obj_, bool b): 
-    value {classify(obj_->at("caddr"))},
-    side {b}
-  {
-    if (holds_alternative<symbol>(obj_->at("cadr"))) {
-      variable = get<symbol>(obj_->at("cadr"));
-    }
-    else {
-      throw runtime_error("cons_set_expr::cons_set_expr: type error");
-    }
-  }
+  cons_set_expr(cons *obj, string side): 
+    expression("set-" + side + "!", obj, 3, 3),
+    variable {classify(obj->at("cadr"))},
+    value {classify(obj->at("caddr"))},
+    side {side}
+  {}
 
   executor*
   analyze() const {
-    return new cons_set_exec(variable, value->analyze(), side);
+    return new cons_set_exec(variable->analyze(), value->analyze(), side);
   }
 };
 
@@ -325,7 +363,11 @@ struct cxr_expr : public expression {
   symbol word;
   expression *expr;
 
-  cxr_expr(const symbol& s, sc_obj obj_): word {s}, expr {classify(obj_)} {}
+  cxr_expr(symbol tag, cons *obj): 
+    expression(tag.name, obj, 2, 2),
+    word {tag}, 
+    expr {classify(obj->at("cadr"))} 
+  {}
 
   executor*
   analyze() const {
@@ -334,76 +376,56 @@ struct cxr_expr : public expression {
 };
 
 expression*
-make_quoted(cons *obj_) {
-  return new quoted(obj_); 
+make_quoted(cons *obj) {
+  return new quoted(obj); 
 }
 expression*
-make_assignment(cons *obj_) {
-  return new assignment(obj_); 
+make_assignment(cons *obj) {
+  return new assignment(obj); 
 }
 expression*
-make_definition(cons *obj_) {
-  const auto cadr = obj_->at("cadr");
-
-  if (holds_alternative<symbol>(cadr)) {  
-    return new definition(
-      get<symbol>(cadr),
-      classify(obj_->at("caddr"))
-    );
-  }
-
-  else {
-    const auto parameters = obj_->at("cdadr");
-    const auto body = obj_->at("cddr");
-    if (!holds_alternative<symbol>(obj_->at("caadr"))) {
-      throw runtime_error("make_definition: type error\n");
-    }
-    return new definition(
-      get<symbol>(obj_->at("caadr")),
-      new lambda_expr(parameters, body)
-    );
-  }
-}
-
-expression*
-make_if_expr(cons *obj_) {
-  return new if_expr(obj_);
+make_definition(cons *obj) {
+  return new definition(obj);
 }
 expression*
-make_lambda_expr(cons *obj_) {
-  return new lambda_expr(obj_); 
+make_if_expr(cons *obj) {
+  return new if_expr(obj);
 }
 expression*
-make_let_expr(cons *obj_) {
-  return new let_expr(obj_);
+make_lambda_expr(cons *obj) {
+  return new lambda_expr(obj); 
 }
 expression*
-make_begin_expr(cons *obj_) {
-  return combine_expr(obj_->cdr);
+make_let_expr(cons *obj) {
+  return new let_expr(obj);
 }
 expression*
-make_cond_expr(cons *obj_) {
-  return new cond_expr(obj_); 
+make_begin_expr(cons *obj) {
+  return combine_expr(obj->cdr);
 }
 expression*
-make_application(cons *obj_) {
-  return new application(obj_); 
+make_cond_expr(cons *obj) {
+  return new cond_expr(obj); 
 }
 expression*
-make_and_expr(cons *obj_) {
-  return new and_expr(obj_);
+make_application(cons *obj) {
+  return new application(obj); 
 }
 expression*
-make_or_expr(cons *obj_) {
-  return new or_expr(obj_);
+make_and_expr(cons *obj) {
+  return new and_expr(obj);
 }
 expression*
-make_set_car_expr(cons *obj_) {
-  return new cons_set_expr(obj_, 0);
+make_or_expr(cons *obj) {
+  return new or_expr(obj);
 }
 expression*
-make_set_cdr_expr(cons *obj_) {
-  return new cons_set_expr(obj_, 1);
+make_set_car_expr(cons *obj) {
+  return new cons_set_expr(obj, "car");
+}
+expression*
+make_set_cdr_expr(cons *obj) {
+  return new cons_set_expr(obj, "cdr");
 }
 
 map<symbol, expression*(*)(cons*)> special_forms = {
@@ -426,7 +448,7 @@ is_cxr(const string& s) {
   if (s.front() != 'c' || s.back() != 'r') {
     return false;
   }
-  for (int i = 1; i < s.size() -1; i++) {
+  for (int i = 1; i < s.size() - 1; i++) {
     if (s[i] != 'a' && s[i] != 'd') {
       return false;
     }
@@ -446,7 +468,7 @@ classify(sc_obj obj) {
         return func(p);
       }
       else if (is_cxr(tag.name)) {
-        return new cxr_expr(tag, p->at("cadr"));
+        return new cxr_expr(tag, p);
       }
     }
     return new application(p);
