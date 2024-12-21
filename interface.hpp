@@ -56,7 +56,7 @@ struct cons {
   cons(sc_obj a, sc_obj b): car {a}, cdr {b} {}
 
   sc_obj
-  operator[](const string& s) const {
+  operator[](const string& s) {
     sc_obj curr = const_cast<cons*>(this);
 
     if (*s.begin() != 'c' || *s.rbegin() != 'r') {
@@ -82,7 +82,7 @@ struct cons {
   }
 
   sc_obj
-  at(const string& s) const {
+  at(const string& s) {
     return operator[](s);
   } 
 };
@@ -178,7 +178,52 @@ public:
 };
 
 class expression {
+private:
+  int 
+  get_size(cons* obj) const {
+    int sz = 0;
+    while (obj != nullptr) {
+      sz++;
+      if (!holds_alternative<cons*>(obj->cdr)) {
+        break;
+      }
+      else {
+        obj = get<cons*>(obj->cdr);
+      }
+    }
+    return sz;
+  }
+
+  void
+  assert_size(cons *obj, const int lb, const int ub) const {
+    const int sz = get_size(obj);
+    if (sz < lb || sz > ub) {
+      throw runtime_error(
+        name + 
+        " expression is of wrong size [" + 
+        to_string(sz) + 
+        "]"
+      );
+    }
+  }
+
+protected:
+  string name;
+
 public:
+  expression(const string& n, cons *obj = nullptr, const int lb = -1, const int ub = -1):
+    name {n} 
+  {
+    if (lb != -1) {
+      assert_size(obj, lb, ub);
+    }
+  }
+
+  string
+  get_name() const {
+    return name;
+  }
+
   virtual executor*
   analyze() const = 0;
 };
