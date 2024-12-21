@@ -2,13 +2,13 @@
 
 namespace scheme {
 
+const vector<char> SPECIAL_CHARS {'(', ')', '\'', '`', ',', '\"', ';'};
+
 vector<string>
 tokenize(const string& input) {
-  const int sz = input.size();
-  const vector<char> specials {'(', ')', '\'', '`', ',', '\"', ';'};
   vector<string> tokens {"(", "begin"};
 
-  const auto insert_and_clear = [&](string *token) {
+  const auto insert_and_clear = [&](string *token) -> void {
     if (!token->empty()) {
       tokens.push_back(*token);
       token->clear();
@@ -18,9 +18,7 @@ tokenize(const string& input) {
   string token {};
   bool is_string = 0;
 
-  for (int i = 0; i < sz; i++) {
-    char c = input[i];
-
+  for (const char c : input) {
     if (c == '"') {
       insert_and_clear(&token);
       tokens.push_back("\"");
@@ -31,7 +29,7 @@ tokenize(const string& input) {
         insert_and_clear(&token);
       }
 
-      else if (find(specials.begin(), specials.end(), c) != specials.end()) {
+      else if (find(SPECIAL_CHARS.begin(), SPECIAL_CHARS.end(), c) != SPECIAL_CHARS.end()) {
         insert_and_clear(&token);
         tokens.push_back(string(1, c));
       }
@@ -99,26 +97,31 @@ sc_obj_from_str(const string& str) {
 } 
 
 pair<sc_obj*, int> 
-parse_impl(const vector<string>& tokens, const int i, bool recursive) {
-  const string token = tokens[i];
+parse_impl(const vector<string>& tokens, const int curr_index, bool recursive) {
+  const string& token = tokens[curr_index];
   sc_obj *head;
-  int j;
+  int next_index;
 
   if (token[0] == ')')  {
-    return {new sc_obj(nullptr), i + 1};
+    return {new sc_obj(nullptr), curr_index + 1};
   }
   
   else if (token[0] == '(') {
-    tie(head, j) = parse_impl(tokens, i + 1, 1);
+    tie(head, next_index) = parse_impl(tokens, curr_index + 1, true);
   }
 
   else if (token[0] == '.') {
-    return {sc_obj_from_str(tokens[i + 1]), i + 3};
+    tie(head, next_index) = parse_impl(tokens, curr_index + 1, false);
+    if (next_index >= tokens.size() || tokens[next_index] != ")") {
+      throw runtime_error("bad positioning of '.'");
+    }
+    next_index++;
+    recursive = 0;
   }
 
   else if (token[0] == '\'') {
     sc_obj *q;
-    tie(q, j) = parse_impl(tokens, i + 1, 0);
+    tie(q, next_index) = parse_impl(tokens, curr_index + 1, false);
     head = new sc_obj(
       new cons(
         *make_sym_obj("quote"), 
@@ -128,16 +131,16 @@ parse_impl(const vector<string>& tokens, const int i, bool recursive) {
   }
 
   else {
-    tie(head, j) = make_pair(sc_obj_from_str(token), i + 1);
+    tie(head, next_index) = make_pair(sc_obj_from_str(token), curr_index + 1);
   }
 
-  if (j == tokens.size() || !recursive) {
-    return {head, j};
+  if (next_index == tokens.size() || !recursive) {
+    return {head, next_index};
   }
 
   else {
     if (recursive) {
-      const auto [tail, k] = parse_impl(tokens, j, 1);
+      const auto [tail, k] = parse_impl(tokens, next_index, 1);
       cons *c = new cons(*head, *tail);
       return {new sc_obj(c), k};
     }
@@ -150,7 +153,9 @@ parse_impl(const vector<string>& tokens, const int i, bool recursive) {
 
 sc_obj *
 parse(const vector<string>& tokens) {
-  return parse_impl(tokens, 0, 0).first;
+  auto ret = parse_impl(tokens, 0, 1).first;
+  // display(*ret);
+  return ret;
 }
 
 }
