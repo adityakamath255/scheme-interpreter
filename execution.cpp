@@ -184,30 +184,22 @@ public:
 
 class cons_set_exec : public executor {
 private:
-  symbol var;
-  executor *vproc;
-  bool side;
+  executor *var;
+  executor *val;
+  string side;
 
 public:
-  cons_set_exec(symbol var, executor *exec, bool side): 
-    var {var}, vproc {exec}, side {side} {}
+  cons_set_exec(executor *var, executor *val, string side): 
+    var {var}, val {val}, side {side} {}
 
   sc_obj
   eval(environment *env) const {
-    const auto edit = vproc->eval(env);
-    auto found = (env->lookup(var));
-    if (!holds_alternative<cons*>(found)) {
-      throw runtime_error("cons_set_exec::eval: type error");
+    auto thing = var->eval(env);
+    if (!holds_alternative<cons*>(thing)) {
+      throw runtime_error("tried to apply set-" + side + "! on a non-pair object");
     }
-    const auto thing = get<cons*>(found);
-    switch (side) {
-      case 0:
-        thing->car = edit;
-        break;
-      case 1:
-        thing->cdr = edit;
-        break;   
-    }
+    const auto edit = val->eval(env);
+    get<cons*>(thing)->at(side) = edit;
     return thing;
   }
 };
@@ -223,7 +215,7 @@ public:
   eval(environment *env) const {
     const auto val = exec->eval(env);
     if (!holds_alternative<cons*>(val)) {
-      throw runtime_error("cxr_exec::eval: type error");
+      throw runtime_error(word + " type error: expected cons");
     }
     auto found = get<cons*>(val);
     return found->at(word);
