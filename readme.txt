@@ -4,7 +4,7 @@ This is a simple Scheme interpreter written in C++. It parses and evaluates Sche
 
 ## Files
 
-interface.hpp
+common.hpp
 This file defines the core interface and data structures for the interpreter, including the sc_obj (Scheme objects) and various classes that represent expressions, symbols, and the environment.
 
 primitives.cpp
