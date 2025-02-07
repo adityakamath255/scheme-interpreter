@@ -27,7 +27,7 @@ display(const bool b) {
 }
 
 void 
-display(const double n) {
+display(double n) {
   cout << n;
 }
 

@@ -1,5 +1,6 @@
 #include "common.hpp"
 #include "execution.cpp"
+#define MAXARGS 256
 using namespace std;
 
 namespace scheme {
@@ -135,7 +136,7 @@ struct lambda_expr : public expression {
   expression *body;
 
   lambda_expr(cons *obj):
-    expression("lambda", obj, 3, INFINITY),
+    expression("lambda", obj, 3, MAXARGS),
     parameters {cons2symbols(obj->at("cadr"))},
     body {combine_expr(obj->at("cddr"))}
   {}
@@ -157,7 +158,7 @@ struct definition : public expression {
   expression *value;
 
   definition(cons *obj):
-    expression("define", obj, 3, INFINITY)
+    expression("define", obj, 3, MAXARGS)
   {
     const auto cadr = obj->at("cadr");
 
@@ -222,7 +223,7 @@ struct let_expr : public expression {
   }
 
   let_expr(cons *obj):
-    expression("let", obj, 3, INFINITY),
+    expression("let", obj, 3, MAXARGS),
     bindings {get_bindings(obj->at("cadr"))},
     body {combine_expr(obj->at("cddr"))}
   {}
@@ -317,7 +318,7 @@ struct and_expr : public expression {
   vector<expression*> exprs;
 
   and_expr(cons *obj):
-    expression("and", obj, 2, INFINITY),
+    expression("and", obj, 2, MAXARGS),
     exprs {cons2vec(obj->cdr)}
   {}
 
@@ -331,7 +332,7 @@ struct or_expr : public expression {
   vector<expression*> exprs;
 
   or_expr(cons *obj):
-    expression("or", obj, 2, INFINITY),
+    expression("or", obj, 2, MAXARGS),
     exprs {cons2vec(obj->cdr)}
   {}
 

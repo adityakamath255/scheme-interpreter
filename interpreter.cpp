@@ -2,6 +2,7 @@
 #include "primitives.cpp"
 #include "syntax.cpp"
 #include "parsing.cpp"
+#include <fstream>
 
 using namespace scheme;
 
@@ -13,6 +14,8 @@ install_initial_environment() {
   }
   ret->define_variable(symbol("#t"), true);
   ret->define_variable(symbol("#f"), false);
+  ret->define_variable(symbol("nil"), nullptr);
+  ret = new environment(ret);
   return ret;
 }
 
@@ -23,13 +26,14 @@ interpret(const string& code) {
   return eval(classify(*parse(tokenize(code))), init_env);
 }
 
+template<class INPUT>
 string 
-read() {
+read(INPUT& in) {
   string line, input;
   int open_parens = 0;
 
   while (true) {
-    getline(cin, line);
+    getline(in, line);
     bool is_comment = false;
 
     for (char& c : line) {
@@ -65,14 +69,14 @@ read() {
   return input;
 }
 
-void 
+void
 driver_loop() {
   while (true) {
     try {
       cout << ">>> ";
-      string input_expr = read();
+      string input_expr = read(cin);
       if (input_expr == "exit\n") 
-        return; 
+        return ; 
       auto result = interpret(input_expr);
       display(result);
       cout << "\n";
@@ -83,7 +87,38 @@ driver_loop() {
   }
 }
 
-int 
-main() {
+void
+run_file(const char *filename) {
+  ifstream in;
+  in.open(filename);
+  sc_obj result;
+  while (true) {
+    try {
+      const string& input_expr = read(in);
+      if (in.eof()) {
+        break;
+      }
+      result = interpret(input_expr);
+    } 
+    catch (const runtime_error& e) {
+      cout << "\nERROR: " << e.what() << "\n";
+      return; 
+    }
+  }
+  display(result);
+  cout << "\n";
   driver_loop();
+}
+
+int 
+main(const int argc, const char **argv) {
+  if (argc == 1) {
+    driver_loop();
+  }
+  else if (argc == 2) {
+    run_file(argv[1]);
+  }
+  else {
+    cout << "Usage: ./interpreter [file-to-run]" << endl;
+  }
 }
