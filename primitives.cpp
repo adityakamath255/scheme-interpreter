@@ -19,7 +19,7 @@ void
 display(const nullptr_t);
 
 void 
-display(cons*);
+display(shared_ptr<cons>);
 
 void 
 display(const bool b) {
@@ -27,7 +27,7 @@ display(const bool b) {
 }
 
 void 
-display(const double n) {
+display(double n) {
   cout << n;
 }
 
@@ -44,15 +44,17 @@ display(const string& w) {
 }
 
 void 
-display(const nullptr_t x) {}
+display(const nullptr_t x) {
+  cout << "'()";
+}
 
 void 
-display(const procedure *p) {
+display(const shared_ptr<procedure> p) {
   cout << "procedure at " << p;
 }
 
 void 
-display(const primitive *p) {
+display(const shared_ptr<primitive> p) {
   cout << "primitive at " << p;
 }
 
@@ -69,7 +71,7 @@ display_iter(const sc_obj obj, const bool head) {
   if (is_pair(obj)) {
     if (!head)
       cout << " ";
-    const auto c = get<cons*>(obj);
+    const auto c = get<shared_ptr<cons>>(obj);
     visit(display_overload, c->car);
     return display_iter(c->cdr, 0);
   }
@@ -79,7 +81,7 @@ display_iter(const sc_obj obj, const bool head) {
 }
 
 void 
-display(cons *const c) {
+display(shared_ptr<cons> c) {
   cout << "(";
   sc_obj obj = \
   display_iter(c, 1);
@@ -184,24 +186,24 @@ namespace prim_env {
 
   sc_obj
   car(const vector<sc_obj>& args) {
-    return get<cons*>(args[0])->car;
+    return get<shared_ptr<cons>>(args[0])->car;
   }
 
   sc_obj
   cdr(const vector<sc_obj>& args) {
-    return get<cons*>(args[0])->cdr;
+    return get<shared_ptr<cons>>(args[0])->cdr;
   }
 
   sc_obj
   cons_fn(const vector<sc_obj>& args) {
-    return new cons(args[0], args[1]);
+    return make_shared<cons>(args[0], args[1]);
   }
 
   sc_obj
   list_fn(const vector<sc_obj>& args) {
     sc_obj ret = nullptr;
     for (auto curr = args.rbegin(); curr != args.rend(); curr++) {
-      ret = new cons(*curr, ret);
+      ret = make_shared<cons>(*curr, ret);
     }
     return ret;
   }
@@ -307,7 +309,7 @@ namespace prim_env {
     auto curr = args[0];
     while (is_pair(curr)) {
       ret++;
-      curr = get<cons*>(curr)->cdr;
+      curr = get<shared_ptr<cons>>(curr)->cdr;
     }
     return ret;
   }
@@ -315,9 +317,9 @@ namespace prim_env {
   sc_obj
   append_rec(const sc_obj list1, const sc_obj list2) {
     if (is_pair(list1)) {
-      return new cons(
-        get<cons*>(list1)->car,
-        append_rec(get<cons*>(list1)->cdr, list2)
+      return make_shared<cons>(
+        get<shared_ptr<cons>>(list1)->car,
+        append_rec(get<shared_ptr<cons>>(list1)->cdr, list2)
       );
     }
     else {

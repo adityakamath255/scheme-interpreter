@@ -12,9 +12,9 @@ struct self_evaluating : public expression {
     obj {obj}
   {}
 
-  executor*
+  shared_ptr<executor> 
   analyze() const {
-    return new self_eval_exec(obj);
+    return make_shared<self_eval_exec>(obj);
   }
 };
 
@@ -25,30 +25,30 @@ struct variable : public expression {
     sym {obj}
   {}
 
-  executor*
+  shared_ptr<executor> 
   analyze() const {
-    return new var_exec(sym);
+    return make_shared<var_exec>(sym);
   }
 };
 
 struct quoted : public expression {
   sc_obj text_of_quotation;
-  quoted(cons *obj):
+  quoted(shared_ptr<cons> obj):
     expression("quoted", obj, 2, 2),
     text_of_quotation {obj->at("cadr")}
-  {}
+  {} 
 
-  executor*
+  shared_ptr<executor> 
   analyze() const {
-    return new self_eval_exec(text_of_quotation);
+    return make_shared<self_eval_exec>(text_of_quotation);
   }
 };
 
 struct assignment : public expression {
   symbol variable;
-  expression *value;
+  shared_ptr<expression> value;
 
-  assignment(cons *obj):
+  assignment(shared_ptr<cons> obj):
     expression("assignment", obj, 3, 3) 
   {
     if (!holds_alternative<symbol>(obj->at("cadr"))) {
@@ -59,27 +59,27 @@ struct assignment : public expression {
     value = classify(obj->at("caddr"));
   }
 
-  executor*
+  shared_ptr<executor> 
   analyze() const {
-    return new set_exec(variable, value->analyze());
+    return make_shared<set_exec>(variable, value->analyze());
   }
 };
 
 struct if_expr : public expression {
-  expression *predicate, *consequent, *alternative;
+  shared_ptr<expression> predicate, consequent, alternative;
 
-  if_expr(cons *obj):
+  if_expr(shared_ptr<cons> obj):
     expression("if", obj, 3, 4),
     predicate {classify(obj->at("cadr"))},
     consequent {classify(obj->at("caddr"))},
     alternative {
       !is_null(obj->at("cdddr"))
     ? classify(obj->at("cadddr"))
-    : new self_evaluating("false")
+    : make_shared<self_evaluating>("false")
     }
   {}
 
-  if_expr(expression *p, expression *c, expression *a):
+  if_expr(shared_ptr<expression> p, shared_ptr<expression> c, shared_ptr<expression> a):
     expression("if"),
     predicate {p},
     consequent {c},
@@ -88,13 +88,13 @@ struct if_expr : public expression {
 
   if_expr():
     expression("if"),
-    predicate {new self_evaluating(false)},
-    consequent {new self_evaluating(false)},
-    alternative {new self_evaluating(false)} {}
+    predicate {make_shared<self_evaluating>(false)},
+    consequent {make_shared<self_evaluating>(false)},
+    alternative {make_shared<self_evaluating>(false)} {}
 
-  executor*
+  shared_ptr<executor> 
   analyze() const {
-    return new if_exec(
+    return make_shared<if_exec>(
       predicate->analyze(),
       consequent->analyze(),
       alternative->analyze()
@@ -104,38 +104,38 @@ struct if_expr : public expression {
 
 struct begin_expr : public expression {
 public:
-  vector<expression*> actions;
-  begin_expr(const vector<expression*>& seq):
+  vector<shared_ptr<expression> > actions;
+  begin_expr(const vector<shared_ptr<expression> >& seq):
     expression("begin"),
     actions {seq}
   {}
 
-  executor*
+  shared_ptr<executor> 
   analyze() const {
-    vector<executor*> execs {};
+    vector<shared_ptr<executor> > execs {};
     for (const auto expr : actions) {
       execs.push_back(expr->analyze());
     }
-    return new begin_exec(execs);
+    return make_shared<begin_exec>(execs);
   }
 };
 
-expression*
+shared_ptr<expression> 
 combine_expr(sc_obj seq) {
   const auto vec = cons2vec(seq);
   if (vec.size() == 0) 
-    return new self_evaluating(nullptr);
+    return make_shared<self_evaluating>(nullptr);
   else if (vec.size() == 1)
     return vec[0];
   else
-    return new begin_expr(vec);
+    return make_shared<begin_expr>(vec);
 }
 
 struct lambda_expr : public expression {
   vector<symbol> parameters;
-  expression *body;
+  shared_ptr<expression> body;
 
-  lambda_expr(cons *obj):
+  lambda_expr(shared_ptr<cons> obj):
     expression("lambda", obj, 3, MAXARGS),
     parameters {cons2symbols(obj->at("cadr"))},
     body {combine_expr(obj->at("cddr"))}
@@ -147,17 +147,17 @@ struct lambda_expr : public expression {
     body {combine_expr(body_)}
   {}
 
-  executor*
+  shared_ptr<executor> 
   analyze() const {
-    return new lambda_exec(parameters, body->analyze());
+    return make_shared<lambda_exec>(parameters, body->analyze());
   }
 };
 
 struct definition : public expression {
   symbol variable;
-  expression *value;
+  shared_ptr<expression> value;
 
-  definition(cons *obj):
+  definition(shared_ptr<cons> obj):
     expression("define", obj, 3, MAXARGS)
   {
     const auto cadr = obj->at("cadr");
@@ -167,14 +167,14 @@ struct definition : public expression {
       value = classify(obj->at("caddr"));
     }
 
-    else if (holds_alternative<cons*>(cadr)) {
+    else if (holds_alternative<shared_ptr<cons> >(cadr)) {
       const auto parameters = obj->at("cdadr");
       const auto body = obj->at("cddr");
       if (!holds_alternative<symbol>(obj->at("caadr"))) {
         throw runtime_error("procedure name must be a symbol");
       }
       variable = get<symbol>(obj->at("caadr"));
-      value = new lambda_expr(parameters, body);
+      value = make_shared<lambda_expr>(parameters, body);
     }
 
     else {
@@ -182,25 +182,25 @@ struct definition : public expression {
     }
   }
 
-  executor*
+  shared_ptr<executor> 
   analyze() const {
-    return new def_exec(variable, value->analyze());
+    return make_shared<def_exec>(variable, value->analyze());
   }
 };
 
 struct let_expr : public expression {
-  map<symbol, expression*> bindings;
-  expression *body;
+  map<symbol, shared_ptr<expression> > bindings;
+  shared_ptr<expression> body;
 
   decltype(bindings)
   get_bindings(sc_obj li) {
-    map<symbol, expression*> ret {};
+    map<symbol, shared_ptr<expression> > ret {};
     while (is_pair(li)) {
-      const auto as_cons = get<cons*>(li);
-      if (!holds_alternative<cons*>(as_cons->car)) {
+      const auto as_cons = get<shared_ptr<cons> >(li);
+      if (!holds_alternative<shared_ptr<cons> >(as_cons->car)) {
         throw runtime_error("let_expr::get_bindings: type error");
       }
-      const auto car = get<cons*>(as_cons->car);
+      const auto car = get<shared_ptr<cons> >(as_cons->car);
       if (!holds_alternative<symbol>(car->car)) {
         throw runtime_error("let_expr::get_bindings: type error");
       }
@@ -214,23 +214,23 @@ struct let_expr : public expression {
     return ret;
   }
 
-  map<symbol, executor*> 
+  map<symbol, shared_ptr<executor> > 
   get_pseudoframe() const {
-    map<symbol, executor*> pseudoframe {};
+    map<symbol, shared_ptr<executor> > pseudoframe {};
     for (const auto& [sym, expr] : bindings)
       pseudoframe.insert({sym, expr->analyze()});
     return pseudoframe;
   }
 
-  let_expr(cons *obj):
+  let_expr(shared_ptr<cons> obj):
     expression("let", obj, 3, MAXARGS),
     bindings {get_bindings(obj->at("cadr"))},
     body {combine_expr(obj->at("cddr"))}
   {}
 
-  executor*
+  shared_ptr<executor> 
   analyze() const {
-    return new let_exec(get_pseudoframe(), body->analyze());
+    return make_shared<let_exec>(get_pseudoframe(), body->analyze());
   }
 
 };
@@ -246,13 +246,13 @@ private:
 
 public:
   bool is_else;
-  expression *predicate;
-  expression *actions;
+  shared_ptr<expression> predicate;
+  shared_ptr<expression> actions;
 
-  clause (cons *obj) {
+  clause (shared_ptr<cons> obj) {
     if (is_else_clause(obj->car)) {
       is_else = 1;
-      predicate = new self_evaluating(true);
+      predicate = make_shared<self_evaluating>(true);
     } else {
       is_else = 0;
       predicate = classify(obj->car);
@@ -263,11 +263,11 @@ public:
 
 struct cond_expr : public expression {
 private:
-  if_expr*
+  shared_ptr<if_expr> 
   cond2if() const {
-    if_expr* ret = new if_expr;
+    auto ret = make_shared<if_expr>();
     for (auto curr = clauses.rbegin(); curr != clauses.rend(); curr++) {
-      ret = new if_expr(curr->predicate, curr->actions, ret);
+      ret = make_shared<if_expr>(curr->predicate, curr->actions, ret);
     }
     return ret;
   }
@@ -278,13 +278,13 @@ public:
   cond_expr (sc_obj obj):
     expression("cond") 
   {
-    obj = get<cons*>(obj)->cdr;
+    obj = get<shared_ptr<cons> >(obj)->cdr;
     while (is_pair(obj)) {
-      const auto as_cons = get<cons*>(obj);
-      if (!holds_alternative<cons*>(as_cons->car)) {
+      const auto as_cons = get<shared_ptr<cons> >(obj);
+      if (!holds_alternative<shared_ptr<cons> >(as_cons->car)) {
         throw runtime_error("cond type error\n");
       }
-      const auto new_clause = clause(get<cons*>(as_cons->car));
+      const auto new_clause = clause(get<shared_ptr<cons> >(as_cons->car));
       clauses.push_back(new_clause);
       if (new_clause.is_else)
         break;
@@ -292,144 +292,144 @@ public:
     }
   }
 
-  executor*
+  shared_ptr<executor> 
   analyze() const {
     return cond2if()->analyze();
   }
 };
 
 struct application : public expression {
-  expression *op;
-  vector<expression*> args;
+  shared_ptr<expression> op;
+  vector<shared_ptr<expression> > args;
 
-  application(cons *obj):
+  application(shared_ptr<cons> obj):
     expression("application"),
     op {classify(obj->car)},
     args {cons2vec(obj->cdr)}
   {}
 
-  executor*
+  shared_ptr<executor> 
   analyze() const {
-    return new apply_exec(op->analyze(), exprs2execs(args));
+    return make_shared<apply_exec>(op->analyze(), exprs2execs(args));
   }
 };
 
 struct and_expr : public expression {
-  vector<expression*> exprs;
+  vector<shared_ptr<expression> > exprs;
 
-  and_expr(cons *obj):
+  and_expr(shared_ptr<cons> obj):
     expression("and", obj, 2, MAXARGS),
     exprs {cons2vec(obj->cdr)}
   {}
 
-  executor*
+  shared_ptr<executor> 
   analyze() const {
-    return new and_exec(exprs2execs(exprs));
+    return make_shared<and_exec>(exprs2execs(exprs));
   }
 };
 
 struct or_expr : public expression {
-  vector<expression*> exprs;
+  vector<shared_ptr<expression> > exprs;
 
-  or_expr(cons *obj):
+  or_expr(shared_ptr<cons> obj):
     expression("or", obj, 2, MAXARGS),
     exprs {cons2vec(obj->cdr)}
   {}
 
-  executor*
+  shared_ptr<executor> 
   analyze() const {
-    return new or_exec(exprs2execs(exprs));
+    return make_shared<or_exec>(exprs2execs(exprs));
   }
 };
 
 struct cons_set_expr : public expression {
-  expression *variable;
-  expression *value;
+  shared_ptr<expression> variable;
+  shared_ptr<expression> value;
   string side;
 
-  cons_set_expr(cons *obj, string side): 
+  cons_set_expr(shared_ptr<cons> obj, string side): 
     expression("set-" + side + "!", obj, 3, 3),
     variable {classify(obj->at("cadr"))},
     value {classify(obj->at("caddr"))},
     side {side}
   {}
 
-  executor*
+  shared_ptr<executor> 
   analyze() const {
-    return new cons_set_exec(variable->analyze(), value->analyze(), side);
+    return make_shared<cons_set_exec>(variable->analyze(), value->analyze(), side);
   }
 };
 
 struct cxr_expr : public expression {
   symbol word;
-  expression *expr;
+  shared_ptr<expression> expr;
 
-  cxr_expr(symbol tag, cons *obj): 
+  cxr_expr(symbol tag, shared_ptr<cons> obj): 
     expression(tag.name, obj, 2, 2),
     word {tag}, 
     expr {classify(obj->at("cadr"))} 
   {}
 
-  executor*
+  shared_ptr<executor> 
   analyze() const {
-    return new cxr_exec(word.name, expr->analyze());
+    return make_shared<cxr_exec>(word.name, expr->analyze());
   }
 };
 
-expression*
-make_quoted(cons *obj) {
-  return new quoted(obj); 
+shared_ptr<expression>
+make_quoted(shared_ptr<cons> obj) {
+  return std::make_shared<quoted>(obj); 
 }
-expression*
-make_assignment(cons *obj) {
-  return new assignment(obj); 
+shared_ptr<expression>
+make_assignment(shared_ptr<cons> obj) {
+  return std::make_shared<assignment>(obj); 
 }
-expression*
-make_definition(cons *obj) {
-  return new definition(obj);
+shared_ptr<expression>
+make_definition(shared_ptr<cons> obj) {
+  return std::make_shared<definition>(obj);
 }
-expression*
-make_if_expr(cons *obj) {
-  return new if_expr(obj);
+shared_ptr<expression>
+make_if_expr(shared_ptr<cons> obj) {
+  return std::make_shared<if_expr>(obj);
 }
-expression*
-make_lambda_expr(cons *obj) {
-  return new lambda_expr(obj); 
+shared_ptr<expression>
+make_lambda_expr(shared_ptr<cons> obj) {
+  return std::make_shared<lambda_expr>(obj); 
 }
-expression*
-make_let_expr(cons *obj) {
-  return new let_expr(obj);
+shared_ptr<expression>
+make_let_expr(shared_ptr<cons> obj) {
+  return std::make_shared<let_expr>(obj);
 }
-expression*
-make_begin_expr(cons *obj) {
+shared_ptr<expression>
+make_begin_expr(shared_ptr<cons> obj) {
   return combine_expr(obj->cdr);
 }
-expression*
-make_cond_expr(cons *obj) {
-  return new cond_expr(obj); 
+shared_ptr<expression>
+make_cond_expr(shared_ptr<cons> obj) {
+  return std::make_shared<cond_expr>(obj); 
 }
-expression*
-make_application(cons *obj) {
-  return new application(obj); 
+shared_ptr<expression>
+make_application(shared_ptr<cons> obj) {
+  return std::make_shared<application>(obj); 
 }
-expression*
-make_and_expr(cons *obj) {
-  return new and_expr(obj);
+shared_ptr<expression>
+make_and_expr(shared_ptr<cons> obj) {
+  return std::make_shared<and_expr>(obj);
 }
-expression*
-make_or_expr(cons *obj) {
-  return new or_expr(obj);
+shared_ptr<expression>
+make_or_expr(shared_ptr<cons> obj) {
+  return std::make_shared<or_expr>(obj);
 }
-expression*
-make_set_car_expr(cons *obj) {
-  return new cons_set_expr(obj, "car");
+shared_ptr<expression>
+make_set_car_expr(shared_ptr<cons> obj) {
+  return std::make_shared<cons_set_expr>(obj, "car");
 }
-expression*
-make_set_cdr_expr(cons *obj) {
-  return new cons_set_expr(obj, "cdr");
+shared_ptr<expression>
+make_set_cdr_expr(shared_ptr<cons> obj) {
+  return std::make_shared<cons_set_expr>(obj, "cdr");
 }
 
-map<symbol, expression*(*)(cons*)> special_forms = {
+map<symbol, shared_ptr<expression>(*)(shared_ptr<cons>)> special_forms = {
   {"quote"s, make_quoted},
   {"set!"s, make_assignment},
   {"define"s, make_definition},
@@ -457,10 +457,10 @@ is_cxr(const string& s) {
   return true;
 }
 
-expression*
+shared_ptr<expression> 
 classify(sc_obj obj) {
   if (is_pair(obj)) {
-    const auto p = get<cons*>(obj);
+    const auto p = get<shared_ptr<cons>>(obj);
     if (holds_alternative<symbol>(p->car)) {
       const auto tag = get<symbol>(p->car);
       const auto found = special_forms.find(tag.name);
@@ -469,15 +469,15 @@ classify(sc_obj obj) {
         return func(p);
       }
       else if (is_cxr(tag.name)) {
-        return new cxr_expr(tag, p);
+        return make_shared<cxr_expr>(tag, p);
       }
     }
-    return new application(p);
+    return make_shared<application>(p);
   }
   else if (holds_alternative<symbol>(obj))
-    return new variable(get<symbol>(obj));
+    return make_shared<variable>(get<symbol>(obj));
   else
-    return new self_evaluating(obj);
+    return make_shared<self_evaluating>(obj);
 }
 
 }

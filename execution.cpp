@@ -10,7 +10,7 @@ public:
   self_eval_exec(sc_obj obj): obj {obj} {}
 
   sc_obj
-  eval(environment* env) const {
+  eval(shared_ptr<environment> env) const {
     return obj;
   }
 };
@@ -22,7 +22,7 @@ public:
   var_exec(symbol sym): sym {sym} {}
 
   sc_obj
-  eval(environment* env) const {
+  eval(shared_ptr<environment> env) const {
     return env->lookup(sym);
   }
 };
@@ -30,12 +30,12 @@ public:
 class set_exec : public executor {
 private:
   symbol var;
-  executor *vproc;
+  shared_ptr<executor> vproc;
 public:
-  set_exec(symbol var, executor *exec): var {var}, vproc {exec} {}
+  set_exec(symbol var, shared_ptr<executor> exec): var {var}, vproc {exec} {}
 
   sc_obj
-  eval(environment *env) const {
+  eval(shared_ptr<environment> env) const {
     env->set_variable(var, vproc->eval(env));
     return "ok";
   }
@@ -44,55 +44,73 @@ public:
 class def_exec : public executor {
 private:
   symbol var;
-  executor *vproc;
-public:
-  def_exec(symbol v1, executor *v2): var {v1}, vproc {v2} {}
+  shared_ptr<executor> vproc;
 
-  sc_obj
-  eval(environment *env) const {
-    env->define_variable(var, vproc->eval(env));
+public:
+  def_exec(symbol v1, shared_ptr<executor> v2): 
+    var {v1}, 
+    vproc {v2}
+  {}
+
+  sc_obj 
+  eval(shared_ptr<environment> env) const override {
+    if (!vproc) {
+      throw runtime_error("Null executor in def_exec");
+    }
+    
+    auto value = vproc->eval(env);
+    env->define_variable(var, value);
     return "ok";
   }
 };
-
 class if_exec : public executor {
 private:
-  executor *pproc, *cproc, *aproc;
+  shared_ptr<executor> pproc, cproc, aproc;
 
 public:
-  if_exec(executor *pp, executor *cp, executor *ap): pproc {pp}, cproc {cp}, aproc {ap} {}
+  if_exec(shared_ptr<executor> pp, shared_ptr<executor> cp, shared_ptr<executor> ap):
+    pproc {pp},
+    cproc {cp},
+    aproc {ap} 
+  {} 
 
-  sc_obj
-  eval(environment *env) const {
-    if (is_true(pproc->eval(env)))
+  sc_obj 
+  eval(shared_ptr<environment> env) const override {
+    if (!pproc || !cproc || !aproc) {
+      throw runtime_error("Null executor in if_exec");
+    }
+    
+    auto pred_result = pproc->eval(env);
+    
+    if (is_true(pred_result)) {
       return cproc->eval(env);
-    else
+    } else {
       return aproc->eval(env);
+    }
   }
 };
-
 class lambda_exec : public executor {
 private:
   vector<symbol> vars;
-  executor *bproc;
+  shared_ptr<executor> bproc;
 public:
-  lambda_exec(const vector<symbol>& v, executor *b): vars {v}, bproc {b} {}
+  lambda_exec(const vector<symbol>& v, shared_ptr<executor> b): vars {v}, bproc {b} {}
 
   sc_obj
-  eval(environment *env) const {
-    return new procedure(vars, bproc, env);
+  eval(shared_ptr<environment> env) const {
+    return make_shared<procedure>(vars, bproc, env);
   } 
 };
 
 class begin_exec : public executor {
 private:
-  vector<executor*> execs;
+  vector<shared_ptr<executor>> execs;
 
 public:
-  begin_exec(const vector<executor*>& v): execs {v} {}
+  begin_exec(const vector<shared_ptr<executor>>& v): execs {v} {}
 
   sc_obj
-  eval(environment *env) const {
+  eval(shared_ptr<environment> env) const {
     sc_obj ret;
     for (const auto ex : execs) {
       ret = ex->eval(env);
@@ -103,13 +121,13 @@ public:
 
 class apply_exec : public executor {
 private:
-  executor *fproc;
-  vector<executor*> aprocs;
+  shared_ptr<executor> fproc;
+  vector<shared_ptr<executor>> aprocs;
 public:
-  apply_exec(executor *fp, const vector<executor*>& aps): fproc {fp}, aprocs {aps} {}
+  apply_exec(shared_ptr<executor> fp, const vector<shared_ptr<executor>>& aps): fproc {fp}, aprocs {aps} {}
 
   sc_obj
-  eval(environment *env) const {
+  eval(shared_ptr<environment> env) const {
     vector<sc_obj> args {};
     for (const auto aproc : aprocs) {
       args.push_back(aproc->eval(env));
@@ -123,12 +141,12 @@ public:
 
 class let_exec : public executor {
 private:
-  map<symbol, executor*> pseudoframe;
-  executor *bproc;
+  map<symbol, shared_ptr<executor>> pseudoframe;
+  shared_ptr<executor> bproc;
 
-  environment*
-  get_frame(environment *env) const {
-    auto ret = new environment(env);
+  shared_ptr<environment>
+  get_frame(shared_ptr<environment> env) const {
+    auto ret = make_shared<environment>(env);
     for (const auto& p : pseudoframe) {
       ret->define_variable(
         p.first,
@@ -139,10 +157,10 @@ private:
   }
 
 public:
-  let_exec(const map<symbol, executor*> mp, executor* bp): pseudoframe {mp}, bproc {bp} {}
+  let_exec(const map<symbol, shared_ptr<executor>> mp, shared_ptr<executor> bp): pseudoframe {mp}, bproc {bp} {}
 
   sc_obj
-  eval(environment *env) const {
+  eval(shared_ptr<environment> env) const {
     const auto env2 = get_frame(env);
     return bproc->eval(env2);
   } 
@@ -150,13 +168,13 @@ public:
 
 class and_exec : public executor {
 private:
-  vector<executor*> execs;
+  vector<shared_ptr<executor>> execs;
 
 public:
-  and_exec(const vector<executor*>& v): execs {v} {}
+  and_exec(const vector<shared_ptr<executor>>& v): execs {v} {}
 
   sc_obj
-  eval(environment *env) const {
+  eval(shared_ptr<environment> env) const {
     for (const auto ex : execs) {
       if (is_false(ex->eval(env)))
         return false;
@@ -167,13 +185,13 @@ public:
 
 class or_exec : public executor {
 private:
-  vector<executor*> execs;
+  vector<shared_ptr<executor>> execs;
 
 public:
-  or_exec(const vector<executor*>& v): execs {v} {}
+  or_exec(const vector<shared_ptr<executor>>& v): execs {v} {}
 
   sc_obj
-  eval(environment *env) const {
+  eval(shared_ptr<environment> env) const {
     for (const auto ex : execs) {
       if (is_true(ex->eval(env)))
         return true;
@@ -184,22 +202,22 @@ public:
 
 class cons_set_exec : public executor {
 private:
-  executor *var;
-  executor *val;
+  shared_ptr<executor> var;
+  shared_ptr<executor> val;
   string side;
 
 public:
-  cons_set_exec(executor *var, executor *val, string side): 
+  cons_set_exec(shared_ptr<executor> var, shared_ptr<executor> val, string side): 
     var {var}, val {val}, side {side} {}
 
   sc_obj
-  eval(environment *env) const {
+  eval(shared_ptr<environment> env) const {
     auto thing = var->eval(env);
-    if (!holds_alternative<cons*>(thing)) {
+    if (!holds_alternative<shared_ptr<cons>>(thing)) {
       throw runtime_error("tried to apply set-" + side + "! on a non-pair object");
     }
     const auto edit = val->eval(env);
-    get<cons*>(thing)->at(side) = edit;
+    get<shared_ptr<cons>>(thing)->at(side) = edit;
     return thing;
   }
 };
@@ -207,17 +225,17 @@ public:
 class cxr_exec : public executor {
 private:
   string word;
-  executor *exec;
+  shared_ptr<executor> exec;
 public:
-  cxr_exec(string s, executor *e): word {s}, exec {e} {}
+  cxr_exec(string s, shared_ptr<executor> e): word {s}, exec {e} {}
 
   sc_obj
-  eval(environment *env) const {
+  eval(shared_ptr<environment> env) const {
     const auto val = exec->eval(env);
-    if (!holds_alternative<cons*>(val)) {
+    if (!holds_alternative<shared_ptr<cons>>(val)) {
       throw runtime_error(word + " type error: expected cons");
     }
-    auto found = get<cons*>(val);
+    auto found = get<shared_ptr<cons>>(val);
     return found->at(word);
   }
 };
