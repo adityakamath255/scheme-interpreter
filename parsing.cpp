@@ -51,30 +51,30 @@ tokenize(const string& input) {
   return tokens;
 };
 
-sc_obj 
+sc_obj *
 make_bool_obj(const string& str) {
   if (str[1] == 't')
-    return true;
+    return new sc_obj(true);
   else
-    return false;
+    return new sc_obj(false);
 }
 
-sc_obj 
+sc_obj *
 make_num_obj(const string& str) {
-  return stod(str);
+  return new sc_obj(stod(str));
 }
 
-sc_obj 
+sc_obj *
 make_sym_obj(const string& str) {
-  return symbol(str);
+  return new sc_obj(symbol(str));
 }
 
-sc_obj 
+sc_obj *
 make_str_obj(const string& str) {
-  return str;
+  return new sc_obj(str);
 }
 
-sc_obj 
+sc_obj *
 sc_obj_from_str(const string& str) {
   if (str[0] == '#') {
     return make_bool_obj(str);
@@ -96,14 +96,14 @@ sc_obj_from_str(const string& str) {
   }
 } 
 
-pair<sc_obj, int> 
+pair<sc_obj*, int> 
 parse_impl(const vector<string>& tokens, const int curr_index, bool recursive) {
   const string& token = tokens[curr_index];
-  sc_obj head;
+  sc_obj *head;
   int next_index;
 
   if (token[0] == ')')  {
-    return {nullptr, curr_index + 1};
+    return {new sc_obj(nullptr), curr_index + 1};
   }
   
   else if (token[0] == '(') {
@@ -120,13 +120,14 @@ parse_impl(const vector<string>& tokens, const int curr_index, bool recursive) {
   }
 
   else if (token[0] == '\'') {
-    sc_obj q;
+    sc_obj *q;
     tie(q, next_index) = parse_impl(tokens, curr_index + 1, false);
-    head = make_shared<cons>(
-        make_sym_obj("quote"), 
-        make_shared<cons>(
-          q, 
-          nullptr));
+    head = new sc_obj(
+      new cons(
+        *make_sym_obj("quote"), 
+        new cons(
+          *q, 
+          nullptr)));
   }
 
   else {
@@ -140,18 +141,20 @@ parse_impl(const vector<string>& tokens, const int curr_index, bool recursive) {
   else {
     if (recursive) {
       const auto [tail, k] = parse_impl(tokens, next_index, 1);
-      auto c = make_shared<cons>(head, tail);
-      return {c, k};
+      cons *c = new cons(*head, *tail);
+      return {new sc_obj(c), k};
     }
     else {
       throw runtime_error("ill-formed syntax");
+      return {nullptr, 0};
     }
   }
 }
 
-sc_obj 
+sc_obj *
 parse(const vector<string>& tokens) {
   auto ret = parse_impl(tokens, 0, 1).first;
+  // display(*ret);
   return ret;
 }
 

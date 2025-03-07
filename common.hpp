@@ -8,7 +8,6 @@
 #include <cmath>
 #include <string>
 #include <functional>
-#include <memory>
 
 using namespace std;
 
@@ -27,13 +26,11 @@ typedef variant<
   double,
   symbol,
   string,
-  shared_ptr<cons>,
-  shared_ptr<primitive>,
-  shared_ptr<procedure>,
+  cons*,
+  primitive*,
+  procedure*,
   nullptr_t
 > sc_obj;
-
-void display(const sc_obj);
 
 struct symbol {
   string name;
@@ -53,29 +50,31 @@ struct symbol {
   }
 };
 
-struct cons : public enable_shared_from_this<cons> {
+struct cons {
   sc_obj car;
   sc_obj cdr;
   cons(sc_obj a, sc_obj b): car {a}, cdr {b} {}
 
   sc_obj
   operator[](const string& s) {
+    sc_obj curr = const_cast<cons*>(this);
+
     if (*s.begin() != 'c' || *s.rbegin() != 'r') {
       throw runtime_error("invalid cons operation: " + s);
+      return nullptr;
     }
-
-    sc_obj curr = shared_from_this();
 
     for (int i = s.size() - 2; i > 0; i--) {
       switch (s[i]) {
         case 'a':
-          curr = get<shared_ptr<cons>>(curr)->car;
+          curr = get<cons*>(curr)->car;
           break;
         case 'd':
-          curr = get<shared_ptr<cons>>(curr)->cdr;
+          curr = get<cons*>(curr)->cdr;
           break;
         default:
           throw runtime_error("invalid cons operation: " + s);
+          return nullptr;
       }
     }
 
@@ -100,10 +99,10 @@ struct primitive {
 
 struct procedure {
   const vector<symbol> parameters;
-  const shared_ptr<executor> body;
-  shared_ptr<environment> env;
+  const executor *body;
+  environment *const env;
 
-  procedure(vector<symbol> p, shared_ptr<executor> b, shared_ptr<environment> e):
+  procedure(vector<symbol> p, executor *b, environment *e):
     parameters {p},
     body {b},
     env {e}
@@ -113,7 +112,7 @@ struct procedure {
 class environment {
 private:
   map<symbol, sc_obj> frame {};
-  shared_ptr<environment> super;
+  environment *const super;
 
   map<symbol, sc_obj>::iterator
   assoc(const symbol& s) {
@@ -134,7 +133,7 @@ public:
   environment():
     super {nullptr} {}
     
-  environment(shared_ptr<environment> super_): 
+  environment(environment *super_): 
     super {super_} {}
 
   void
@@ -157,21 +156,15 @@ public:
       frame.insert({s, obj});
     }
   }
-
-  void debug_frame() const {
-        for (const auto& [key, value] : frame) {
-            display(value);
-        }
-    }
 };
 
-shared_ptr<environment>
-extend_env(const vector<symbol>& parameters, const vector<sc_obj>& arguments, shared_ptr<environment> env) {
+environment* 
+extend_env(const vector<symbol>& parameters, const vector<sc_obj>& arguments, environment *env) {
   if (parameters.size() != arguments.size()) {
     throw runtime_error("env extend size mismatch");
     return nullptr; 
   }
-  auto ret = make_shared<environment>(env);
+  environment *ret = new environment(env);
   for (int i = 0; i < parameters.size(); i++) {
     ret->define_variable(parameters[i], arguments[i]);
   }
@@ -181,28 +174,28 @@ extend_env(const vector<symbol>& parameters, const vector<sc_obj>& arguments, sh
 class executor {
 public:
   virtual sc_obj
-  eval(shared_ptr<environment>) const = 0;
+  eval(environment*) const = 0;
 };
 
 class expression {
 private:
   int 
-  get_size(shared_ptr<cons> obj) const {
+  get_size(cons* obj) const {
     int sz = 0;
     while (obj != nullptr) {
       sz++;
-      if (!holds_alternative<shared_ptr<cons>>(obj->cdr)) {
+      if (!holds_alternative<cons*>(obj->cdr)) {
         break;
       }
       else {
-        obj = get<shared_ptr<cons>>(obj->cdr);
+        obj = get<cons*>(obj->cdr);
       }
     }
     return sz;
   }
 
   void
-  assert_size(shared_ptr<cons>obj, const int lb, const int ub) const {
+  assert_size(cons *obj, const int lb, const int ub) const {
     const int sz = get_size(obj);
     if (sz < lb || sz > ub) {
       throw runtime_error(
@@ -218,7 +211,7 @@ protected:
   string name;
 
 public:
-  expression(const string& n, shared_ptr<cons>obj = nullptr, const int lb = -1, const int ub = -1):
+  expression(const string& n, cons *obj = nullptr, const int lb = -1, const int ub = -1):
     name {n} 
   {
     if (lb != -1) {
@@ -231,13 +224,13 @@ public:
     return name;
   }
 
-  virtual shared_ptr<executor> 
+  virtual executor*
   analyze() const = 0;
 };
 
 bool
 is_pair(const sc_obj obj) {
-  return holds_alternative<shared_ptr<cons>>(obj);
+  return holds_alternative<cons*>(obj);
 }
 
 bool 
@@ -258,31 +251,22 @@ is_false(const sc_obj obj) {
   return !is_true(obj);
 }
 
-shared_ptr<expression>
+expression*
 classify(const sc_obj);
 
 sc_obj 
-eval(shared_ptr<expression> expr, shared_ptr<environment> env) {
-    if (!expr) {
-        throw runtime_error("Null expression in eval");
-    }
-    
-    auto executor = expr->analyze();
-    if (!executor) {
-        throw runtime_error("Null executor from analysis");
-    }
-    
-    return executor->eval(env);
+eval(expression *expr, environment *const env) {
+  return expr->analyze()->eval(env);
 }
 
 sc_obj 
 apply(const sc_obj p, const vector<sc_obj>& args) {
-  if (holds_alternative<shared_ptr<primitive>>(p)) {
-    const auto func = *get<shared_ptr<primitive>>(p);
+  if (holds_alternative<primitive*>(p)) {
+    const auto func = *get<primitive*>(p);
     return func(args);
   }
-  else if (holds_alternative<shared_ptr<procedure>>(p)) {
-    const auto pp = get<shared_ptr<procedure>>(p);
+  else if (holds_alternative<procedure*>(p)) {
+    const auto pp = get<procedure*>(p);
     const auto new_env = extend_env(pp->parameters, args, pp->env);
     return pp->body->eval(new_env);
   }
@@ -296,33 +280,32 @@ vector<symbol>
 cons2symbols(sc_obj c) {
   vector<symbol> ret;
   while (is_pair(c)) {
-    const auto as_cons = get<shared_ptr<cons>>(c);
+    const auto as_cons = get<cons*>(c);
     ret.push_back(get<symbol>(as_cons->car));
     c = as_cons->cdr;
   }
   return ret;
 }
 
-vector<shared_ptr<expression>> 
+vector<expression*> 
 cons2vec(sc_obj seq) {
-  vector<shared_ptr<expression>> vec {};
+  vector<expression*> vec {};
   while (is_pair(seq)) {
-    const auto as_cons = get<shared_ptr<cons>>(seq);
+    const auto as_cons = get<cons*>(seq);
     vec.push_back(classify(as_cons->car));
     seq = as_cons->cdr; 
   }
   return vec;
 }
 
-vector<shared_ptr<executor>> 
-exprs2execs(const vector<shared_ptr<expression>>& arr) {
-  vector<shared_ptr<executor>> ret {};
+vector<executor*> 
+exprs2execs(const vector<expression*>& arr) {
+  vector<executor*> ret {};
   for (const auto expr : arr)
     ret.push_back(expr->analyze());
   return ret;
 }
 
-
-constexpr double precision = 1e-7;
+constexpr double precision = 1e-9;
 
 }

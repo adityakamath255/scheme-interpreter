@@ -6,25 +6,24 @@
 
 using namespace scheme;
 
-shared_ptr<environment>
+environment*
 install_initial_environment() {
-  auto ret = make_shared<environment>();
+  auto ret = new environment();
   for (const auto& p : prims) {
-    ret->define_variable(p.first, make_shared<primitive>(p.second));
+    ret->define_variable(p.first, new primitive(p.second));
   }
   ret->define_variable(symbol("#t"), true);
   ret->define_variable(symbol("#f"), false);
   ret->define_variable(symbol("nil"), nullptr);
-  auto ret2 = make_shared<environment>(ret);
-  return ret2;
+  ret = new environment(ret);
+  return ret;
 }
 
 auto init_env = install_initial_environment();
 
 sc_obj
 interpret(const string& code) {
-  auto classified = classify(parse(tokenize(code)));
-  return eval(classified, init_env);
+  return eval(classify(*parse(tokenize(code))), init_env);
 }
 
 template<class INPUT>
@@ -70,7 +69,8 @@ read(INPUT& in) {
   return input;
 }
 
-void driver_loop() {
+void
+driver_loop() {
   while (true) {
     try {
       cout << ">>> ";
