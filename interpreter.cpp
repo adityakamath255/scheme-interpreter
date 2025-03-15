@@ -1,6 +1,6 @@
 #include "common.hpp"
 #include "primitives.cpp"
-#include "syntax.cpp"
+#include "expressions.cpp"
 #include "parsing.cpp"
 #include <fstream>
 
