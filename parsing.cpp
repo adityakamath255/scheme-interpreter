@@ -59,14 +59,6 @@ tokenize(const string& input) {
 };
 
 sc_obj *
-make_bool_obj(const string& str) {
-  if (str[1] == 't')
-    return new sc_obj(true);
-  else
-    return new sc_obj(false);
-}
-
-sc_obj *
 make_num_obj(const string& str) {
   return new sc_obj(stod(str));
 }
@@ -74,6 +66,16 @@ make_num_obj(const string& str) {
 sc_obj *
 make_sym_obj(const string& str) {
   return new sc_obj(symbol(str));
+}
+
+sc_obj *
+make_bool_obj(const string& str) {
+  if (str[1] == 't')
+    return new sc_obj(true);
+  else if (str[1] == 'f') 
+    return new sc_obj(false);
+  else 
+    return make_sym_obj(str);
 }
 
 sc_obj *
@@ -91,7 +93,7 @@ sc_obj_from_str(const string& str) {
     return make_str_obj(str);
   }
   else if (str[0] == '-') {
-    if (str.size() != 0 && isdigit(str[1]))
+    if (str.size() != 1 && isdigit(str[1]))
       return make_num_obj(str);
     else
       return make_sym_obj(str);

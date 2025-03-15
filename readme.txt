@@ -10,10 +10,7 @@ This file defines the core interface and data structures for the interpreter, in
 primitives.cpp
 This file contains a collection of predefined primitive functions, such as arithmetic operators and basic Scheme functions. The primitives are added to the environment when the interpreter is initialized.
 
-execution.cpp
-In this file, the core logic for evaluating and executing expressions resides. It handles the evaluation of arithmetic operations, function calls, conditionals, and other Scheme constructs.
-
-syntax.cpp
+expressions.cpp
 This file defines the structures and functions related to the syntax of the language, such as expressions, special forms (e.g., if, lambda, define), and the logic to classify and interpret different types of expressions.
 
 parsing.cpp

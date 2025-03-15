@@ -60,7 +60,6 @@ struct cons {
 
     if (*s.begin() != 'c' || *s.rbegin() != 'r') {
       throw runtime_error("invalid cons operation: " + s);
-      return nullptr;
     }
 
     for (int i = s.size() - 2; i > 0; i--) {
@@ -73,7 +72,6 @@ struct cons {
           break;
         default:
           throw runtime_error("invalid cons operation: " + s);
-          return nullptr;
       }
     }
 
@@ -123,7 +121,7 @@ private:
       return super->assoc(s);
     }
     else {
-      throw runtime_error("Unbound variable: " + s.name);
+      throw runtime_error("unbound variable: " + s.name);
     }
     return found;
   }
@@ -259,9 +257,12 @@ apply(const sc_obj p, const vector<sc_obj>& args) {
     return func(args);
   }
   else if (holds_alternative<procedure*>(p)) {
-    const auto pp = get<procedure*>(p);
-    const auto new_env = pp->env->extend(pp->parameters, args);
-    return pp->body->eval(new_env);
+    const auto func = get<procedure*>(p);
+    if (func->parameters.size() != args.size()) {
+      throw runtime_error(" wrong number of arguments: expected " + to_string(func->parameters.size()));
+    }
+    const auto new_env = func->env->extend(func->parameters, args);
+    return func->body->eval(new_env);
   }
   else {
     throw runtime_error("tried to apply an object that is not a procedure");

@@ -4,24 +4,6 @@ using namespace std;
 namespace scheme {
 
 void 
-display(const bool);
-
-void 
-display(const double);
-
-void 
-display(const symbol&);
-
-void 
-display(const string&);
-
-void 
-display(const nullptr_t);
-
-void 
-display(cons*);
-
-void 
 display(const bool b) {
   cout << (b ? "#t" : "#f");
 }
@@ -53,6 +35,9 @@ void
 display(const primitive *p) {
   cout << "primitive at " << p;
 }
+
+void 
+display(cons *const);
 
 struct {
   template<typename T>
