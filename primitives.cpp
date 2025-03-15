@@ -38,9 +38,7 @@ display(const symbol& s) {
 
 void 
 display(const string& w) {
-  cout << "\"";
   cout << w;
-  cout << "\"";
 }
 
 void 
@@ -101,7 +99,6 @@ namespace prim_env {
   display_final(const vector<sc_obj>& args) {
     for (const auto& arg : args) {
       display(arg);
-      cout << "\n";
     }
     return symbol("ok");
   }
