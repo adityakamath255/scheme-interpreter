@@ -17,6 +17,8 @@ struct self_evaluating : public expression {
   }
 };
 
+// --- // --- //
+
 struct variable : public expression {
   symbol sym;
   variable(symbol& obj):
@@ -30,6 +32,8 @@ struct variable : public expression {
   }
 };
 
+// --- // --- //
+
 struct quoted : public expression {
   sc_obj text_of_quotation;
   quoted(cons *obj):
@@ -42,6 +46,8 @@ struct quoted : public expression {
     return text_of_quotation;
   }
 };
+
+// --- // --- //
 
 struct assignment : public expression {
   symbol variable;
@@ -64,6 +70,8 @@ struct assignment : public expression {
     return "ok";
   }
 };
+
+// --- // --- //
 
 struct if_expr : public expression {
   expression *predicate, *consequent, *alternative;
@@ -103,6 +111,8 @@ struct if_expr : public expression {
   }
 };
 
+// --- // --- //
+
 struct begin_expr : public expression {
 public:
   vector<expression*> actions;
@@ -132,6 +142,8 @@ combine_expr(sc_obj seq) {
     return new begin_expr(vec);
 }
 
+// --- // --- //
+
 struct lambda_expr : public expression {
   vector<symbol> parameters;
   expression *body;
@@ -153,6 +165,8 @@ struct lambda_expr : public expression {
     return new procedure(parameters, body, env);
   }
 };
+
+// --- // --- //
 
 struct definition : public expression {
   symbol variable;
@@ -189,6 +203,8 @@ struct definition : public expression {
     return "ok";
   }
 };
+
+// --- // --- //
 
 struct let_expr : public expression {
   map<symbol, expression*> bindings;
@@ -240,6 +256,8 @@ struct let_expr : public expression {
     return body->eval(env2);
   }
 };
+
+// --- // --- //
 
 struct clause {
 private:
@@ -306,6 +324,8 @@ public:
   }
 };
 
+// --- // --- //
+
 struct application : public expression {
   expression *op;
   vector<expression*> params;
@@ -326,6 +346,8 @@ struct application : public expression {
   } 
 };
 
+// --- // --- //
+
 struct and_expr : public expression {
   vector<expression*> exprs;
 
@@ -345,6 +367,8 @@ struct and_expr : public expression {
   }
 };
 
+// --- // --- //
+
 struct or_expr : public expression {
   vector<expression*> exprs;
 
@@ -363,6 +387,8 @@ struct or_expr : public expression {
     return false;
   }
 };
+
+// --- // --- //
 
 struct cons_set_expr : public expression {
   expression *variable;
@@ -388,6 +414,8 @@ struct cons_set_expr : public expression {
   }
 };
 
+// --- // --- //
+
 struct cxr_expr : public expression {
   symbol word;
   expression *expr;
@@ -408,6 +436,8 @@ struct cxr_expr : public expression {
     return found->at(word.name);
   } 
 };
+
+// --- // --- //
 
 expression*
 make_quoted(cons *obj) {

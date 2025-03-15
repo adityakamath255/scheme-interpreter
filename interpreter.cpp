@@ -8,15 +8,14 @@ using namespace scheme;
 
 environment*
 install_initial_environment() {
-  auto ret = new environment();
+  auto env = new environment();
   for (const auto& p : prims) {
-    ret->define_variable(p.first, new primitive(p.second));
+    env->define_variable(p.first, new primitive(p.second));
   }
-  ret->define_variable(symbol("#t"), true);
-  ret->define_variable(symbol("#f"), false);
-  ret->define_variable(symbol("nil"), nullptr);
-  ret = new environment(ret);
-  return ret;
+  for (const auto& p : consts) {
+    env->define_variable(p.first, p.second);
+  }
+  return new environment(env);
 }
 
 auto init_env = install_initial_environment();

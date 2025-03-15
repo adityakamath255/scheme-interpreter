@@ -180,16 +180,6 @@ namespace prim_env {
   }
 
   sc_obj
-  car(const vector<sc_obj>& args) {
-    return get<cons*>(args[0])->car;
-  }
-
-  sc_obj
-  cdr(const vector<sc_obj>& args) {
-    return get<cons*>(args[0])->cdr;
-  }
-
-  sc_obj
   cons_fn(const vector<sc_obj>& args) {
     return new cons(args[0], args[1]);
   }
@@ -361,8 +351,6 @@ prims = {
   {"eq?", is_equal},
   {"equal?", is_equal},
   {"not", not_fn},
-  {"car", car},
-  {"cdr", cdr},
   {"cons", cons_fn},
   {"list", list_fn},
   {"null?", null_fn},
@@ -382,6 +370,15 @@ prims = {
   {"length", list_len},
   {"append", append},
   {"error", error_fn}
+};
+
+const vector<pair<string, sc_obj>>
+consts = {
+  {"true", true},
+  {"false", false},
+  {"#t", true},
+  {"#f", false},
+  {"nil", nullptr}
 };
 
 }

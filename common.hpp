@@ -155,20 +155,20 @@ public:
       frame.insert({s, obj});
     }
   }
+  
+  environment *
+  extend(const vector<symbol>& parameters, const vector<sc_obj>& arguments) {
+    if (parameters.size() != arguments.size()) {
+      throw runtime_error("env extend size mismatch");
+      return nullptr; 
+    }
+    environment *ret = new environment(this);
+    for (int i = 0; i < parameters.size(); i++) {
+      ret->define_variable(parameters[i], arguments[i]);
+    }
+    return ret;
+  }
 };
-
-environment* 
-extend_env(const vector<symbol>& parameters, const vector<sc_obj>& arguments, environment *env) {
-  if (parameters.size() != arguments.size()) {
-    throw runtime_error("env extend size mismatch");
-    return nullptr; 
-  }
-  environment *ret = new environment(env);
-  for (int i = 0; i < parameters.size(); i++) {
-    ret->define_variable(parameters[i], arguments[i]);
-  }
-  return ret;
-}
 
 class expression {
 private:
@@ -260,7 +260,7 @@ apply(const sc_obj p, const vector<sc_obj>& args) {
   }
   else if (holds_alternative<procedure*>(p)) {
     const auto pp = get<procedure*>(p);
-    const auto new_env = extend_env(pp->parameters, args, pp->env);
+    const auto new_env = pp->env->extend(pp->parameters, args);
     return pp->body->eval(new_env);
   }
   else {
@@ -271,13 +271,13 @@ apply(const sc_obj p, const vector<sc_obj>& args) {
 
 vector<symbol>
 cons2symbols(sc_obj c) {
-  vector<symbol> ret;
+  vector<symbol> vec {};
   while (is_pair(c)) {
     const auto as_cons = get<cons*>(c);
-    ret.push_back(get<symbol>(as_cons->car));
+    vec.push_back(get<symbol>(as_cons->car));
     c = as_cons->cdr;
   }
-  return ret;
+  return vec;
 }
 
 vector<expression*> 
