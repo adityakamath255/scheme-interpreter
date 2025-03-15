@@ -226,6 +226,9 @@ public:
 
   virtual executor*
   analyze() const = 0;
+
+  virtual sc_obj
+  eval(environment*) const {}; 
 };
 
 bool
@@ -256,7 +259,7 @@ classify(const sc_obj);
 
 sc_obj 
 eval(expression *expr, environment *const env) {
-  return expr->analyze()->eval(env);
+  return expr->eval(env);
 }
 
 sc_obj 

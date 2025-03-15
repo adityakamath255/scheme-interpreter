@@ -16,6 +16,11 @@ struct self_evaluating : public expression {
   analyze() const {
     return new self_eval_exec(obj);
   }
+
+  sc_obj
+  eval(environment* env) const {
+    return obj;
+  }
 };
 
 struct variable : public expression {
@@ -29,6 +34,11 @@ struct variable : public expression {
   analyze() const {
     return new var_exec(sym);
   }
+
+  sc_obj
+  eval(environment* env) const {
+    return env->lookup(sym);
+  }
 };
 
 struct quoted : public expression {
@@ -41,6 +51,11 @@ struct quoted : public expression {
   executor*
   analyze() const {
     return new self_eval_exec(text_of_quotation);
+  }
+
+  sc_obj
+  eval(environment *env) const {
+    return text_of_quotation;
   }
 };
 
@@ -62,6 +77,11 @@ struct assignment : public expression {
   executor*
   analyze() const {
     return new set_exec(variable, value->analyze());
+  }
+
+  sc_obj
+  eval(environment *env) const {
+    env->set_variable(variable, value->eval(env));
   }
 };
 
@@ -100,6 +120,16 @@ struct if_expr : public expression {
       alternative->analyze()
     );
   }
+
+  sc_obj
+  eval(environment *env) const {
+    if (is_true(predicate->eval(env))) {
+      return consequent->eval(env);
+    }
+    else {
+      return alternative->eval(env);
+    }
+  }
 };
 
 struct begin_expr : public expression {
@@ -117,6 +147,15 @@ public:
       execs.push_back(expr->analyze());
     }
     return new begin_exec(execs);
+  }
+
+  sc_obj
+  eval(environment *env) const {
+    sc_obj ret;
+    for (const auto exp : actions) {
+      ret = exp->eval(env);
+    }
+    return ret;
   }
 };
 
@@ -150,6 +189,11 @@ struct lambda_expr : public expression {
   executor*
   analyze() const {
     return new lambda_exec(parameters, body->analyze());
+  }
+
+  sc_obj
+  eval(environment *env) const {
+    return new procedure(parameters, body->analyze(), env);
   }
 };
 
@@ -186,6 +230,12 @@ struct definition : public expression {
   analyze() const {
     return new def_exec(variable, value->analyze());
   }
+
+  sc_obj
+  eval(environment *env) const {
+    env->define_variable(variable, value->eval(env));
+    return "ok";
+  }
 };
 
 struct let_expr : public expression {
@@ -221,6 +271,18 @@ struct let_expr : public expression {
       pseudoframe.insert({sym, expr->analyze()});
     return pseudoframe;
   }
+  
+  environment *
+  get_frame(environment *env) const {
+    auto ret = new environment (env);
+    for (const auto& p : bindings) {
+      ret->define_variable(
+        p.first,
+        p.second->eval(env)
+      );
+    }
+    return ret;
+  }
 
   let_expr(cons *obj):
     expression("let", obj, 3, MAXARGS),
@@ -233,6 +295,11 @@ struct let_expr : public expression {
     return new let_exec(get_pseudoframe(), body->analyze());
   }
 
+  sc_obj
+  eval(environment *env) const {
+    const auto env2 = get_frame(env);
+    return body->eval(env2);
+  }
 };
 
 struct clause {
@@ -274,6 +341,7 @@ private:
 
 public:
   vector<clause> clauses;
+  expression *if_form;
 
   cond_expr (sc_obj obj):
     expression("cond") 
@@ -290,28 +358,43 @@ public:
         break;
       obj = as_cons->cdr;
     }
+    if_form = cond2if();
   }
 
   executor*
   analyze() const {
     return cond2if()->analyze();
   }
+
+  sc_obj
+  eval(environment *env) const {
+    return if_form->eval(env);
+  }
 };
 
 struct application : public expression {
   expression *op;
-  vector<expression*> args;
+  vector<expression*> params;
 
   application(cons *obj):
     expression("application"),
     op {classify(obj->car)},
-    args {cons2vec(obj->cdr)}
+    params {cons2vec(obj->cdr)}
   {}
 
   executor*
   analyze() const {
-    return new apply_exec(op->analyze(), exprs2execs(args));
+    return new apply_exec(op->analyze(), exprs2execs(params));
   }
+
+  sc_obj
+  eval(environment *env) const {
+    vector<sc_obj> args {};
+    for (const auto param : params) {
+      args.push_back(param->eval(env));
+    }
+    return scheme::apply(op->eval(env), args);
+  } 
 };
 
 struct and_expr : public expression {
@@ -326,6 +409,16 @@ struct and_expr : public expression {
   analyze() const {
     return new and_exec(exprs2execs(exprs));
   }
+
+  sc_obj
+  eval(environment *env) const {
+    for (const auto exp : exprs) {
+      if (is_false(exp->eval(env))) {
+        return false;
+      }
+    }
+    return true;
+  }
 };
 
 struct or_expr : public expression {
@@ -339,6 +432,16 @@ struct or_expr : public expression {
   executor*
   analyze() const {
     return new or_exec(exprs2execs(exprs));
+  }
+
+  sc_obj
+  eval(environment *env) const {
+    for (const auto exp : exprs) {
+      if (is_true(exp->eval(env))) {
+        return true;
+      }
+    }
+    return false;
   }
 };
 
@@ -358,6 +461,17 @@ struct cons_set_expr : public expression {
   analyze() const {
     return new cons_set_exec(variable->analyze(), value->analyze(), side);
   }
+
+  sc_obj
+  eval(environment *env) const {
+    auto thing = variable->eval(env);
+    if (!holds_alternative<cons*>(thing)) {
+      throw runtime_error("tried to apply set-" + side + "! on a non-pair object");
+    }
+    const auto edit = value->eval(env);
+    get<cons*>(thing)->at(side) = edit;
+    return thing;
+  }
 };
 
 struct cxr_expr : public expression {
@@ -374,6 +488,16 @@ struct cxr_expr : public expression {
   analyze() const {
     return new cxr_exec(word.name, expr->analyze());
   }
+
+  sc_obj
+  eval(environment *env) const {
+    const auto val = expr->eval(env);
+    if (!holds_alternative<cons*>(val)) {
+      throw runtime_error(word.name + " type error: expected cons");
+    }
+    auto found = get<cons*>(val);
+    return found->at(word.name);
+  } 
 };
 
 expression*
