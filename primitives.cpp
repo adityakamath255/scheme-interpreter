@@ -329,6 +329,16 @@ namespace prim_env {
   append(const vector<sc_obj>& args) {
     return append_rec(args[0], args[1]);
   }
+
+  sc_obj
+  error_fn(const vector<sc_obj>& args) {
+    cout << "ERROR: ";
+    for (auto obj : args) {
+      display(obj);
+      cout << " ";
+    }
+    return nullptr;
+  }
 }
 
 using namespace prim_env;
@@ -353,6 +363,7 @@ prims = {
   {"sq", sq},
   {"eq?", is_equal},
   {"equal?", is_equal},
+  {"not", not_fn},
   {"car", car},
   {"cdr", cdr},
   {"cons", cons_fn},
@@ -372,7 +383,8 @@ prims = {
   {"newline", new_line},
   {"display", display_final},
   {"length", list_len},
-  {"append", append}
+  {"append", append},
+  {"error", error_fn}
 };
 
 }

@@ -20,9 +20,16 @@ tokenize(const string& input) {
 
   for (const char c : input) {
     if (c == '"') {
-      insert_and_clear(&token);
-      tokens.push_back("\"");
-      is_string = !is_string;
+      if (is_string) {
+        token += "\"";
+        insert_and_clear(&token);
+        is_string = false;
+      }
+      else {
+        insert_and_clear(&token);
+        token += "\"";
+        is_string = true;
+      }
     }
     else if (!is_string) {
       if (isspace(c)) {
@@ -71,7 +78,8 @@ make_sym_obj(const string& str) {
 
 sc_obj *
 make_str_obj(const string& str) {
-  return new sc_obj(str);
+  sc_obj *ret = new sc_obj(str.substr(1, str.size() - 2));
+  return ret;
 }
 
 sc_obj *
@@ -154,7 +162,6 @@ parse_impl(const vector<string>& tokens, const int curr_index, bool recursive) {
 sc_obj *
 parse(const vector<string>& tokens) {
   auto ret = parse_impl(tokens, 0, 1).first;
-  // display(*ret);
   return ret;
 }
 
