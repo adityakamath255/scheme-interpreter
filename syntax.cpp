@@ -1,5 +1,4 @@
 #include "common.hpp"
-#include "execution.cpp"
 #define MAXARGS 256
 using namespace std;
 
@@ -11,11 +10,6 @@ struct self_evaluating : public expression {
     expression("self-evaluating"),
     obj {obj}
   {}
-
-  executor*
-  analyze() const {
-    return new self_eval_exec(obj);
-  }
 
   sc_obj
   eval(environment* env) const {
@@ -30,11 +24,6 @@ struct variable : public expression {
     sym {obj}
   {}
 
-  executor*
-  analyze() const {
-    return new var_exec(sym);
-  }
-
   sc_obj
   eval(environment* env) const {
     return env->lookup(sym);
@@ -47,11 +36,6 @@ struct quoted : public expression {
     expression("quoted", obj, 2, 2),
     text_of_quotation {obj->at("cadr")}
   {}
-
-  executor*
-  analyze() const {
-    return new self_eval_exec(text_of_quotation);
-  }
 
   sc_obj
   eval(environment *env) const {
@@ -74,14 +58,10 @@ struct assignment : public expression {
     value = classify(obj->at("caddr"));
   }
 
-  executor*
-  analyze() const {
-    return new set_exec(variable, value->analyze());
-  }
-
   sc_obj
   eval(environment *env) const {
     env->set_variable(variable, value->eval(env));
+    return "ok";
   }
 };
 
@@ -112,15 +92,6 @@ struct if_expr : public expression {
     consequent {new self_evaluating(false)},
     alternative {new self_evaluating(false)} {}
 
-  executor*
-  analyze() const {
-    return new if_exec(
-      predicate->analyze(),
-      consequent->analyze(),
-      alternative->analyze()
-    );
-  }
-
   sc_obj
   eval(environment *env) const {
     if (is_true(predicate->eval(env))) {
@@ -139,15 +110,6 @@ public:
     expression("begin"),
     actions {seq}
   {}
-
-  executor*
-  analyze() const {
-    vector<executor*> execs {};
-    for (const auto expr : actions) {
-      execs.push_back(expr->analyze());
-    }
-    return new begin_exec(execs);
-  }
 
   sc_obj
   eval(environment *env) const {
@@ -186,14 +148,9 @@ struct lambda_expr : public expression {
     body {combine_expr(body_)}
   {}
 
-  executor*
-  analyze() const {
-    return new lambda_exec(parameters, body->analyze());
-  }
-
   sc_obj
   eval(environment *env) const {
-    return new procedure(parameters, body->analyze(), env);
+    return new procedure(parameters, body, env);
   }
 };
 
@@ -224,11 +181,6 @@ struct definition : public expression {
     else {
       throw runtime_error("bad definition identifier");
     }
-  }
-
-  executor*
-  analyze() const {
-    return new def_exec(variable, value->analyze());
   }
 
   sc_obj
@@ -264,14 +216,6 @@ struct let_expr : public expression {
     return ret;
   }
 
-  map<symbol, executor*> 
-  get_pseudoframe() const {
-    map<symbol, executor*> pseudoframe {};
-    for (const auto& [sym, expr] : bindings)
-      pseudoframe.insert({sym, expr->analyze()});
-    return pseudoframe;
-  }
-  
   environment *
   get_frame(environment *env) const {
     auto ret = new environment (env);
@@ -289,11 +233,6 @@ struct let_expr : public expression {
     bindings {get_bindings(obj->at("cadr"))},
     body {combine_expr(obj->at("cddr"))}
   {}
-
-  executor*
-  analyze() const {
-    return new let_exec(get_pseudoframe(), body->analyze());
-  }
 
   sc_obj
   eval(environment *env) const {
@@ -361,11 +300,6 @@ public:
     if_form = cond2if();
   }
 
-  executor*
-  analyze() const {
-    return cond2if()->analyze();
-  }
-
   sc_obj
   eval(environment *env) const {
     return if_form->eval(env);
@@ -381,11 +315,6 @@ struct application : public expression {
     op {classify(obj->car)},
     params {cons2vec(obj->cdr)}
   {}
-
-  executor*
-  analyze() const {
-    return new apply_exec(op->analyze(), exprs2execs(params));
-  }
 
   sc_obj
   eval(environment *env) const {
@@ -405,11 +334,6 @@ struct and_expr : public expression {
     exprs {cons2vec(obj->cdr)}
   {}
 
-  executor*
-  analyze() const {
-    return new and_exec(exprs2execs(exprs));
-  }
-
   sc_obj
   eval(environment *env) const {
     for (const auto exp : exprs) {
@@ -428,11 +352,6 @@ struct or_expr : public expression {
     expression("or", obj, 2, MAXARGS),
     exprs {cons2vec(obj->cdr)}
   {}
-
-  executor*
-  analyze() const {
-    return new or_exec(exprs2execs(exprs));
-  }
 
   sc_obj
   eval(environment *env) const {
@@ -457,11 +376,6 @@ struct cons_set_expr : public expression {
     side {side}
   {}
 
-  executor*
-  analyze() const {
-    return new cons_set_exec(variable->analyze(), value->analyze(), side);
-  }
-
   sc_obj
   eval(environment *env) const {
     auto thing = variable->eval(env);
@@ -483,11 +397,6 @@ struct cxr_expr : public expression {
     word {tag}, 
     expr {classify(obj->at("cadr"))} 
   {}
-
-  executor*
-  analyze() const {
-    return new cxr_exec(word.name, expr->analyze());
-  }
 
   sc_obj
   eval(environment *env) const {

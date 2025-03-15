@@ -18,7 +18,6 @@ class cons;
 class primitive;
 class procedure;
 class environment;
-class executor;
 class expression;
 
 typedef variant<
@@ -99,10 +98,10 @@ struct primitive {
 
 struct procedure {
   const vector<symbol> parameters;
-  const executor *body;
+  const expression *body;
   environment *const env;
 
-  procedure(vector<symbol> p, executor *b, environment *e):
+  procedure(vector<symbol> p, expression *b, environment *e):
     parameters {p},
     body {b},
     env {e}
@@ -171,12 +170,6 @@ extend_env(const vector<symbol>& parameters, const vector<sc_obj>& arguments, en
   return ret;
 }
 
-class executor {
-public:
-  virtual sc_obj
-  eval(environment*) const = 0;
-};
-
 class expression {
 private:
   int 
@@ -224,11 +217,8 @@ public:
     return name;
   }
 
-  virtual executor*
-  analyze() const = 0;
-
   virtual sc_obj
-  eval(environment*) const {}; 
+  eval(environment*) const = 0; 
 };
 
 bool
@@ -299,14 +289,6 @@ cons2vec(sc_obj seq) {
     seq = as_cons->cdr; 
   }
   return vec;
-}
-
-vector<executor*> 
-exprs2execs(const vector<expression*>& arr) {
-  vector<executor*> ret {};
-  for (const auto expr : arr)
-    ret.push_back(expr->analyze());
-  return ret;
 }
 
 constexpr double precision = 1e-9;
