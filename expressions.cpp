@@ -54,7 +54,7 @@ struct assignment : public expression {
   expression *value;
 
   assignment(cons *obj):
-    expression("assignment", obj, 3, 3) 
+    expression("assignment", obj, 3, 3)
   {
     if (!holds_alternative<symbol>(obj->at("cadr"))) {
       throw runtime_error("tried to assign something to a non-variable");
@@ -69,6 +69,7 @@ struct assignment : public expression {
     env->set_variable(variable, value->eval(env));
     return "ok";
   }
+
 };
 
 // --- // --- //
@@ -109,6 +110,12 @@ struct if_expr : public expression {
       return alternative->eval(env);
     }
   }
+
+  void
+  tco() {
+    consequent->tco();
+    alternative->tco();
+  }
 };
 
 // --- // --- //
@@ -128,6 +135,13 @@ public:
       ret = exp->eval(env);
     }
     return ret;
+  }
+
+  void
+  tco() {
+    if (!actions.empty()) {
+      actions.back()->tco();
+    }
   }
 };
 
@@ -322,6 +336,11 @@ public:
   eval(environment *env) const {
     return if_form->eval(env);
   }
+
+  void
+  tco() {
+    if_form->tco();
+  }
 };
 
 // --- // --- //
@@ -329,6 +348,7 @@ public:
 struct application : public expression {
   expression *op;
   vector<expression*> params;
+  bool at_tail = 0;
 
   application(cons *obj):
     expression("application"),
@@ -344,6 +364,11 @@ struct application : public expression {
     }
     return scheme::apply(op->eval(env), args);
   } 
+
+  void
+  tco() {
+    at_tail = true;
+  }
 };
 
 // --- // --- //

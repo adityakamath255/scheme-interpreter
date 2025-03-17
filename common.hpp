@@ -168,6 +168,17 @@ public:
   }
 };
 
+struct tail_call {
+  sc_obj proc;
+  vector<sc_obj> args;
+};  
+
+typedef variant<
+  monostate,
+  tail_call,
+  sc_obj
+> ret_val;
+
 class expression {
 private:
   int 
@@ -217,6 +228,9 @@ public:
 
   virtual sc_obj
   eval(environment*) const = 0; 
+
+  void
+  tco() {}
 };
 
 bool
