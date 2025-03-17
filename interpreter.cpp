@@ -75,13 +75,18 @@ driver_loop() {
       cout << ">>> ";
       string input_expr = read(cin);
       if (input_expr == "exit\n") 
-        return ; 
+        return;
       auto result = interpret(input_expr);
       display(result);
       cout << "\n";
     } 
     catch (const runtime_error& e) {
         cout << "\nERROR: " << e.what() << "\n";
+    }
+    catch (tail_call tc) {
+      auto result = apply(tc.proc, tc.args);
+      display(result);
+      cout << "\n";
     }
   }
 }
@@ -97,14 +102,16 @@ run_file(const char *filename) {
       if (in.eof()) {
         break;
       }
-      result = interpret(input_expr);
+      interpret(input_expr);
     } 
     catch (const runtime_error& e) {
       cout << "\nERROR: " << e.what() << "\n";
       return; 
     }
+    catch (tail_call tc) {
+      apply(tc.proc, tc.args);
+    }
   }
-  display(result);
   cout << "\n";
   driver_loop();
 }

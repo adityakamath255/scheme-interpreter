@@ -171,13 +171,9 @@ public:
 struct tail_call {
   sc_obj proc;
   vector<sc_obj> args;
-};  
 
-typedef variant<
-  monostate,
-  tail_call,
-  sc_obj
-> ret_val;
+  tail_call(sc_obj& proc, vector<sc_obj>& args): proc {proc}, args {args} {}
+};  
 
 class expression {
 private:
@@ -229,7 +225,7 @@ public:
   virtual sc_obj
   eval(environment*) const = 0; 
 
-  void
+  virtual void
   tco() {}
 };
 
@@ -265,23 +261,30 @@ eval(expression *expr, environment *const env) {
 }
 
 sc_obj 
-apply(const sc_obj p, const vector<sc_obj>& args) {
-  if (holds_alternative<primitive*>(p)) {
-    const auto func = *get<primitive*>(p);
-    return func(args);
-  }
-  else if (holds_alternative<procedure*>(p)) {
-    const auto func = get<procedure*>(p);
-    if (func->parameters.size() != args.size()) {
-      throw runtime_error(" wrong number of arguments: expected " + to_string(func->parameters.size()));
+apply(sc_obj p, vector<sc_obj> args) {
+  while (true) {
+    try {
+      if (holds_alternative<primitive*>(p)) {
+        const auto func = *get<primitive*>(p);
+        return func(args);
+      }
+      else if (holds_alternative<procedure*>(p)) {
+        const auto func = get<procedure*>(p);
+        if (func->parameters.size() != args.size()) {
+          throw runtime_error(" wrong number of arguments: expected " + to_string(func->parameters.size()));
+        }
+        const auto new_env = func->env->extend(func->parameters, args);
+        return func->body->eval(new_env);
+      }
+      else {
+        throw runtime_error("tried to apply an object that is not a procedure");
+      }
     }
-    const auto new_env = func->env->extend(func->parameters, args);
-    return func->body->eval(new_env);
-  }
-  else {
-    throw runtime_error("tried to apply an object that is not a procedure");
-    return nullptr;
-  }
+    catch (tail_call tc) {
+      p = tc.proc;
+      args = tc.args;
+    }
+  } 
 }
 
 vector<symbol>

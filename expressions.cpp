@@ -66,8 +66,9 @@ struct assignment : public expression {
 
   sc_obj
   eval(environment *env) const {
-    env->set_variable(variable, value->eval(env));
-    return "ok";
+    auto eval_value = value->eval(env);
+    env->set_variable(variable, eval_value);
+    return eval_value;
   }
 
 };
@@ -148,12 +149,15 @@ public:
 expression*
 combine_expr(sc_obj seq) {
   const auto vec = cons2vec(seq);
+  expression *ret;
   if (vec.size() == 0) 
-    return new self_evaluating(nullptr);
+    ret = new self_evaluating(nullptr);
   else if (vec.size() == 1)
-    return vec[0];
+    ret = vec[0];
   else
-    return new begin_expr(vec);
+    ret = new begin_expr(vec);
+  ret->tco();
+  return ret;
 }
 
 // --- // --- //
@@ -214,7 +218,7 @@ struct definition : public expression {
   sc_obj
   eval(environment *env) const {
     env->define_variable(variable, value->eval(env));
-    return "ok";
+    return variable;
   }
 };
 
@@ -348,7 +352,7 @@ public:
 struct application : public expression {
   expression *op;
   vector<expression*> params;
-  bool at_tail = 0;
+  bool at_tail = false;
 
   application(cons *obj):
     expression("application"),
@@ -358,11 +362,17 @@ struct application : public expression {
 
   sc_obj
   eval(environment *env) const {
+    auto proc = op->eval(env);
     vector<sc_obj> args {};
     for (const auto param : params) {
       args.push_back(param->eval(env));
     }
-    return scheme::apply(op->eval(env), args);
+    if (at_tail) {
+      throw tail_call(proc, args);
+    }
+    else {
+      return scheme::apply(proc, args);
+    }
   } 
 
   void
