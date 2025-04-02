@@ -11,10 +11,7 @@ struct self_evaluating : public expression {
     obj {obj}
   {}
 
-  sc_obj
-  eval(environment* env) const {
-    return obj;
-  }
+  sc_obj eval(environment* env) const override;
 };
 
 // --- // --- //
@@ -26,10 +23,7 @@ struct variable : public expression {
     sym {obj}
   {}
 
-  sc_obj
-  eval(environment* env) const {
-    return env->lookup(sym);
-  }
+  sc_obj eval(environment* env) const override;
 };
 
 // --- // --- //
@@ -41,10 +35,7 @@ struct quoted : public expression {
     text_of_quotation {obj->at("cadr")}
   {}
 
-  sc_obj
-  eval(environment *env) const {
-    return text_of_quotation;
-  }
+  sc_obj eval(environment *env) const override;
 };
 
 // --- // --- //
@@ -64,13 +55,7 @@ struct assignment : public expression {
     value = classify(obj->at("caddr"));
   }
 
-  sc_obj
-  eval(environment *env) const {
-    auto eval_value = value->eval(env);
-    env->set_variable(variable, eval_value);
-    return eval_value;
-  }
-
+  sc_obj eval(environment *env) const override;
 };
 
 // --- // --- //
@@ -102,21 +87,8 @@ struct if_expr : public expression {
     consequent {new self_evaluating(false)},
     alternative {new self_evaluating(false)} {}
 
-  sc_obj
-  eval(environment *env) const {
-    if (is_true(predicate->eval(env))) {
-      return consequent->eval(env);
-    }
-    else {
-      return alternative->eval(env);
-    }
-  }
-
-  void
-  tco() {
-    consequent->tco();
-    alternative->tco();
-  }
+  sc_obj eval(environment *env) const override;
+  void tco() override;
 };
 
 // --- // --- //
@@ -129,21 +101,8 @@ public:
     actions {seq}
   {}
 
-  sc_obj
-  eval(environment *env) const {
-    sc_obj ret;
-    for (const auto exp : actions) {
-      ret = exp->eval(env);
-    }
-    return ret;
-  }
-
-  void
-  tco() {
-    if (!actions.empty()) {
-      actions.back()->tco();
-    }
-  }
+  sc_obj eval(environment *env) const override;
+  void tco() override;
 };
 
 expression*
@@ -178,10 +137,7 @@ struct lambda_expr : public expression {
     body {combine_expr(body_)}
   {}
 
-  sc_obj
-  eval(environment *env) const {
-    return new procedure(parameters, body, env);
-  }
+  sc_obj eval(environment *env) const override;
 };
 
 // --- // --- //
@@ -215,11 +171,7 @@ struct definition : public expression {
     }
   }
 
-  sc_obj
-  eval(environment *env) const {
-    env->define_variable(variable, value->eval(env));
-    return variable;
-  }
+  sc_obj eval(environment *env) const override;
 };
 
 // --- // --- //
@@ -268,11 +220,7 @@ struct let_expr : public expression {
     body {combine_expr(obj->at("cddr"))}
   {}
 
-  sc_obj
-  eval(environment *env) const {
-    const auto env2 = get_frame(env);
-    return body->eval(env2);
-  }
+  sc_obj eval(environment *env) const override;
 };
 
 // --- // --- //
@@ -336,15 +284,8 @@ public:
     if_form = cond2if();
   }
 
-  sc_obj
-  eval(environment *env) const {
-    return if_form->eval(env);
-  }
-
-  void
-  tco() {
-    if_form->tco();
-  }
+  sc_obj eval(environment *env) const override;
+  void tco() override;
 };
 
 // --- // --- //
@@ -360,25 +301,8 @@ struct application : public expression {
     params {cons2vec(obj->cdr)}
   {}
 
-  sc_obj
-  eval(environment *env) const {
-    auto proc = op->eval(env);
-    vector<sc_obj> args {};
-    for (const auto param : params) {
-      args.push_back(param->eval(env));
-    }
-    if (at_tail) {
-      throw tail_call(proc, args);
-    }
-    else {
-      return scheme::apply(proc, args);
-    }
-  } 
-
-  void
-  tco() {
-    at_tail = true;
-  }
+  sc_obj eval(environment *env) const override;
+  void tco() override;
 };
 
 // --- // --- //
@@ -391,15 +315,7 @@ struct and_expr : public expression {
     exprs {cons2vec(obj->cdr)}
   {}
 
-  sc_obj
-  eval(environment *env) const {
-    for (const auto exp : exprs) {
-      if (is_false(exp->eval(env))) {
-        return false;
-      }
-    }
-    return true;
-  }
+  sc_obj eval(environment *env) const override;
 };
 
 // --- // --- //
@@ -412,15 +328,7 @@ struct or_expr : public expression {
     exprs {cons2vec(obj->cdr)}
   {}
 
-  sc_obj
-  eval(environment *env) const {
-    for (const auto exp : exprs) {
-      if (is_true(exp->eval(env))) {
-        return true;
-      }
-    }
-    return false;
-  }
+  sc_obj eval(environment *env) const override;
 };
 
 // --- // --- //
@@ -437,16 +345,7 @@ struct cons_set_expr : public expression {
     side {side}
   {}
 
-  sc_obj
-  eval(environment *env) const {
-    auto thing = variable->eval(env);
-    if (!holds_alternative<cons*>(thing)) {
-      throw runtime_error("tried to apply set-" + side + "! on a non-pair object");
-    }
-    const auto edit = value->eval(env);
-    get<cons*>(thing)->at(side) = edit;
-    return thing;
-  }
+  sc_obj eval(environment *env) const override;
 };
 
 // --- // --- //
@@ -461,71 +360,24 @@ struct cxr_expr : public expression {
     expr {classify(obj->at("cadr"))} 
   {}
 
-  sc_obj
-  eval(environment *env) const {
-    const auto val = expr->eval(env);
-    if (!holds_alternative<cons*>(val)) {
-      throw runtime_error(word.name + " type error: expected cons");
-    }
-    auto found = get<cons*>(val);
-    return found->at(word.name);
-  } 
+  sc_obj eval(environment *env) const override;
 };
 
 // --- // --- //
 
-expression*
-make_quoted(cons *obj) {
-  return new quoted(obj); 
-}
-expression*
-make_assignment(cons *obj) {
-  return new assignment(obj); 
-}
-expression*
-make_definition(cons *obj) {
-  return new definition(obj);
-}
-expression*
-make_if_expr(cons *obj) {
-  return new if_expr(obj);
-}
-expression*
-make_lambda_expr(cons *obj) {
-  return new lambda_expr(obj); 
-}
-expression*
-make_let_expr(cons *obj) {
-  return new let_expr(obj);
-}
-expression*
-make_begin_expr(cons *obj) {
-  return combine_expr(obj->cdr);
-}
-expression*
-make_cond_expr(cons *obj) {
-  return new cond_expr(obj); 
-}
-expression*
-make_application(cons *obj) {
-  return new application(obj); 
-}
-expression*
-make_and_expr(cons *obj) {
-  return new and_expr(obj);
-}
-expression*
-make_or_expr(cons *obj) {
-  return new or_expr(obj);
-}
-expression*
-make_set_car_expr(cons *obj) {
-  return new cons_set_expr(obj, "car");
-}
-expression*
-make_set_cdr_expr(cons *obj) {
-  return new cons_set_expr(obj, "cdr");
-}
+expression* make_quoted(cons *obj) { return new quoted(obj); }
+expression* make_assignment(cons *obj) { return new assignment(obj); }
+expression* make_definition(cons *obj) { return new definition(obj); }
+expression* make_if_expr(cons *obj) { return new if_expr(obj); }
+expression* make_lambda_expr(cons *obj) { return new lambda_expr(obj); }
+expression* make_let_expr(cons *obj) { return new let_expr(obj); }
+expression* make_begin_expr(cons *obj) { return combine_expr(obj->cdr); }
+expression* make_cond_expr(cons *obj) { return new cond_expr(obj); }
+expression* make_application(cons *obj) { return new application(obj); }
+expression* make_and_expr(cons *obj) { return new and_expr(obj); }
+expression* make_or_expr(cons *obj) { return new or_expr(obj); }
+expression* make_set_car_expr(cons *obj) { return new cons_set_expr(obj, "car"); }
+expression* make_set_cdr_expr(cons *obj) { return new cons_set_expr(obj, "cdr"); }
 
 map<symbol, expression*(*)(cons*)> special_forms = {
   {"quote"s, make_quoted},
