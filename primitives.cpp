@@ -1,5 +1,5 @@
 #include "common.hpp"
-using namespace std;
+#include <cmath>
 
 namespace Scheme {
 
@@ -215,7 +215,7 @@ namespace PrimEnv {
 
   Obj
   abs_fn(const vector<Obj>& args) {
-    return abs(get<double>(args[0]));
+    return std::abs(get<double>(args[0]));
   }
 
   Obj
@@ -237,7 +237,7 @@ namespace PrimEnv {
   max_fn(const vector<Obj>& args) {
     double ret = -INFINITY;
     for (const auto& arg : args)
-      ret = max(ret, get<double>(arg));
+      ret = std::max(ret, get<double>(arg));
     return ret;
   }
 
@@ -245,7 +245,7 @@ namespace PrimEnv {
   min_fn(const vector<Obj>& args) {
     double ret = -INFINITY;
     for (const auto& arg : args)
-      ret = min(ret, get<double>(arg));
+      ret = std::min(ret, get<double>(arg));
     return ret;
   }
 
@@ -315,7 +315,7 @@ namespace PrimEnv {
 
 using namespace PrimEnv;
 
-const vector<pair<string, function<Obj(const vector<Obj>&)>>> 
+const vector<std::pair<string, std::function<Obj(const vector<Obj>&)>>> 
 prims = {
   {"+", add},
   {"-", sub},
@@ -357,7 +357,7 @@ prims = {
   {"error", error_fn}
 };
 
-const vector<pair<string, Obj>>
+const vector<std::pair<string, Obj>>
 consts = {
   {"true", true},
   {"false", false},

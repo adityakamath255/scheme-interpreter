@@ -1,4 +1,5 @@
 #include "common.hpp"
+#include <cmath>
 
 namespace Scheme {
 
@@ -106,7 +107,7 @@ from_str(const string& str) {
   }
 } 
 
-pair<Obj*, int> 
+std::pair<Obj*, int> 
 parse_impl(const vector<string>& tokens, const int curr_index, bool recursive) {
   const string& token = tokens[curr_index];
   Obj *head;
@@ -141,7 +142,7 @@ parse_impl(const vector<string>& tokens, const int curr_index, bool recursive) {
   }
 
   else {
-    tie(head, next_index) = make_pair(from_str(token), curr_index + 1);
+    tie(head, next_index) = std::make_pair(from_str(token), curr_index + 1);
   }
 
   if (next_index == tokens.size() || !recursive) {

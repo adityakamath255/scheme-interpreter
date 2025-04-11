@@ -96,7 +96,7 @@ driver_loop() {
 
 void
 run_file(const char *filename) {
-  ifstream in;
+  std::ifstream in;
   in.open(filename);
   Obj result;
   while (true) {
@@ -128,6 +128,6 @@ main(const int argc, const char **argv) {
     run_file(argv[1]);
   }
   else {
-    cout << "Usage: ./interpreter [file-to-run]" << endl;
+    cout << "Usage: ./interpreter [file-to-run]" << std::endl;
   }
 }

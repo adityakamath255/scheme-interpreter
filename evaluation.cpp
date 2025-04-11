@@ -1,6 +1,5 @@
 #include "common.hpp"
 #include "tco.cpp"
-using namespace std;
 
 namespace Scheme {
 

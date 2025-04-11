@@ -4,7 +4,6 @@
 #include <map>
 #include <string>
 #include <variant>
-#include <cmath>
 #include <algorithm>
 #include <functional>
 

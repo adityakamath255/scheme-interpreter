@@ -1,5 +1,7 @@
 #include "common.hpp"
 
+using namespace std::string_literals;
+
 constexpr int MAXARGS = 256;
 
 namespace Scheme {
@@ -177,12 +179,12 @@ struct Define : public Expression {
 // --- // --- //
 
 struct Let : public Expression {
-  map<Symbol, Expression*> bindings;
+  std::map<Symbol, Expression*> bindings;
   Expression *body;
 
   decltype(bindings)
   get_bindings(Obj li) {
-    map<Symbol, Expression*> ret {};
+    std::map<Symbol, Expression*> ret {};
     while (is_pair(li)) {
       const auto as_cons = get<Cons*>(li);
       if (!holds_alternative<Cons*>(as_cons->car)) {
@@ -379,7 +381,7 @@ Expression* make_or(Cons *obj) { return new Or(obj); }
 Expression* make_set_car(Cons *obj) { return new SetCxr(obj, "car"); }
 Expression* make_set_cdr(Cons *obj) { return new SetCxr(obj, "cdr"); }
 
-map<Symbol, Expression*(*)(Cons*)> special_forms = {
+std::map<Symbol, Expression*(*)(Cons*)> special_forms = {
   {"quote"s, make_quoted},
   {"set!"s, make_set},
   {"define"s, make_define},
