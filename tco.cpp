@@ -1,28 +1,28 @@
 #include "common.hpp"
 #include "expressions.cpp"
 
-namespace scheme {
+namespace Scheme {
 
 void
-if_expr::tco() {
+If::tco() {
   consequent->tco();
   alternative->tco();
 }
 
 void
-begin_expr::tco() {
+Begin::tco() {
   if (!actions.empty()) {
     actions.back()->tco();
   }
 }
 
 void
-cond_expr::tco() {
+Cond::tco() {
   if_form->tco();
 }
 
 void
-application::tco() {
+Application::tco() {
   at_tail = true;
 }
 

@@ -2,32 +2,32 @@
 #include "tco.cpp"
 using namespace std;
 
-namespace scheme {
+namespace Scheme {
 
-sc_obj
-self_evaluating::eval(environment *env) const {
+Obj
+Literal::eval(Environment *env) const {
   return obj;
 }
 
-sc_obj
-variable::eval(environment *env) const {
+Obj
+Variable::eval(Environment *env) const {
   return env->lookup(sym);
 }
 
-sc_obj
-quoted::eval(environment *env) const {
+Obj
+Quoted::eval(Environment *env) const {
   return text_of_quotation;
 }
 
-sc_obj
-assignment::eval(environment *env) const {
+Obj
+Set::eval(Environment *env) const {
   auto eval_value = value->eval(env);
   env->set_variable(variable, eval_value);
   return eval_value;
 }
 
-sc_obj
-if_expr::eval(environment *env) const {
+Obj
+If::eval(Environment *env) const {
   if (is_true(predicate->eval(env))) {
     return consequent->eval(env);
   }
@@ -36,55 +36,55 @@ if_expr::eval(environment *env) const {
   }
 }
 
-sc_obj
-begin_expr::eval(environment *env) const {
-  sc_obj ret;
+Obj
+Begin::eval(Environment *env) const {
+  Obj ret;
   for (const auto exp : actions) {
     ret = exp->eval(env);
   }
   return ret;
 }
 
-sc_obj
-lambda_expr::eval(environment *env) const {
-  return new procedure(parameters, body, env);
+Obj
+Lambda::eval(Environment *env) const {
+  return new Procedure(parameters, body, env);
 }
 
 
-sc_obj
-definition::eval(environment *env) const {
+Obj
+Define::eval(Environment *env) const {
   env->define_variable(variable, value->eval(env));
   return variable;
 }
 
-sc_obj
-let_expr::eval(environment *env) const {
+Obj
+Let::eval(Environment *env) const {
   const auto env2 = get_frame(env);
   return body->eval(env2);
 }
 
-sc_obj
-cond_expr::eval(environment *env) const {
+Obj
+Cond::eval(Environment *env) const {
   return if_form->eval(env);
 }
 
-sc_obj
-application::eval(environment *env) const {
+Obj
+Application::eval(Environment *env) const {
   auto proc = op->eval(env);
-  vector<sc_obj> args {};
+  vector<Obj> args {};
   for (const auto param : params) {
     args.push_back(param->eval(env));
   }
   if (at_tail) {
-    throw tail_call(proc, args);
+    throw TailCall(proc, args);
   }
   else {
-    return scheme::apply(proc, args);
+    return apply(proc, args);
   }
 } 
 
-sc_obj
-and_expr::eval(environment *env) const {
+Obj
+And::eval(Environment *env) const {
   for (const auto exp : exprs) {
     if (is_false(exp->eval(env))) {
       return false;
@@ -93,8 +93,8 @@ and_expr::eval(environment *env) const {
   return true;
 }
 
-sc_obj
-or_expr::eval(environment *env) const {
+Obj
+Or::eval(Environment *env) const {
   for (const auto exp : exprs) {
     if (is_true(exp->eval(env))) {
       return true;
@@ -103,24 +103,24 @@ or_expr::eval(environment *env) const {
   return false;
 }
 
-sc_obj
-cons_set_expr::eval(environment *env) const {
+Obj
+SetCxr::eval(Environment *env) const {
   auto thing = variable->eval(env);
-  if (!holds_alternative<cons*>(thing)) {
+  if (!holds_alternative<Cons*>(thing)) {
     throw runtime_error("tried to apply set-" + side + "! on a non-pair object");
   }
   const auto edit = value->eval(env);
-  get<cons*>(thing)->at(side) = edit;
+  get<Cons*>(thing)->at(side) = edit;
   return thing;
 }
 
-sc_obj
-cxr_expr::eval(environment *env) const {
+Obj
+Cxr::eval(Environment *env) const {
   const auto val = expr->eval(env);
-  if (!holds_alternative<cons*>(val)) {
+  if (!holds_alternative<Cons*>(val)) {
     throw runtime_error(word.name + " type error: expected cons");
   }
-  auto found = get<cons*>(val);
+  auto found = get<Cons*>(val);
   return found->at(word.name);
 } 
 

@@ -1,169 +1,169 @@
 #include "common.hpp"
-#define MAXARGS 256
-using namespace std;
 
-namespace scheme {
+constexpr int MAXARGS = 256;
 
-struct self_evaluating : public expression {
-  sc_obj obj;
-  self_evaluating(sc_obj obj):
-    expression("self-evaluating"),
+namespace Scheme {
+
+struct Literal : public Expression {
+  Obj obj;
+  Literal(Obj obj):
+    Expression("self-evaluating"),
     obj {obj}
   {}
 
-  sc_obj eval(environment* env) const override;
+  Obj eval(Environment* env) const override;
 };
 
 // --- // --- //
 
-struct variable : public expression {
-  symbol sym;
-  variable(symbol& obj):
-    expression("variable"),
+struct Variable : public Expression {
+  Symbol sym;
+  Variable(Symbol& obj):
+    Expression("Variable"),
     sym {obj}
   {}
 
-  sc_obj eval(environment* env) const override;
+  Obj eval(Environment* env) const override;
 };
 
 // --- // --- //
 
-struct quoted : public expression {
-  sc_obj text_of_quotation;
-  quoted(cons *obj):
-    expression("quoted", obj, 2, 2),
+struct Quoted : public Expression {
+  Obj text_of_quotation;
+  Quoted(Cons *obj):
+    Expression("quoted", obj, 2, 2),
     text_of_quotation {obj->at("cadr")}
   {}
 
-  sc_obj eval(environment *env) const override;
+  Obj eval(Environment *env) const override;
 };
 
 // --- // --- //
 
-struct assignment : public expression {
-  symbol variable;
-  expression *value;
+struct Set : public Expression {
+  Symbol variable;
+  Expression *value;
 
-  assignment(cons *obj):
-    expression("assignment", obj, 3, 3)
+  Set(Cons *obj):
+    Expression("Set", obj, 3, 3)
   {
-    if (!holds_alternative<symbol>(obj->at("cadr"))) {
+    if (!holds_alternative<Symbol>(obj->at("cadr"))) {
       throw runtime_error("tried to assign something to a non-variable");
     }
-    variable = get<symbol>(obj->at("cadr"));
+    variable = get<Symbol>(obj->at("cadr"));
     const auto cddr = obj->at("cddr");
     value = classify(obj->at("caddr"));
   }
 
-  sc_obj eval(environment *env) const override;
+  Obj eval(Environment *env) const override;
 };
 
 // --- // --- //
 
-struct if_expr : public expression {
-  expression *predicate, *consequent, *alternative;
+struct If : public Expression {
+  Expression *predicate, *consequent, *alternative;
 
-  if_expr(cons *obj):
-    expression("if", obj, 3, 4),
+  If(Cons *obj):
+    Expression("if", obj, 3, 4),
     predicate {classify(obj->at("cadr"))},
     consequent {classify(obj->at("caddr"))},
     alternative {
       !is_null(obj->at("cdddr"))
     ? classify(obj->at("cadddr"))
-    : new self_evaluating("false")
+    : new Literal("false")
     }
   {}
 
-  if_expr(expression *p, expression *c, expression *a):
-    expression("if"),
+  If(Expression *p, Expression *c, Expression *a):
+    Expression("if"),
     predicate {p},
     consequent {c},
     alternative {a} 
   {}
 
-  if_expr():
-    expression("if"),
-    predicate {new self_evaluating(false)},
-    consequent {new self_evaluating(false)},
-    alternative {new self_evaluating(false)} {}
+  If():
+    Expression("if"),
+    predicate {new Literal(false)},
+    consequent {new Literal(false)},
+    alternative {new Literal(false)} {}
 
-  sc_obj eval(environment *env) const override;
+  Obj eval(Environment *env) const override;
   void tco() override;
 };
 
 // --- // --- //
 
-struct begin_expr : public expression {
+struct Begin : public Expression {
 public:
-  vector<expression*> actions;
-  begin_expr(const vector<expression*>& seq):
-    expression("begin"),
+  vector<Expression*> actions;
+  Begin(const vector<Expression*>& seq):
+    Expression("begin"),
     actions {seq}
   {}
 
-  sc_obj eval(environment *env) const override;
+  Obj eval(Environment *env) const override;
   void tco() override;
 };
 
-expression*
-combine_expr(sc_obj seq) {
+Expression*
+combine_expr(Obj seq) {
   const auto vec = cons2vec(seq);
-  expression *ret;
+  Expression *ret;
   if (vec.size() == 0) 
-    ret = new self_evaluating(nullptr);
+    ret = new Literal(nullptr);
   else if (vec.size() == 1)
     ret = vec[0];
   else
-    ret = new begin_expr(vec);
+    ret = new Begin(vec);
   ret->tco();
   return ret;
 }
 
 // --- // --- //
 
-struct lambda_expr : public expression {
-  vector<symbol> parameters;
-  expression *body;
+struct Lambda : public Expression {
+  vector<Symbol> parameters;
+  Expression *body;
 
-  lambda_expr(cons *obj):
-    expression("lambda", obj, 3, MAXARGS),
+  Lambda(Cons *obj):
+    Expression("lambda", obj, 3, MAXARGS),
     parameters {cons2symbols(obj->at("cadr"))},
     body {combine_expr(obj->at("cddr"))}
   {}
 
-  lambda_expr(sc_obj parameters_, sc_obj body_):
-    expression("lambda"),
+  Lambda(Obj parameters_, Obj body_):
+    Expression("lambda"),
     parameters {cons2symbols(parameters_)},
     body {combine_expr(body_)}
   {}
 
-  sc_obj eval(environment *env) const override;
+  Obj eval(Environment *env) const override;
 };
 
 // --- // --- //
 
-struct definition : public expression {
-  symbol variable;
-  expression *value;
+struct Define : public Expression {
+  Symbol variable;
+  Expression *value;
 
-  definition(cons *obj):
-    expression("define", obj, 3, MAXARGS)
+  Define(Cons *obj):
+    Expression("define", obj, 3, MAXARGS)
   {
     const auto cadr = obj->at("cadr");
 
-    if (holds_alternative<symbol>(cadr)) {  
-      variable = get<symbol>(cadr);
+    if (holds_alternative<Symbol>(cadr)) {  
+      variable = get<Symbol>(cadr);
       value = classify(obj->at("caddr"));
     }
 
-    else if (holds_alternative<cons*>(cadr)) {
+    else if (holds_alternative<Cons*>(cadr)) {
       const auto parameters = obj->at("cdadr");
       const auto body = obj->at("cddr");
-      if (!holds_alternative<symbol>(obj->at("caadr"))) {
+      if (!holds_alternative<Symbol>(obj->at("caadr"))) {
         throw runtime_error("procedure name must be a symbol");
       }
-      variable = get<symbol>(obj->at("caadr"));
-      value = new lambda_expr(parameters, body);
+      variable = get<Symbol>(obj->at("caadr"));
+      value = new Lambda(parameters, body);
     }
 
     else {
@@ -171,30 +171,30 @@ struct definition : public expression {
     }
   }
 
-  sc_obj eval(environment *env) const override;
+  Obj eval(Environment *env) const override;
 };
 
 // --- // --- //
 
-struct let_expr : public expression {
-  map<symbol, expression*> bindings;
-  expression *body;
+struct Let : public Expression {
+  map<Symbol, Expression*> bindings;
+  Expression *body;
 
   decltype(bindings)
-  get_bindings(sc_obj li) {
-    map<symbol, expression*> ret {};
+  get_bindings(Obj li) {
+    map<Symbol, Expression*> ret {};
     while (is_pair(li)) {
-      const auto as_cons = get<cons*>(li);
-      if (!holds_alternative<cons*>(as_cons->car)) {
-        throw runtime_error("let_expr::get_bindings: type error");
+      const auto as_cons = get<Cons*>(li);
+      if (!holds_alternative<Cons*>(as_cons->car)) {
+        throw runtime_error("Let::get_bindings: type error");
       }
-      const auto car = get<cons*>(as_cons->car);
-      if (!holds_alternative<symbol>(car->car)) {
-        throw runtime_error("let_expr::get_bindings: type error");
+      const auto car = get<Cons*>(as_cons->car);
+      if (!holds_alternative<Symbol>(car->car)) {
+        throw runtime_error("Let::get_bindings: type error");
       }
       
       ret.insert({
-        get<symbol>(car->at("car")),
+        get<Symbol>(car->at("car")),
         classify(car->at("cadr"))
       });
       li = as_cons->cdr;
@@ -202,9 +202,9 @@ struct let_expr : public expression {
     return ret;
   }
 
-  environment *
-  get_frame(environment *env) const {
-    auto ret = new environment (env);
+  Environment *
+  get_frame(Environment *env) const {
+    auto ret = new Environment (env);
     for (const auto& p : bindings) {
       ret->define_variable(
         p.first,
@@ -214,13 +214,13 @@ struct let_expr : public expression {
     return ret;
   }
 
-  let_expr(cons *obj):
-    expression("let", obj, 3, MAXARGS),
+  Let(Cons *obj):
+    Expression("let", obj, 3, MAXARGS),
     bindings {get_bindings(obj->at("cadr"))},
     body {combine_expr(obj->at("cddr"))}
   {}
 
-  sc_obj eval(environment *env) const override;
+  Obj eval(Environment *env) const override;
 };
 
 // --- // --- //
@@ -228,21 +228,21 @@ struct let_expr : public expression {
 struct clause {
 private:
   bool
-  is_else_clause(sc_obj obj) const {
+  is_else_clause(Obj obj) const {
     return
-      holds_alternative<symbol>(obj) &&
-      get<symbol>(obj).name == "else";
+      holds_alternative<Symbol>(obj) &&
+      get<Symbol>(obj).name == "else";
   };
 
 public:
   bool is_else;
-  expression *predicate;
-  expression *actions;
+  Expression *predicate;
+  Expression *actions;
 
-  clause (cons *obj) {
+  clause (Cons *obj) {
     if (is_else_clause(obj->car)) {
       is_else = 1;
-      predicate = new self_evaluating(true);
+      predicate = new Literal(true);
     } else {
       is_else = 0;
       predicate = classify(obj->car);
@@ -251,31 +251,31 @@ public:
   }
 };
 
-struct cond_expr : public expression {
+struct Cond : public Expression {
 private:
-  if_expr*
+  If*
   cond2if() const {
-    if_expr* ret = new if_expr;
+    If* ret = new If;
     for (auto curr = clauses.rbegin(); curr != clauses.rend(); curr++) {
-      ret = new if_expr(curr->predicate, curr->actions, ret);
+      ret = new If(curr->predicate, curr->actions, ret);
     }
     return ret;
   }
 
 public:
   vector<clause> clauses;
-  expression *if_form;
+  Expression *if_form;
 
-  cond_expr (sc_obj obj):
-    expression("cond") 
+  Cond (Obj obj):
+    Expression("cond") 
   {
-    obj = get<cons*>(obj)->cdr;
+    obj = get<Cons*>(obj)->cdr;
     while (is_pair(obj)) {
-      const auto as_cons = get<cons*>(obj);
-      if (!holds_alternative<cons*>(as_cons->car)) {
+      const auto as_cons = get<Cons*>(obj);
+      if (!holds_alternative<Cons*>(as_cons->car)) {
         throw runtime_error("cond type error\n");
       }
-      const auto new_clause = clause(get<cons*>(as_cons->car));
+      const auto new_clause = clause(get<Cons*>(as_cons->car));
       clauses.push_back(new_clause);
       if (new_clause.is_else)
         break;
@@ -284,114 +284,114 @@ public:
     if_form = cond2if();
   }
 
-  sc_obj eval(environment *env) const override;
+  Obj eval(Environment *env) const override;
   void tco() override;
 };
 
 // --- // --- //
 
-struct application : public expression {
-  expression *op;
-  vector<expression*> params;
+struct Application : public Expression {
+  Expression *op;
+  vector<Expression*> params;
   bool at_tail = false;
 
-  application(cons *obj):
-    expression("application"),
+  Application(Cons *obj):
+    Expression("Application"),
     op {classify(obj->car)},
     params {cons2vec(obj->cdr)}
   {}
 
-  sc_obj eval(environment *env) const override;
+  Obj eval(Environment *env) const override;
   void tco() override;
 };
 
 // --- // --- //
 
-struct and_expr : public expression {
-  vector<expression*> exprs;
+struct And : public Expression {
+  vector<Expression*> exprs;
 
-  and_expr(cons *obj):
-    expression("and", obj, 2, MAXARGS),
+  And(Cons *obj):
+    Expression("and", obj, 2, MAXARGS),
     exprs {cons2vec(obj->cdr)}
   {}
 
-  sc_obj eval(environment *env) const override;
+  Obj eval(Environment *env) const override;
 };
 
 // --- // --- //
 
-struct or_expr : public expression {
-  vector<expression*> exprs;
+struct Or : public Expression {
+  vector<Expression*> exprs;
 
-  or_expr(cons *obj):
-    expression("or", obj, 2, MAXARGS),
+  Or(Cons *obj):
+    Expression("or", obj, 2, MAXARGS),
     exprs {cons2vec(obj->cdr)}
   {}
 
-  sc_obj eval(environment *env) const override;
+  Obj eval(Environment *env) const override;
 };
 
 // --- // --- //
 
-struct cons_set_expr : public expression {
-  expression *variable;
-  expression *value;
+struct SetCxr : public Expression {
+  Expression *variable;
+  Expression *value;
   string side;
 
-  cons_set_expr(cons *obj, string side): 
-    expression("set-" + side + "!", obj, 3, 3),
+  SetCxr(Cons *obj, string side): 
+    Expression("set-" + side + "!", obj, 3, 3),
     variable {classify(obj->at("cadr"))},
     value {classify(obj->at("caddr"))},
     side {side}
   {}
 
-  sc_obj eval(environment *env) const override;
+  Obj eval(Environment *env) const override;
 };
 
 // --- // --- //
 
-struct cxr_expr : public expression {
-  symbol word;
-  expression *expr;
+struct Cxr : public Expression {
+  Symbol word;
+  Expression *expr;
 
-  cxr_expr(symbol tag, cons *obj): 
-    expression(tag.name, obj, 2, 2),
+  Cxr(Symbol tag, Cons *obj): 
+    Expression(tag.name, obj, 2, 2),
     word {tag}, 
     expr {classify(obj->at("cadr"))} 
   {}
 
-  sc_obj eval(environment *env) const override;
+  Obj eval(Environment *env) const override;
 };
 
 // --- // --- //
 
-expression* make_quoted(cons *obj) { return new quoted(obj); }
-expression* make_assignment(cons *obj) { return new assignment(obj); }
-expression* make_definition(cons *obj) { return new definition(obj); }
-expression* make_if_expr(cons *obj) { return new if_expr(obj); }
-expression* make_lambda_expr(cons *obj) { return new lambda_expr(obj); }
-expression* make_let_expr(cons *obj) { return new let_expr(obj); }
-expression* make_begin_expr(cons *obj) { return combine_expr(obj->cdr); }
-expression* make_cond_expr(cons *obj) { return new cond_expr(obj); }
-expression* make_application(cons *obj) { return new application(obj); }
-expression* make_and_expr(cons *obj) { return new and_expr(obj); }
-expression* make_or_expr(cons *obj) { return new or_expr(obj); }
-expression* make_set_car_expr(cons *obj) { return new cons_set_expr(obj, "car"); }
-expression* make_set_cdr_expr(cons *obj) { return new cons_set_expr(obj, "cdr"); }
+Expression* make_quoted(Cons *obj) { return new Quoted(obj); }
+Expression* make_set(Cons *obj) { return new Set(obj); }
+Expression* make_define(Cons *obj) { return new Define(obj); }
+Expression* make_if(Cons *obj) { return new If(obj); }
+Expression* make_lambda(Cons *obj) { return new Lambda(obj); }
+Expression* make_let(Cons *obj) { return new Let(obj); }
+Expression* make_begin(Cons *obj) { return combine_expr(obj->cdr); }
+Expression* make_cond(Cons *obj) { return new Cond(obj); }
+Expression* make_application(Cons *obj) { return new Application(obj); }
+Expression* make_and(Cons *obj) { return new And(obj); }
+Expression* make_or(Cons *obj) { return new Or(obj); }
+Expression* make_set_car(Cons *obj) { return new SetCxr(obj, "car"); }
+Expression* make_set_cdr(Cons *obj) { return new SetCxr(obj, "cdr"); }
 
-map<symbol, expression*(*)(cons*)> special_forms = {
+map<Symbol, Expression*(*)(Cons*)> special_forms = {
   {"quote"s, make_quoted},
-  {"set!"s, make_assignment},
-  {"define"s, make_definition},
-  {"if"s, make_if_expr},
-  {"lambda"s, make_lambda_expr},
-  {"let"s, make_let_expr},
-  {"begin"s, make_begin_expr},
-  {"cond"s, make_cond_expr},
-  {"and"s, make_and_expr},
-  {"or"s, make_or_expr},
-  {"set-car!"s, make_set_car_expr},
-  {"set-cdr!"s, make_set_cdr_expr}
+  {"set!"s, make_set},
+  {"define"s, make_define},
+  {"if"s, make_if},
+  {"lambda"s, make_lambda},
+  {"let"s, make_let},
+  {"begin"s, make_begin},
+  {"cond"s, make_cond},
+  {"and"s, make_and},
+  {"or"s, make_or},
+  {"set-car!"s, make_set_car},
+  {"set-cdr!"s, make_set_cdr}
 };
 
 bool
@@ -407,27 +407,27 @@ is_cxr(const string& s) {
   return true;
 }
 
-expression*
-classify(sc_obj obj) {
+Expression*
+classify(Obj obj) {
   if (is_pair(obj)) {
-    const auto p = get<cons*>(obj);
-    if (holds_alternative<symbol>(p->car)) {
-      const auto tag = get<symbol>(p->car);
+    const auto p = get<Cons*>(obj);
+    if (holds_alternative<Symbol>(p->car)) {
+      const auto tag = get<Symbol>(p->car);
       const auto found = special_forms.find(tag.name);
       if (found != special_forms.end()) {
         const auto func = found->second;
         return func(p);
       }
       else if (is_cxr(tag.name)) {
-        return new cxr_expr(tag, p);
+        return new Cxr(tag, p);
       }
     }
-    return new application(p);
+    return new Application(p);
   }
-  else if (holds_alternative<symbol>(obj))
-    return new variable(get<symbol>(obj));
+  else if (holds_alternative<Symbol>(obj))
+    return new Variable(get<Symbol>(obj));
   else
-    return new self_evaluating(obj);
+    return new Literal(obj);
 }
 
 }

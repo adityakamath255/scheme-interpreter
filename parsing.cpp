@@ -1,6 +1,6 @@
 #include "common.hpp"
 
-namespace scheme {
+namespace Scheme {
 
 const vector<char> SPECIAL_CHARS {'(', ')', '\'', '`', ',', '\"', ';'};
 
@@ -36,7 +36,7 @@ tokenize(const string& input) {
         insert_and_clear(&token);
       }
 
-      else if (find(SPECIAL_CHARS.begin(), SPECIAL_CHARS.end(), c) != SPECIAL_CHARS.end()) {
+      else if (std::find(SPECIAL_CHARS.begin(), SPECIAL_CHARS.end(), c) != SPECIAL_CHARS.end()) {
         insert_and_clear(&token);
         tokens.push_back(string(1, c));
       }
@@ -58,34 +58,34 @@ tokenize(const string& input) {
   return tokens;
 };
 
-sc_obj *
+Obj *
 make_num_obj(const string& str) {
-  return new sc_obj(stod(str));
+  return new Obj(stod(str));
 }
 
-sc_obj *
+Obj *
 make_sym_obj(const string& str) {
-  return new sc_obj(symbol(str));
+  return new Obj(Symbol(str));
 }
 
-sc_obj *
+Obj *
 make_bool_obj(const string& str) {
   if (str[1] == 't')
-    return new sc_obj(true);
+    return new Obj(true);
   else if (str[1] == 'f') 
-    return new sc_obj(false);
+    return new Obj(false);
   else 
     return make_sym_obj(str);
 }
 
-sc_obj *
+Obj *
 make_str_obj(const string& str) {
-  sc_obj *ret = new sc_obj(str.substr(1, str.size() - 2));
+  Obj *ret = new Obj(str.substr(1, str.size() - 2));
   return ret;
 }
 
-sc_obj *
-sc_obj_from_str(const string& str) {
+Obj *
+from_str(const string& str) {
   if (str[0] == '#') {
     return make_bool_obj(str);
   }
@@ -106,14 +106,14 @@ sc_obj_from_str(const string& str) {
   }
 } 
 
-pair<sc_obj*, int> 
+pair<Obj*, int> 
 parse_impl(const vector<string>& tokens, const int curr_index, bool recursive) {
   const string& token = tokens[curr_index];
-  sc_obj *head;
+  Obj *head;
   int next_index;
 
   if (token[0] == ')')  {
-    return {new sc_obj(nullptr), curr_index + 1};
+    return {new Obj(nullptr), curr_index + 1};
   }
   
   else if (token[0] == '(') {
@@ -130,18 +130,18 @@ parse_impl(const vector<string>& tokens, const int curr_index, bool recursive) {
   }
 
   else if (token[0] == '\'') {
-    sc_obj *q;
+    Obj *q;
     tie(q, next_index) = parse_impl(tokens, curr_index + 1, false);
-    head = new sc_obj(
-      new cons(
+    head = new Obj(
+      new Cons(
         *make_sym_obj("quote"), 
-        new cons(
+        new Cons(
           *q, 
           nullptr)));
   }
 
   else {
-    tie(head, next_index) = make_pair(sc_obj_from_str(token), curr_index + 1);
+    tie(head, next_index) = make_pair(from_str(token), curr_index + 1);
   }
 
   if (next_index == tokens.size() || !recursive) {
@@ -151,8 +151,8 @@ parse_impl(const vector<string>& tokens, const int curr_index, bool recursive) {
   else {
     if (recursive) {
       const auto [tail, k] = parse_impl(tokens, next_index, 1);
-      cons *c = new cons(*head, *tail);
-      return {new sc_obj(c), k};
+      Cons *c = new Cons(*head, *tail);
+      return {new Obj(c), k};
     }
     else {
       throw runtime_error("ill-formed syntax");
@@ -161,10 +161,10 @@ parse_impl(const vector<string>& tokens, const int curr_index, bool recursive) {
   }
 }
 
-sc_obj *
+Obj
 parse(const vector<string>& tokens) {
   auto ret = parse_impl(tokens, 0, 1).first;
-  return ret;
+  return *ret;
 }
 
 }

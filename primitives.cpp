@@ -1,7 +1,7 @@
 #include "common.hpp"
 using namespace std;
 
-namespace scheme {
+namespace Scheme {
 
 void 
 display(const bool b) {
@@ -14,7 +14,7 @@ display(const double n) {
 }
 
 void 
-display(const symbol& s) {
+display(const Symbol& s) {
   cout << s.name;
 }
 
@@ -27,17 +27,17 @@ void
 display(const nullptr_t x) {}
 
 void 
-display(const procedure *p) {
-  cout << "procedure at " << p;
+display(const Procedure *p) {
+  cout << "Procedure at " << p;
 }
 
 void 
-display(const primitive *p) {
-  cout << "primitive at " << p;
+display(const Primitive *p) {
+  cout << "Primitive at " << p;
 }
 
 void 
-display(cons *const);
+display(Cons *const);
 
 struct {
   template<typename T>
@@ -47,12 +47,12 @@ struct {
   }
 } display_overload;
 
-sc_obj
-display_iter(const sc_obj obj, const bool head) {
+Obj
+display_iter(const Obj obj, const bool head) {
   if (is_pair(obj)) {
     if (!head)
       cout << " ";
-    const auto c = get<cons*>(obj);
+    const auto c = get<Cons*>(obj);
     visit(display_overload, c->car);
     return display_iter(c->cdr, 0);
   }
@@ -62,9 +62,9 @@ display_iter(const sc_obj obj, const bool head) {
 }
 
 void 
-display(cons *const c) {
+display(Cons *const c) {
   cout << "(";
-  sc_obj obj = \
+  Obj obj = \
   display_iter(c, 1);
 
   if (!is_null(obj)) {
@@ -75,21 +75,21 @@ display(cons *const c) {
 }
 
 void 
-display(const sc_obj obj) {
+display(const Obj obj) {
   visit(display_overload, obj);
 }
 
-namespace prim_env {
-  sc_obj
-  display_final(const vector<sc_obj>& args) {
+namespace PrimEnv {
+  Obj
+  display_final(const vector<Obj>& args) {
     for (const auto& arg : args) {
       display(arg);
     }
-    return symbol("ok");
+    return Symbol("ok");
   }
 
-  sc_obj
-  add(const vector<sc_obj>& args) {
+  Obj
+  add(const vector<Obj>& args) {
     double ret = 0.0;
     for (const auto& arg : args) {
       ret += get<double>(arg);
@@ -97,16 +97,16 @@ namespace prim_env {
     return ret;
   }
 
-  sc_obj
-  sub(const vector<sc_obj>& args) {
+  Obj
+  sub(const vector<Obj>& args) {
     if (args.size() == 1)
       return -get<double>(args[0]);
     else
       return get<double>(args[0]) - get<double>(args[1]);   
   }
 
-  sc_obj
-  mul(const vector<sc_obj>& args) {
+  Obj
+  mul(const vector<Obj>& args) {
     double ret = 1.0;
     for (const auto& arg : args) {
       ret *= get<double>(arg);
@@ -114,182 +114,182 @@ namespace prim_env {
     return ret;
   }
 
-  sc_obj
-  div(const vector<sc_obj>& args) {
+  Obj
+  div(const vector<Obj>& args) {
     return get<double>(args[0]) / get<double>(args[1]);
   }
 
-  sc_obj 
-  exp(const vector<sc_obj>& args) {
+  Obj 
+  exp(const vector<Obj>& args) {
     return pow(get<double>(args[0]), get<double>(args[1]));
   }
 
-  sc_obj 
-  remainder(const vector<sc_obj>& args) {
+  Obj 
+  remainder(const vector<Obj>& args) {
     return fmod(get<double>(args[0]), get<double>(args[1]));
   }
 
-  sc_obj
-  lt(const vector<sc_obj>& args) {
+  Obj
+  lt(const vector<Obj>& args) {
     return get<double>(args[0]) < get<double>(args[1]);
   }
 
-  sc_obj
-  gt(const vector<sc_obj>& args) {
+  Obj
+  gt(const vector<Obj>& args) {
     return get<double>(args[0]) > get<double>(args[1]);
   }
 
-  sc_obj 
-  eq(const vector<sc_obj>& args) {
+  Obj 
+  eq(const vector<Obj>& args) {
     return abs(get<double>(args[0]) - get<double>(args[1])) < precision;
   }
 
-  sc_obj 
-  le(const vector<sc_obj>& args) {
+  Obj 
+  le(const vector<Obj>& args) {
     return get<double>(args[0]) <= get<double>(args[1]);
   }
 
-  sc_obj
-  ge(const vector<sc_obj>& args) {
+  Obj
+  ge(const vector<Obj>& args) {
     return get<double>(args[0]) >= get<double>(args[1]);
   }
 
-  sc_obj
-  neq(const vector<sc_obj>& args) {
+  Obj
+  neq(const vector<Obj>& args) {
     return !get<bool>(eq(args));
   }
 
-  sc_obj
-  is_equal(const vector<sc_obj>& args) {
+  Obj
+  is_equal(const vector<Obj>& args) {
     return args[0] == args[1];
   }
 
-  sc_obj
-  cons_fn(const vector<sc_obj>& args) {
-    return new cons(args[0], args[1]);
+  Obj
+  cons_fn(const vector<Obj>& args) {
+    return new Cons(args[0], args[1]);
   }
 
-  sc_obj
-  list_fn(const vector<sc_obj>& args) {
-    sc_obj ret = nullptr;
+  Obj
+  list_fn(const vector<Obj>& args) {
+    Obj ret = nullptr;
     for (auto curr = args.rbegin(); curr != args.rend(); curr++) {
-      ret = new cons(*curr, ret);
+      ret = new Cons(*curr, ret);
     }
     return ret;
   }
 
-  sc_obj
-  null_fn(const vector<sc_obj>& args) {
+  Obj
+  null_fn(const vector<Obj>& args) {
     return holds_alternative<nullptr_t>(args[0]);
   }
 
-  sc_obj
-  pair_fn(const vector<sc_obj>& args) {
+  Obj
+  pair_fn(const vector<Obj>& args) {
     return is_pair(args[0]);
   }
 
-  sc_obj
-  id(const vector<sc_obj>& args) {
+  Obj
+  id(const vector<Obj>& args) {
     return args[0];
   }
 
-  sc_obj
-  inc(const vector<sc_obj>& args) {
+  Obj
+  inc(const vector<Obj>& args) {
     return 1 + get<double>(args[0]);
   };
 
-  sc_obj
-  dec(const vector<sc_obj>& args) {
+  Obj
+  dec(const vector<Obj>& args) {
     return -1 + get<double>(args[0]);
   };
 
-  sc_obj
-  avg(const vector<sc_obj>& args) {
+  Obj
+  avg(const vector<Obj>& args) {
     return get<double>(add(args)) / args.size();
   };
 
-  sc_obj
-  sq(const vector<sc_obj>& args) {
+  Obj
+  sq(const vector<Obj>& args) {
     return get<double>(args[0]) * get<double>(args[0]);
   }
 
-  sc_obj
-  abs_fn(const vector<sc_obj>& args) {
+  Obj
+  abs_fn(const vector<Obj>& args) {
     return abs(get<double>(args[0]));
   }
 
-  sc_obj
-  sin_fn(const vector<sc_obj>& args) {
+  Obj
+  sin_fn(const vector<Obj>& args) {
     return sin(get<double>(args[0]));
   }
 
-  sc_obj
-  cos_fn(const vector<sc_obj>& args) {
+  Obj
+  cos_fn(const vector<Obj>& args) {
     return cos(get<double>(args[0]));
   }
 
-  sc_obj
-  log_fn(const vector<sc_obj>& args) {
+  Obj
+  log_fn(const vector<Obj>& args) {
     return log(get<double>(args[0]));
   }
 
-  sc_obj
-  max_fn(const vector<sc_obj>& args) {
+  Obj
+  max_fn(const vector<Obj>& args) {
     double ret = -INFINITY;
     for (const auto& arg : args)
       ret = max(ret, get<double>(arg));
     return ret;
   }
 
-  sc_obj
-  min_fn(const vector<sc_obj>& args) {
+  Obj
+  min_fn(const vector<Obj>& args) {
     double ret = -INFINITY;
     for (const auto& arg : args)
       ret = min(ret, get<double>(arg));
     return ret;
   }
 
-  sc_obj
-  quotient(const vector<sc_obj>& args) {
+  Obj
+  quotient(const vector<Obj>& args) {
     return static_cast<double>(
       static_cast<int>(
         get<double>(args[0]) / 
         get<double>(args[1])));
   }
 
-  sc_obj
-  sqrt_fn(const vector<sc_obj>& args) {
+  Obj
+  sqrt_fn(const vector<Obj>& args) {
     return sqrt(get<double>(args[0]));
   }
 
-  sc_obj
-  not_fn(const vector<sc_obj>& args) {
+  Obj
+  not_fn(const vector<Obj>& args) {
     return !get<bool>(args[0]);
   }
 
-  sc_obj
-  new_line(const vector<sc_obj>& args) {
+  Obj
+  new_line(const vector<Obj>& args) {
     cout << "\n";
     return true;
   }
 
-  sc_obj
-  list_len(const vector<sc_obj>& args) {
+  Obj
+  list_len(const vector<Obj>& args) {
     double ret = 0;
     auto curr = args[0];
     while (is_pair(curr)) {
       ret++;
-      curr = get<cons*>(curr)->cdr;
+      curr = get<Cons*>(curr)->cdr;
     }
     return ret;
   }
 
-  sc_obj
-  append_rec(const sc_obj list1, const sc_obj list2) {
+  Obj
+  append_rec(const Obj list1, const Obj list2) {
     if (is_pair(list1)) {
-      return new cons(
-        get<cons*>(list1)->car,
-        append_rec(get<cons*>(list1)->cdr, list2)
+      return new Cons(
+        get<Cons*>(list1)->car,
+        append_rec(get<Cons*>(list1)->cdr, list2)
       );
     }
     else {
@@ -297,13 +297,13 @@ namespace prim_env {
     }
   }
 
-  sc_obj
-  append(const vector<sc_obj>& args) {
+  Obj
+  append(const vector<Obj>& args) {
     return append_rec(args[0], args[1]);
   }
 
-  sc_obj
-  error_fn(const vector<sc_obj>& args) {
+  Obj
+  error_fn(const vector<Obj>& args) {
     cout << "ERROR: ";
     for (auto obj : args) {
       display(obj);
@@ -313,9 +313,9 @@ namespace prim_env {
   }
 }
 
-using namespace prim_env;
+using namespace PrimEnv;
 
-const vector<pair<string, function<sc_obj(const vector<sc_obj>&)>>> 
+const vector<pair<string, function<Obj(const vector<Obj>&)>>> 
 prims = {
   {"+", add},
   {"-", sub},
@@ -357,7 +357,7 @@ prims = {
   {"error", error_fn}
 };
 
-const vector<pair<string, sc_obj>>
+const vector<pair<string, Obj>>
 consts = {
   {"true", true},
   {"false", false},
