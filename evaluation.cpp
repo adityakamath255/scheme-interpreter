@@ -1,5 +1,4 @@
-#include "common.hpp"
-#include "tco.cpp"
+#include "expressions.hpp"
 
 namespace Scheme {
 
@@ -100,17 +99,6 @@ Or::eval(Environment *env) const {
     }
   }
   return false;
-}
-
-Obj
-SetCxr::eval(Environment *env) const {
-  auto thing = variable->eval(env);
-  if (!holds_alternative<Cons*>(thing)) {
-    throw runtime_error("tried to apply set-" + side + "! on a non-pair object");
-  }
-  const auto edit = value->eval(env);
-  get<Cons*>(thing)->at(side) = edit;
-  return thing;
 }
 
 Obj

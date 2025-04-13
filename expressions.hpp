@@ -1,0 +1,124 @@
+#pragma once
+#include "common.hpp"
+
+namespace Scheme {
+
+Expression *classify(Obj obj);
+
+struct Literal : public Expression {
+  Obj obj;
+  Literal(Obj obj);
+  Obj eval(Environment* env) const override;
+};
+
+struct Variable : public Expression {
+  Symbol sym;
+  Variable(Symbol& obj);
+  Obj eval(Environment* env) const override;
+};
+
+struct Quoted : public Expression {
+  Obj text_of_quotation;
+  Quoted(Cons *obj);
+  Obj eval(Environment *env) const override;
+};
+
+struct Set : public Expression {
+  Symbol variable;
+  Expression *value;
+  Set(Cons *obj);
+  Obj eval(Environment *env) const override;
+};
+
+struct If : public Expression {
+  Expression *predicate, *consequent, *alternative;
+  If(Cons *obj);
+  If(Expression *p, Expression *c, Expression *a);
+  If();
+  Obj eval(Environment *env) const override;
+  void tco() override;
+};
+
+struct Begin : public Expression {
+  vector<Expression*> actions;
+  Begin(const vector<Expression*>& seq);
+  Obj eval(Environment *env) const override;
+  void tco() override;
+};
+
+Expression *combine_expr(Obj seq);
+
+struct Lambda : public Expression {
+  vector<Symbol> parameters;
+  Expression *body;
+  Lambda(Cons *obj);
+  Lambda(Obj parameters_, Obj body_);
+  Obj eval(Environment *env) const override;
+};
+
+struct Define : public Expression {
+  Symbol variable;
+  Expression *value;
+  Define(Cons *obj);
+  Obj eval(Environment *env) const override;
+};
+
+struct Let : public Expression {
+  std::map<Symbol, Expression*> bindings;
+  Expression *body;
+  decltype(bindings) get_bindings(Obj li);
+  Environment *get_frame(Environment *env) const;
+  Let(Cons *obj);
+  Obj eval(Environment *env) const override;
+};
+
+struct Clause {
+private:
+  bool is_else_clause(Obj obj) const;
+public:
+  bool is_else;
+  Expression *predicate;
+  Expression *actions;
+  Clause (Cons *obj);
+};
+
+struct Cond : public Expression {
+private:
+  If *cond2if() const;
+public:
+  vector<Clause> clauses;
+  Expression *if_form;
+  Cond (Obj obj);
+  Obj eval(Environment *env) const override;
+  void tco() override;
+};
+
+struct Application : public Expression {
+  Expression *op;
+  vector<Expression*> params;
+  bool at_tail = false;
+  Application(Cons *obj);
+  Obj eval(Environment *env) const override;
+  void tco() override;
+};
+
+struct And : public Expression {
+  vector<Expression*> exprs;
+  And(Cons *obj);
+  Obj eval(Environment *env) const override;
+};
+
+struct Or : public Expression {
+  vector<Expression*> exprs;
+  Or(Cons *obj);
+  Obj eval(Environment *env) const override;
+};
+
+struct Cxr : public Expression {
+  Symbol word;
+  Expression *expr;
+  Cxr(Symbol tag, Cons *obj);
+  Obj eval(Environment *env) const override;
+};
+
+}

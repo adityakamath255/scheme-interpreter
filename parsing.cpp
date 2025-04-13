@@ -1,9 +1,9 @@
-#include "common.hpp"
+#include "parsing.hpp"
 #include <cmath>
 
 namespace Scheme {
 
-const vector<char> SPECIAL_CHARS {'(', ')', '\'', '`', ',', '\"', ';'};
+static const vector<char> SPECIAL_CHARS {'(', ')', '\'', '`', ',', '\"', ';'};
 
 vector<string>
 tokenize(const string& input) {
@@ -59,17 +59,17 @@ tokenize(const string& input) {
   return tokens;
 };
 
-Obj *
+static Obj *
 make_num_obj(const string& str) {
   return new Obj(stod(str));
 }
 
-Obj *
+static Obj *
 make_sym_obj(const string& str) {
   return new Obj(Symbol(str));
 }
 
-Obj *
+static Obj *
 make_bool_obj(const string& str) {
   if (str[1] == 't')
     return new Obj(true);
@@ -79,13 +79,13 @@ make_bool_obj(const string& str) {
     return make_sym_obj(str);
 }
 
-Obj *
+static Obj *
 make_str_obj(const string& str) {
   Obj *ret = new Obj(str.substr(1, str.size() - 2));
   return ret;
 }
 
-Obj *
+static Obj *
 from_str(const string& str) {
   if (str[0] == '#') {
     return make_bool_obj(str);
@@ -107,7 +107,7 @@ from_str(const string& str) {
   }
 } 
 
-std::pair<Obj*, int> 
+static std::pair<Obj*, int> 
 parse_impl(const vector<string>& tokens, const int curr_index, bool recursive) {
   const string& token = tokens[curr_index];
   Obj *head;

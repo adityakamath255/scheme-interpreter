@@ -1,111 +1,233 @@
-#include "common.hpp"
-
-using namespace std::string_literals;
-
-constexpr int MAXARGS = 256;
+#include "expressions.hpp"
 
 namespace Scheme {
 
-struct Literal : public Expression {
-  Obj obj;
-  Literal(Obj obj):
-    Expression("self-evaluating"),
-    obj {obj}
-  {}
+using namespace std::string_literals;
+static constexpr int MAXARGS = 256;
 
-  Obj eval(Environment* env) const override;
-};
+static vector<Symbol>
+cons2symbols(Obj c) {
+  vector<Symbol> vec {};
+  while (is_pair(c)) {
+    const auto as_cons = get<Cons*>(c);
+    vec.push_back(get<Symbol>(as_cons->car));
+    c = as_cons->cdr;
+  }
+  return vec;
+}
 
-// --- // --- //
+static vector<Expression*> 
+cons2vec(Obj seq) {
+  vector<Expression*> vec {};
+  while (is_pair(seq)) {
+    const auto as_cons = get<Cons*>(seq);
+    vec.push_back(classify(as_cons->car));
+    seq = as_cons->cdr; 
+  }
+  return vec;
+}
 
-struct Variable : public Expression {
-  Symbol sym;
-  Variable(Symbol& obj):
-    Expression("Variable"),
-    sym {obj}
-  {}
+Literal::Literal(Obj obj):
+  Expression("self-evaluating"s),
+  obj {obj}
+{}
 
-  Obj eval(Environment* env) const override;
-};
+Variable::Variable(Symbol& obj):
+  Expression("Variable"s),
+  sym {obj}
+{}
 
-// --- // --- //
+Quoted::Quoted(Cons *obj):
+  Expression("quoted"s, obj, 2, 2),
+  text_of_quotation {obj->at("cadr")}
+{}
 
-struct Quoted : public Expression {
-  Obj text_of_quotation;
-  Quoted(Cons *obj):
-    Expression("quoted", obj, 2, 2),
-    text_of_quotation {obj->at("cadr")}
-  {}
+Set::Set(Cons *obj):
+  Expression("Set"s, obj, 3, 3)
+{
+  if (!holds_alternative<Symbol>(obj->at("cadr"))) {
+    throw runtime_error("tried to assign something to a non-variable");
+  }
+  variable = get<Symbol>(obj->at("cadr"));
+  const auto cddr = obj->at("cddr");
+  value = classify(obj->at("caddr"));
+}
 
-  Obj eval(Environment *env) const override;
-};
+If::If(Cons *obj):
+  Expression("if"s, obj, 3, 4),
+  predicate {classify(obj->at("cadr"))},
+  consequent {classify(obj->at("caddr"))},
+  alternative {
+    !is_null(obj->at("cdddr"))
+  ? classify(obj->at("cadddr"))
+  : new Literal(false)
+  }
+{}
 
-// --- // --- //
+If::If(Expression *p, Expression *c, Expression *a):
+  Expression("if"s),
+  predicate {p},
+  consequent {c},
+  alternative {a} 
+{}
 
-struct Set : public Expression {
-  Symbol variable;
-  Expression *value;
+If::If():
+  Expression("if"s),
+  predicate {new Literal(false)},
+  consequent {new Literal(false)},
+  alternative {new Literal(false)}
+{}
 
-  Set(Cons *obj):
-    Expression("Set", obj, 3, 3)
-  {
-    if (!holds_alternative<Symbol>(obj->at("cadr"))) {
-      throw runtime_error("tried to assign something to a non-variable");
-    }
-    variable = get<Symbol>(obj->at("cadr"));
-    const auto cddr = obj->at("cddr");
+Begin::Begin(const vector<Expression*>& seq):
+  Expression("begin"s),
+  actions {seq}
+{}
+
+Lambda::Lambda(Cons *obj):
+  Expression("lambda"s, obj, 3, MAXARGS),
+  parameters {cons2symbols(obj->at("cadr"))},
+  body {combine_expr(obj->at("cddr"))}
+{}
+
+Lambda::Lambda(Obj parameters_, Obj body_):
+  Expression("lambda"s),
+  parameters {cons2symbols(parameters_)},
+  body {combine_expr(body_)}
+{}
+
+Define::Define(Cons *obj):
+  Expression("define"s, obj, 3, MAXARGS)
+{
+  const auto cadr = obj->at("cadr");
+
+  if (holds_alternative<Symbol>(cadr)) {  
+    variable = get<Symbol>(cadr);
     value = classify(obj->at("caddr"));
   }
 
-  Obj eval(Environment *env) const override;
-};
-
-// --- // --- //
-
-struct If : public Expression {
-  Expression *predicate, *consequent, *alternative;
-
-  If(Cons *obj):
-    Expression("if", obj, 3, 4),
-    predicate {classify(obj->at("cadr"))},
-    consequent {classify(obj->at("caddr"))},
-    alternative {
-      !is_null(obj->at("cdddr"))
-    ? classify(obj->at("cadddr"))
-    : new Literal("false")
+  else if (holds_alternative<Cons*>(cadr)) {
+    const auto parameters = obj->at("cdadr");
+    const auto body = obj->at("cddr");
+    if (!holds_alternative<Symbol>(obj->at("caadr"))) {
+      throw runtime_error("procedure name must be a symbol");
     }
-  {}
+    variable = get<Symbol>(obj->at("caadr"));
+    value = new Lambda(parameters, body);
+  }
 
-  If(Expression *p, Expression *c, Expression *a):
-    Expression("if"),
-    predicate {p},
-    consequent {c},
-    alternative {a} 
-  {}
+  else {
+    throw runtime_error("bad definition identifier");
+  }
+}
 
-  If():
-    Expression("if"),
-    predicate {new Literal(false)},
-    consequent {new Literal(false)},
-    alternative {new Literal(false)} {}
+std::map<Symbol, Expression*>
+Let::get_bindings(Obj li) {
+  std::map<Symbol, Expression*> ret {};
+  while (is_pair(li)) {
+    const auto as_cons = get<Cons*>(li);
+    if (!holds_alternative<Cons*>(as_cons->car)) {
+      throw runtime_error("Let::get_bindings: type error");
+    }
+    const auto car = get<Cons*>(as_cons->car);
+    if (!holds_alternative<Symbol>(car->car)) {
+      throw runtime_error("Let::get_bindings: type error");
+    }
+    
+    ret.insert({
+      get<Symbol>(car->at("car")),
+      classify(car->at("cadr"))
+    });
+    li = as_cons->cdr;
+  }
+  return ret;
+}
 
-  Obj eval(Environment *env) const override;
-  void tco() override;
-};
+Environment *
+Let::get_frame(Environment *env) const {
+  auto ret = new Environment (env);
+  for (const auto& p : bindings) {
+    ret->define_variable(
+      p.first,
+      p.second->eval(env)
+    );
+  }
+  return ret;
+}
 
-// --- // --- //
+Let::Let(Cons *obj):
+  Expression("let"s, obj, 3, MAXARGS),
+  bindings {get_bindings(obj->at("cadr"))},
+  body {combine_expr(obj->at("cddr"))}
+{}
 
-struct Begin : public Expression {
-public:
-  vector<Expression*> actions;
-  Begin(const vector<Expression*>& seq):
-    Expression("begin"),
-    actions {seq}
-  {}
 
-  Obj eval(Environment *env) const override;
-  void tco() override;
-};
+bool
+Clause::is_else_clause(Obj obj) const {
+  return
+    holds_alternative<Symbol>(obj) &&
+    get<Symbol>(obj).name == "else";
+}
+
+Clause::Clause (Cons *obj) {
+  if (is_else_clause(obj->car)) {
+    is_else = 1;
+    predicate = new Literal(true);
+  } 
+  else {
+    is_else = 0;
+    predicate = classify(obj->car);
+  }
+  actions = combine_expr(obj->cdr);
+}
+
+If*
+Cond::cond2if() const {
+  If* ret = new If;
+  for (auto curr = clauses.rbegin(); curr != clauses.rend(); curr++) {
+    ret = new If(curr->predicate, curr->actions, ret);
+  }
+  return ret;
+}
+
+Cond::Cond(Obj obj):
+  Expression("cond"s) 
+{
+  obj = get<Cons*>(obj)->cdr;
+  while (is_pair(obj)) {
+    const auto as_cons = get<Cons*>(obj);
+    if (!holds_alternative<Cons*>(as_cons->car)) {
+      throw runtime_error("cond type error\n");
+    }
+    const auto new_clause = Clause(get<Cons*>(as_cons->car));
+    clauses.push_back(new_clause);
+    if (new_clause.is_else)
+      break;
+    obj = as_cons->cdr;
+  }
+  if_form = cond2if();
+}
+
+Application::Application(Cons *obj):
+  Expression("application"s),
+  op {classify(obj->car)},
+  params {cons2vec(obj->cdr)}
+{}
+
+And::And(Cons *obj):
+  Expression("and"s, obj, 2, MAXARGS),
+  exprs {cons2vec(obj->cdr)}
+{}
+
+Or::Or(Cons *obj):
+  Expression("or"s, obj, 2, MAXARGS),
+  exprs {cons2vec(obj->cdr)}
+{}
+
+Cxr::Cxr(Symbol tag, Cons *obj): 
+  Expression(tag.name, obj, 2, 2),
+  word {tag}, 
+  expr {classify(obj->at("cadr"))} 
+{}
 
 Expression*
 combine_expr(Obj seq) {
@@ -121,267 +243,20 @@ combine_expr(Obj seq) {
   return ret;
 }
 
-// --- // --- //
+static Expression* make_quoted(Cons *obj) { return new Quoted(obj); }
+static Expression* make_set(Cons *obj) { return new Set(obj); }
+static Expression* make_define(Cons *obj) { return new Define(obj); }
+static Expression* make_if(Cons *obj) { return new If(obj); }
+static Expression* make_lambda(Cons *obj) { return new Lambda(obj); }
+static Expression* make_let(Cons *obj) { return new Let(obj); }
+static Expression* make_begin(Cons *obj) { return combine_expr(obj->cdr); }
+static Expression* make_cond(Cons *obj) { return new Cond(obj); }
+static Expression* make_application(Cons *obj) { return new Application(obj); }
+static Expression* make_and(Cons *obj) { return new And(obj); }
+static Expression* make_or(Cons *obj) { return new Or(obj); }
 
-struct Lambda : public Expression {
-  vector<Symbol> parameters;
-  Expression *body;
-
-  Lambda(Cons *obj):
-    Expression("lambda", obj, 3, MAXARGS),
-    parameters {cons2symbols(obj->at("cadr"))},
-    body {combine_expr(obj->at("cddr"))}
-  {}
-
-  Lambda(Obj parameters_, Obj body_):
-    Expression("lambda"),
-    parameters {cons2symbols(parameters_)},
-    body {combine_expr(body_)}
-  {}
-
-  Obj eval(Environment *env) const override;
-};
-
-// --- // --- //
-
-struct Define : public Expression {
-  Symbol variable;
-  Expression *value;
-
-  Define(Cons *obj):
-    Expression("define", obj, 3, MAXARGS)
-  {
-    const auto cadr = obj->at("cadr");
-
-    if (holds_alternative<Symbol>(cadr)) {  
-      variable = get<Symbol>(cadr);
-      value = classify(obj->at("caddr"));
-    }
-
-    else if (holds_alternative<Cons*>(cadr)) {
-      const auto parameters = obj->at("cdadr");
-      const auto body = obj->at("cddr");
-      if (!holds_alternative<Symbol>(obj->at("caadr"))) {
-        throw runtime_error("procedure name must be a symbol");
-      }
-      variable = get<Symbol>(obj->at("caadr"));
-      value = new Lambda(parameters, body);
-    }
-
-    else {
-      throw runtime_error("bad definition identifier");
-    }
-  }
-
-  Obj eval(Environment *env) const override;
-};
-
-// --- // --- //
-
-struct Let : public Expression {
-  std::map<Symbol, Expression*> bindings;
-  Expression *body;
-
-  decltype(bindings)
-  get_bindings(Obj li) {
-    std::map<Symbol, Expression*> ret {};
-    while (is_pair(li)) {
-      const auto as_cons = get<Cons*>(li);
-      if (!holds_alternative<Cons*>(as_cons->car)) {
-        throw runtime_error("Let::get_bindings: type error");
-      }
-      const auto car = get<Cons*>(as_cons->car);
-      if (!holds_alternative<Symbol>(car->car)) {
-        throw runtime_error("Let::get_bindings: type error");
-      }
-      
-      ret.insert({
-        get<Symbol>(car->at("car")),
-        classify(car->at("cadr"))
-      });
-      li = as_cons->cdr;
-    }
-    return ret;
-  }
-
-  Environment *
-  get_frame(Environment *env) const {
-    auto ret = new Environment (env);
-    for (const auto& p : bindings) {
-      ret->define_variable(
-        p.first,
-        p.second->eval(env)
-      );
-    }
-    return ret;
-  }
-
-  Let(Cons *obj):
-    Expression("let", obj, 3, MAXARGS),
-    bindings {get_bindings(obj->at("cadr"))},
-    body {combine_expr(obj->at("cddr"))}
-  {}
-
-  Obj eval(Environment *env) const override;
-};
-
-// --- // --- //
-
-struct clause {
-private:
-  bool
-  is_else_clause(Obj obj) const {
-    return
-      holds_alternative<Symbol>(obj) &&
-      get<Symbol>(obj).name == "else";
-  };
-
-public:
-  bool is_else;
-  Expression *predicate;
-  Expression *actions;
-
-  clause (Cons *obj) {
-    if (is_else_clause(obj->car)) {
-      is_else = 1;
-      predicate = new Literal(true);
-    } else {
-      is_else = 0;
-      predicate = classify(obj->car);
-    }
-    actions = combine_expr(obj->cdr);
-  }
-};
-
-struct Cond : public Expression {
-private:
-  If*
-  cond2if() const {
-    If* ret = new If;
-    for (auto curr = clauses.rbegin(); curr != clauses.rend(); curr++) {
-      ret = new If(curr->predicate, curr->actions, ret);
-    }
-    return ret;
-  }
-
-public:
-  vector<clause> clauses;
-  Expression *if_form;
-
-  Cond (Obj obj):
-    Expression("cond") 
-  {
-    obj = get<Cons*>(obj)->cdr;
-    while (is_pair(obj)) {
-      const auto as_cons = get<Cons*>(obj);
-      if (!holds_alternative<Cons*>(as_cons->car)) {
-        throw runtime_error("cond type error\n");
-      }
-      const auto new_clause = clause(get<Cons*>(as_cons->car));
-      clauses.push_back(new_clause);
-      if (new_clause.is_else)
-        break;
-      obj = as_cons->cdr;
-    }
-    if_form = cond2if();
-  }
-
-  Obj eval(Environment *env) const override;
-  void tco() override;
-};
-
-// --- // --- //
-
-struct Application : public Expression {
-  Expression *op;
-  vector<Expression*> params;
-  bool at_tail = false;
-
-  Application(Cons *obj):
-    Expression("Application"),
-    op {classify(obj->car)},
-    params {cons2vec(obj->cdr)}
-  {}
-
-  Obj eval(Environment *env) const override;
-  void tco() override;
-};
-
-// --- // --- //
-
-struct And : public Expression {
-  vector<Expression*> exprs;
-
-  And(Cons *obj):
-    Expression("and", obj, 2, MAXARGS),
-    exprs {cons2vec(obj->cdr)}
-  {}
-
-  Obj eval(Environment *env) const override;
-};
-
-// --- // --- //
-
-struct Or : public Expression {
-  vector<Expression*> exprs;
-
-  Or(Cons *obj):
-    Expression("or", obj, 2, MAXARGS),
-    exprs {cons2vec(obj->cdr)}
-  {}
-
-  Obj eval(Environment *env) const override;
-};
-
-// --- // --- //
-
-struct SetCxr : public Expression {
-  Expression *variable;
-  Expression *value;
-  string side;
-
-  SetCxr(Cons *obj, string side): 
-    Expression("set-" + side + "!", obj, 3, 3),
-    variable {classify(obj->at("cadr"))},
-    value {classify(obj->at("caddr"))},
-    side {side}
-  {}
-
-  Obj eval(Environment *env) const override;
-};
-
-// --- // --- //
-
-struct Cxr : public Expression {
-  Symbol word;
-  Expression *expr;
-
-  Cxr(Symbol tag, Cons *obj): 
-    Expression(tag.name, obj, 2, 2),
-    word {tag}, 
-    expr {classify(obj->at("cadr"))} 
-  {}
-
-  Obj eval(Environment *env) const override;
-};
-
-// --- // --- //
-
-Expression* make_quoted(Cons *obj) { return new Quoted(obj); }
-Expression* make_set(Cons *obj) { return new Set(obj); }
-Expression* make_define(Cons *obj) { return new Define(obj); }
-Expression* make_if(Cons *obj) { return new If(obj); }
-Expression* make_lambda(Cons *obj) { return new Lambda(obj); }
-Expression* make_let(Cons *obj) { return new Let(obj); }
-Expression* make_begin(Cons *obj) { return combine_expr(obj->cdr); }
-Expression* make_cond(Cons *obj) { return new Cond(obj); }
-Expression* make_application(Cons *obj) { return new Application(obj); }
-Expression* make_and(Cons *obj) { return new And(obj); }
-Expression* make_or(Cons *obj) { return new Or(obj); }
-Expression* make_set_car(Cons *obj) { return new SetCxr(obj, "car"); }
-Expression* make_set_cdr(Cons *obj) { return new SetCxr(obj, "cdr"); }
-
-std::map<Symbol, Expression*(*)(Cons*)> special_forms = {
+static std::map<Symbol, Expression*(*)(Cons*)> 
+special_forms = {
   {"quote"s, make_quoted},
   {"set!"s, make_set},
   {"define"s, make_define},
@@ -392,11 +267,9 @@ std::map<Symbol, Expression*(*)(Cons*)> special_forms = {
   {"cond"s, make_cond},
   {"and"s, make_and},
   {"or"s, make_or},
-  {"set-car!"s, make_set_car},
-  {"set-cdr!"s, make_set_cdr}
 };
 
-bool
+static bool
 is_cxr(const string& s) {
   if (s.front() != 'c' || s.back() != 'r') {
     return false;

@@ -1,31 +1,29 @@
 #include "common.hpp"
-#include "primitives.cpp"
-#include "evaluation.cpp"
-#include "parsing.cpp"
+#include "primitives.hpp"
+#include "expressions.hpp"
+#include "parsing.hpp"
 #include <fstream>
 
 using namespace Scheme;
 
-Environment
+Environment *
 install_initial_environment() {
-  Environment env;
-  for (const auto& p : prims) {
-    env.define_variable(p.first, new Primitive(p.second));
+  auto env = new Environment();
+  for (const auto& p : get_primitive_functions()) {
+    env->define_variable(p.first, new Primitive(p.second));
   }
-  for (const auto& p : consts) {
-    env.define_variable(p.first, p.second);
+  for (const auto& p : get_consts()) {
+    env->define_variable(p.first, p.second);
   }
-  return Environment(env);
+  return new Environment(env);
 }
 
-auto init_env = install_initial_environment();
-
 Obj
-interpret(const string& code) {
+interpret(const string& code, Environment *env) {
   const auto tokens = tokenize(code);
   const auto AST_0 = parse(tokens);
   const auto AST_1 = classify(AST_0); 
-  return eval(AST_1, &init_env);
+  return eval(AST_1, env);
 }
 
 template<class INPUT>
@@ -72,14 +70,17 @@ read(INPUT& in) {
 }
 
 void
-driver_loop() {
+driver_loop(Environment *env = nullptr) {
+  if (env == nullptr) {
+    env = install_initial_environment();
+  }
   while (true) {
     try {
       cout << ">>> ";
       string input_expr = read(std::cin);
       if (input_expr == "exit\n") 
         return;
-      auto result = interpret(input_expr);
+      auto result = interpret(input_expr, env);
       display(result);
       cout << "\n";
     } 
@@ -99,13 +100,14 @@ run_file(const char *filename) {
   std::ifstream in;
   in.open(filename);
   Obj result;
+  auto env = install_initial_environment();
   while (true) {
     try {
       const string& input_expr = read(in);
       if (in.eof()) {
         break;
       }
-      interpret(input_expr);
+      interpret(input_expr, env);
     } 
     catch (const runtime_error& e) {
       cout << "\nERROR: " << e.what() << "\n";
@@ -116,7 +118,7 @@ run_file(const char *filename) {
     }
   }
   cout << "\n";
-  driver_loop();
+  driver_loop(env);
 }
 
 int 
