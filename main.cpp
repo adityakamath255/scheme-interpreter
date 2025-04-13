@@ -84,8 +84,8 @@ driver_loop(Environment *env = nullptr) {
       display(result);
       cout << "\n";
     } 
-    catch (const runtime_error& e) {
-        cout << "\nERROR: " << e.what() << "\n";
+    catch (runtime_error& e) {
+      cout << "\nERROR: " << e.what() << "\n";
     }
     catch (TailCall tc) {
       auto result = apply(tc.proc, tc.args);
@@ -109,7 +109,7 @@ run_file(const char *filename) {
       }
       interpret(input_expr, env);
     } 
-    catch (const runtime_error& e) {
+    catch (runtime_error& e) {
       cout << "\nERROR: " << e.what() << "\n";
       return; 
     }
