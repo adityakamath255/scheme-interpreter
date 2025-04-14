@@ -8,7 +8,9 @@
 #include <algorithm>
 #include <functional>
 
+using std::cin;
 using std::cout;
+using std::cerr;
 using std::vector;
 using std::string;
 using std::get;
@@ -23,6 +25,7 @@ class Primitive;
 class Procedure;
 class Environment;
 class Expression;
+class Void {};
 
 using Obj = std::variant<
   bool,
@@ -32,7 +35,8 @@ using Obj = std::variant<
   Cons*,
   Primitive*,
   Procedure*,
-  nullptr_t
+  nullptr_t,
+  Void
 >;
 
 struct Symbol {
@@ -43,6 +47,8 @@ struct Symbol {
 
 bool operator ==(const Symbol&, const Symbol&);
 bool operator <(const Symbol&, const Symbol&);
+
+bool operator ==(const Void, const Void);
 
 struct Cons {
   Obj car;

@@ -15,6 +15,11 @@ bool operator
   return s0.name < s1.name;
 }
 
+bool operator
+==(const Void v0, const Void v1) {
+  return true;
+}
+
 Cons::Cons(Obj a, Obj b): car {a}, cdr {b} {}
 
 Obj 

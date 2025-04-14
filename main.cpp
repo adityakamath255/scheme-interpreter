@@ -77,20 +77,27 @@ driver_loop(Environment *env = nullptr) {
   while (true) {
     try {
       cout << ">>> ";
-      string input_expr = read(std::cin);
+      string input_expr = read(cin);
       if (input_expr == "exit\n") 
         return;
       auto result = interpret(input_expr, env);
-      display(result);
-      cout << "\n";
+      if (!holds_alternative<Void>(result)) {
+        cout << stringify(result);
+        cout << "\n";
+      }
     } 
-    catch (runtime_error& e) {
-      cout << "\nERROR: " << e.what() << "\n";
+    catch (std::runtime_error& e) {
+      cerr << "ERROR: " << e.what() << "\n";
+    }
+    catch (std::bad_variant_access e) {
+      cerr << "ERROR: incorrect type\n";
     }
     catch (TailCall tc) {
       auto result = apply(tc.proc, tc.args);
-      display(result);
-      cout << "\n";
+      if (!holds_alternative<Void>(result)) {
+        cout << stringify(result);
+        cout << "\n";
+      }
     }
   }
 }
@@ -110,7 +117,7 @@ run_file(const char *filename) {
       interpret(input_expr, env);
     } 
     catch (runtime_error& e) {
-      cout << "\nERROR: " << e.what() << "\n";
+      cerr << "\nERROR: " << e.what() << "\n";
       return; 
     }
     catch (TailCall tc) {

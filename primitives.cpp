@@ -6,6 +6,29 @@ namespace Scheme {
 
 constexpr int MAX_ARGS = INT_MAX;
 
+template<typename T>
+static void
+assert_obj_type(const Obj obj, const string& type) {
+  if (!holds_alternative<T>(obj)) {
+    throw runtime_error("incorrect type for " + stringify(obj) + ", expected " + type);
+  }
+}
+
+template<typename T>
+static void
+assert_vec_type(const vector<Obj>& args, const string& type) {
+  for (int i = 0; i < args.size(); i++) {
+    assert_obj_type<T>(args[i], type);
+  }
+}
+
+static void
+assert_callable(const Obj obj) {
+  if (!holds_alternative<Procedure*>(obj) && !holds_alternative<Primitive*>(obj)) {
+    throw runtime_error("incorrect type for " + stringify(obj) + ", exprected procedure");
+  }
+}
+
 static void
 assert_arg_count(const vector<Obj>& args, const int lb, const int rb) {
   if (!(lb <= args.size() && args.size() <= rb)) {
@@ -22,15 +45,15 @@ assert_arg_count(const vector<Obj>& args, const int lb, const int rb) {
 }
 
 static Obj
-display_list(const vector<Obj>& args) {
-  for (const auto& arg : args) {
-    display(arg);
-  }
-  return Symbol("ok");
+display(const vector<Obj>& args) {
+  assert_arg_count(args, 1, 1);
+  cout << stringify(args[0]);
+  return Void {};
 }
 
 static Obj
 add(const vector<Obj>& args) {
+  assert_vec_type<double>(args, "number");
   double ret = 0.0;
   for (const auto& arg : args) {
     ret += get<double>(arg);
@@ -41,6 +64,7 @@ add(const vector<Obj>& args) {
 static Obj
 sub(const vector<Obj>& args) {
   assert_arg_count(args, 1, MAX_ARGS);
+  assert_vec_type<double>(args, "number");
   if (args.size() == 1) {
     return -get<double>(args[0]);
   }
@@ -55,6 +79,7 @@ sub(const vector<Obj>& args) {
 
 static Obj
 mul(const vector<Obj>& args) {
+  assert_vec_type<double>(args, "number");
   double ret = 1.0;
   for (const auto& arg : args) {
     ret *= get<double>(arg);
@@ -65,6 +90,7 @@ mul(const vector<Obj>& args) {
 static Obj
 div(const vector<Obj>& args) {
   assert_arg_count(args, 1, MAX_ARGS);
+  assert_vec_type<double>(args, "number");
   if (args.size() == 1) {
     return 1.0 / get<double>(args[0]);
   }
@@ -80,6 +106,7 @@ div(const vector<Obj>& args) {
 static Obj
 quotient(const vector<Obj>& args) {
   assert_arg_count(args, 2, 2);
+  assert_vec_type<double>(args, "number");
   return static_cast<double>(
     static_cast<int>(
       get<double>(args[0]) / 
@@ -89,12 +116,14 @@ quotient(const vector<Obj>& args) {
 static Obj 
 remainder(const vector<Obj>& args) {
   assert_arg_count(args, 2, 2);
+  assert_vec_type<double>(args, "number");
   return fmod(get<double>(args[0]), get<double>(args[1]));
 }
 
 static Obj
 expt(const vector<Obj>& args) {
   assert_arg_count(args, 2, 2);
+  assert_vec_type<double>(args, "number");
   return std::pow(get<double>(args[0]), get<double>(args[1]));
 }
 
@@ -112,66 +141,77 @@ check_comp(const vector<Obj>& args, Comp comp) {
 static Obj
 lt(const vector<Obj>& args) {
   assert_arg_count(args, 1, MAX_ARGS);
+  assert_vec_type<double>(args, "number");
   return check_comp(args, std::less<double>());
 }
 
 static Obj
 gt(const vector<Obj>& args) {
   assert_arg_count(args, 1, MAX_ARGS);
+  assert_vec_type<double>(args, "number");
   return check_comp(args, std::greater<double>());
 }
 
 static Obj 
 eq(const vector<Obj>& args) {
   assert_arg_count(args, 1, MAX_ARGS);
+  assert_vec_type<double>(args, "number");
   return check_comp(args, std::equal_to<double>());
 }
 
 static Obj 
 le(const vector<Obj>& args) {
   assert_arg_count(args, 1, MAX_ARGS);
+  assert_vec_type<double>(args, "number");
   return check_comp(args, std::less_equal<double>());
 }
 
 static Obj
 ge(const vector<Obj>& args) {
   assert_arg_count(args, 1, MAX_ARGS);
+  assert_vec_type<double>(args, "number");
   return check_comp(args, std::greater_equal<double>());
 }
 
 static Obj
 abs_fn(const vector<Obj>& args) {
   assert_arg_count(args, 1, 1);
+  assert_obj_type<double>(args[0], "number");
   return std::abs(get<double>(args[0]));
 }
 
 static Obj
 sqrt_fn(const vector<Obj>& args) {
   assert_arg_count(args, 1, 1);
+  assert_obj_type<double>(args[0], "number");
   return std::sqrt(get<double>(args[0]));
 }
 
 static Obj
 sin_fn(const vector<Obj>& args) {
   assert_arg_count(args, 1, 1);
+  assert_obj_type<double>(args[0], "number");
   return sin(get<double>(args[0]));
 }
 
 static Obj
 cos_fn(const vector<Obj>& args) {
   assert_arg_count(args, 1, 1);
+  assert_obj_type<double>(args[0], "number");
   return cos(get<double>(args[0]));
 }
 
 static Obj
 log_fn(const vector<Obj>& args) {
   assert_arg_count(args, 1, 1);
+  assert_obj_type<double>(args[0], "number");
   return log(get<double>(args[0]));
 }
 
 static Obj
 max_fn(const vector<Obj>& args) {
   assert_arg_count(args, 1, MAX_ARGS);
+  assert_vec_type<double>(args, "number");
   double ret = -INFINITY;
   for (const auto& arg : args)
     ret = std::max(ret, get<double>(arg));
@@ -181,6 +221,7 @@ max_fn(const vector<Obj>& args) {
 static Obj
 min_fn(const vector<Obj>& args) {
   assert_arg_count(args, 1, MAX_ARGS);
+  assert_vec_type<double>(args, "number");
   double ret = INFINITY;
   for (const auto& arg : args)
     ret = std::min(ret, get<double>(arg));
@@ -190,36 +231,42 @@ min_fn(const vector<Obj>& args) {
 static Obj
 is_even(const vector<Obj>& args) {
   assert_arg_count(args, 1, 1);
+  assert_obj_type<double>(args[0], "number");
   return (bool) !(1 & static_cast<int>(get<double>(args[0])));
 }
 
 static Obj
 is_odd(const vector<Obj>& args) {
   assert_arg_count(args, 1, 1);
+  assert_obj_type<double>(args[0], "number");
   return (bool) (1 & static_cast<int>(get<double>(args[0])));
 }
 
 static Obj
 ceil_fn(const vector<Obj>& args) {
   assert_arg_count(args, 1, 1);
+  assert_obj_type<double>(args[0], "number");
   return std::ceil(get<double>(args[0]));
 }
 
 static Obj
 floor_fn(const vector<Obj>& args) {
   assert_arg_count(args, 1, 1);
+  assert_obj_type<double>(args[0], "number");
   return std::floor(get<double>(args[0]));
 }
 
 static Obj
 round_fn(const vector<Obj>& args) {
   assert_arg_count(args, 1, 1);
+  assert_obj_type<double>(args[0], "number");
   return std::round(get<double>(args[0]));
 }
 
 static Obj
 not_fn(const vector<Obj>& args) {
   assert_arg_count(args, 1, 1);
+  assert_obj_type<double>(args[0], "number");
   return !get<bool>(args[0]);
 }
 
@@ -315,12 +362,13 @@ static Obj
 new_line(const vector<Obj>& args) {
   assert_arg_count(args, 0, 0);
   cout << "\n";
-  return true;
+  return Void {};
 }
 
 static Obj
 list_len(const vector<Obj>& args) {
   assert_arg_count(args, 1, 1);
+  assert_obj_type<Cons*>(args[0], "list");
   double ret = 0;
   auto curr = args[0];
   while (is_pair(curr)) {
@@ -333,14 +381,16 @@ list_len(const vector<Obj>& args) {
 static Obj
 list_ref(const vector<Obj>& args) {
   assert_arg_count(args, 2, 2);
-  Obj ls = args[1];
+  assert_obj_type<Cons*>(args[0], "list");
+  assert_obj_type<double>(args[1], "number");
+  Obj ls = args[0];
   int i = 0;
-  const auto sz = get<double>(args[1]);
-  while (holds_alternative<Cons*>(ls) && i < sz) {
+  const auto n = get<double>(args[1]);
+  while (holds_alternative<Cons*>(ls) && i < n) {
     ls = get<Cons*>(ls)->cdr;
     i++;
   }
-  if (i == sz) {
+  if (i == n) {
     return ls;
   }
   else {
@@ -363,6 +413,8 @@ append_rec(Obj list1, Obj list2) {
 
 static Obj
 append(const vector<Obj>& args) {
+  assert_arg_count(args, 1, MAX_ARGS);
+  assert_vec_type<Cons*>(args, "list");
   Obj ret = nullptr;
   for (int i = args.size() - 1; i >= 0; i--) {
     ret = append_rec(args[i], ret);
@@ -387,6 +439,8 @@ map_rec(Obj fn, Obj obj) {
 static Obj
 map_fn(const vector<Obj>& args) {
   assert_arg_count(args, 2, 2);
+  assert_callable(args[0]);
+  assert_obj_type<Cons*>(args[1], "list");
   auto fn = args[0];
   auto ls = args[1];
   auto ret = map_rec(fn, ls);
@@ -413,6 +467,8 @@ filter_rec(Obj fn, Obj obj) {
 static Obj
 filter_fn(const vector<Obj>& args) {
   assert_arg_count(args, 2, 2);
+  assert_callable(args[0]);
+  assert_obj_type<Cons*>(args[1], "list");
   auto fn = args[0];
   auto ls = args[1];
   return filter_rec(fn, ls);
@@ -420,12 +476,12 @@ filter_fn(const vector<Obj>& args) {
 
 static Obj
 error_fn(const vector<Obj>& args) {
-  cout << "ERROR: ";
+  cerr << "ERROR: ";
   for (auto obj : args) {
-    display(obj);
-    cout << " ";
+    cerr << stringify(obj);
+    cerr << " ";
   }
-  return nullptr;
+  return Void {};
 }
 
 vector<std::pair<string, Obj(*)(const vector<Obj>&)>> 
@@ -468,7 +524,7 @@ get_primitive_functions() {
     {"quotient", quotient},
     {"remainder", remainder},
     {"newline", new_line},
-    {"display", display_list},
+    {"display", display},
     {"length", list_len},
     {"list-ref", list_ref},
     {"append", append},

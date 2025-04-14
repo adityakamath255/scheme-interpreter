@@ -4,7 +4,7 @@ CXXFLAGS := -std=c++23 -O2
 SRC := \
   main.cpp \
   common.cpp \
-  display.cpp \
+  stringify.cpp \
   evaluation.cpp \
   expressions.cpp \
   parsing.cpp \

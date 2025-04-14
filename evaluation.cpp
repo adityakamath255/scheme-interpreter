@@ -21,7 +21,7 @@ Obj
 Set::eval(Environment *env) const {
   auto eval_value = value->eval(env);
   env->set_variable(variable, eval_value);
-  return eval_value;
+  return Void {};
 }
 
 Obj
@@ -52,7 +52,7 @@ Lambda::eval(Environment *env) const {
 Obj
 Define::eval(Environment *env) const {
   env->define_variable(variable, value->eval(env));
-  return variable;
+  return Void {};
 }
 
 Obj
