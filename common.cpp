@@ -46,7 +46,9 @@ Cons::at(const string& s) {
   return curr;
 }
 
-Primitive::Primitive(decltype(func) f): func {f} {}
+Primitive::Primitive(decltype(func) f): 
+  func {f} 
+{}
 
 Obj 
 Primitive::operator ()(const vector<Obj>& args) const {
@@ -113,7 +115,10 @@ Environment::extend(const vector<Symbol>& parameters, const vector<Obj>& argumen
   return ret;
 }
 
-TailCall::TailCall(Obj& proc, vector<Obj>& args): proc {proc}, args {args} {}
+TailCall::TailCall(Obj proc, vector<Obj> args): 
+  proc {proc}, 
+  args {move(args)} 
+{}
 
 int
 Expression::get_size(Cons* obj) const {
@@ -179,34 +184,35 @@ is_false(const Obj obj) {
   return !is_true(obj);
 }
 
-Obj 
+EvalResult 
 eval(Expression *expr, Environment *const env) {
   return expr->eval(env);
 }
 
-Obj 
+EvalResult 
 apply(Obj p, vector<Obj> args) {
   while (true) {
-    try {
-      if (holds_alternative<Primitive*>(p)) {
-        const auto func = *get<Primitive*>(p);
-        return func(args);
+    if (holds_alternative<Primitive*>(p)) {
+      const auto func = *get<Primitive*>(p);
+      return func(args);
+    }
+    else if (holds_alternative<Procedure*>(p)) {
+      const auto func = get<Procedure*>(p);
+      if (func->parameters.size() != args.size()) {
+        throw runtime_error(" wrong number of arguments: expected " + std::to_string(func->parameters.size()));
       }
-      else if (holds_alternative<Procedure*>(p)) {
-        const auto func = get<Procedure*>(p);
-        if (func->parameters.size() != args.size()) {
-          throw runtime_error(" wrong number of arguments: expected " + std::to_string(func->parameters.size()));
-        }
-        const auto new_env = func->env->extend(func->parameters, args);
-        return func->body->eval(new_env);
+      const auto new_env = func->env->extend(func->parameters, args);
+      auto res = func->body->eval(new_env);
+      if (holds_alternative<Obj>(res)) {
+        return get<Obj>(res);
       }
-      else {
-        throw runtime_error("tried to apply an object that is not a procedure");
+      else if (holds_alternative<TailCall>(res)) {
+        p = get<TailCall>(res).proc;
+        args = get<TailCall>(res).args;
       }
     }
-    catch (TailCall tc) {
-      p = tc.proc;
-      args = tc.args;
+    else {
+      throw runtime_error("tried to apply an object that is not a procedure");
     }
   } 
 }

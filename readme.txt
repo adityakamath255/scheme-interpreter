@@ -7,16 +7,25 @@ This is a simple Scheme interpreter written in C++. It parses and evaluates Sche
 common.hpp
 This file defines the core interface and data structures for the interpreter, including the sc_obj (Scheme objects) and various classes that represent expressions, symbols, and the environment.
 
+stringify.cpp
+This file defines the textual representation of objects.
+
 primitives.cpp
 This file contains a collection of predefined primitive functions, such as arithmetic operators and basic Scheme functions. The primitives are added to the environment when the interpreter is initialized.
 
 expressions.cpp
 This file defines the structures and functions related to the syntax of the language, such as expressions, special forms (e.g., if, lambda, define), and the logic to classify and interpret different types of expressions.
 
+evaluation.cpp
+This file defines how expressions get executed.
+
+tco.cpp
+This file defines how tail-call optimization is implemented.
+
 parsing.cpp
 Here, the tokenizer and recursive-descent parser are implemented. The tokenizer breaks the input code into tokens, and the parser converts those tokens into abstract syntax trees (ASTs) that can be evaluated by the interpreter.
 
-interpreter.cpp
+main.cpp
 This is the main entry point of the program. It handles user input, runs the interpreter, and interacts with the environment to evaluate and display the results of Scheme code.
 
 --- 
@@ -25,13 +34,15 @@ This is the main entry point of the program. It handles user input, runs the int
 
 Compile the program:
 
-g++ -o interpreter interpreter.cpp
+make
 
 Run the interpreter:
 
-./interpreter
+./scheme [--no-repl] [filename] 
 
-The Scheme interpreter provides an interactive REPL (Read-Eval-Print Loop) for you to interact with the interpreter by typing Scheme expressions directly. Here's a breakdown of how to use the interactive mode and what to expect.
+The Scheme interpreter can either be run on a specific file, or not. Use the --no-repl file to exit the process after interpretation of the file, rather than beginning the REPL loop.
+
+The interpreter provides an interactive REPL (Read-Eval-Print Loop) for you to interact with the interpreter by typing Scheme expressions directly. 
 
 After compiling and running the program, you will be presented with a prompt like this:
 
@@ -69,7 +80,3 @@ Any line starting with a semicolon (;) is treated as a comment and will be ignor
 >>> ; This is a comment
 >>> (+ 2 3)
 5
-
-To exit the interpreter, type:
-
->>> exit

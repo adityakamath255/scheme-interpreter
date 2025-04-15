@@ -5,26 +5,28 @@ namespace Scheme {
 using namespace std::string_literals;
 static constexpr int MAXARGS = 256;
 
-static vector<Symbol>
-cons2symbols(Obj c) {
-  vector<Symbol> vec {};
-  while (is_pair(c)) {
-    const auto as_cons = get<Cons*>(c);
-    vec.push_back(get<Symbol>(as_cons->car));
-    c = as_cons->cdr;
+template<typename T, T (*f)(Obj)>
+static vector<T>
+cons2vec(Obj ls) {
+  vector<T> ret {};
+  while (is_pair(ls)) {
+    const auto as_cons = get<Cons*>(ls);
+    ret.push_back(f(as_cons->car));
+    ls = as_cons->cdr;
   }
-  return vec;
+  return ret;
 }
 
-static vector<Expression*> 
-cons2vec(Obj seq) {
-  vector<Expression*> vec {};
-  while (is_pair(seq)) {
-    const auto as_cons = get<Cons*>(seq);
-    vec.push_back(classify(as_cons->car));
-    seq = as_cons->cdr; 
-  }
-  return vec;
+static Symbol as_symbol(Obj obj) {return get<Symbol>(obj); }
+
+static vector<Symbol> 
+cons2symbols(Obj ls) {
+  return cons2vec<Symbol, as_symbol>(ls);
+}
+
+static vector<Expression*>
+cons2exprs(Obj ls) {
+  return cons2vec<Expression*, classify>(ls);
 }
 
 Literal::Literal(Obj obj):
@@ -87,13 +89,17 @@ Lambda::Lambda(Cons *obj):
   Expression("lambda"s, obj, 3, MAXARGS),
   parameters {cons2symbols(obj->at("cadr"))},
   body {combine_expr(obj->at("cddr"))}
-{}
+{
+  body->tco();
+}
 
 Lambda::Lambda(Obj parameters_, Obj body_):
   Expression("lambda"s),
   parameters {cons2symbols(parameters_)},
   body {combine_expr(body_)}
-{}
+{
+  body->tco();
+}
 
 Define::Define(Cons *obj):
   Expression("define"s, obj, 3, MAXARGS)
@@ -148,7 +154,7 @@ Let::get_frame(Environment *env) const {
   for (const auto& p : bindings) {
     ret->define_variable(
       p.first,
-      p.second->eval(env)
+      get<Obj>(p.second->eval(env))
     );
   }
   return ret;
@@ -210,17 +216,17 @@ Cond::Cond(Obj obj):
 Application::Application(Cons *obj):
   Expression("application"s),
   op {classify(obj->car)},
-  params {cons2vec(obj->cdr)}
+  params {cons2exprs(obj->cdr)}
 {}
 
 And::And(Cons *obj):
   Expression("and"s, obj, 2, MAXARGS),
-  exprs {cons2vec(obj->cdr)}
+  exprs {cons2exprs(obj->cdr)}
 {}
 
 Or::Or(Cons *obj):
   Expression("or"s, obj, 2, MAXARGS),
-  exprs {cons2vec(obj->cdr)}
+  exprs {cons2exprs(obj->cdr)}
 {}
 
 Cxr::Cxr(Symbol tag, Cons *obj): 
@@ -231,7 +237,7 @@ Cxr::Cxr(Symbol tag, Cons *obj):
 
 Expression*
 combine_expr(Obj seq) {
-  const auto vec = cons2vec(seq);
+  const auto vec = cons2exprs(seq);
   Expression *ret;
   if (vec.size() == 0) 
     ret = new Literal(nullptr);
@@ -239,7 +245,6 @@ combine_expr(Obj seq) {
     ret = vec[0];
   else
     ret = new Begin(vec);
-  ret->tco();
   return ret;
 }
 

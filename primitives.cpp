@@ -266,8 +266,7 @@ round_fn(const vector<Obj>& args) {
 static Obj
 not_fn(const vector<Obj>& args) {
   assert_arg_count(args, 1, 1);
-  assert_obj_type<double>(args[0], "number");
-  return !get<bool>(args[0]);
+  return is_false(args[0]);
 }
 
 static Obj
@@ -430,7 +429,7 @@ map_rec(Obj fn, Obj obj) {
   else {
     auto ls = get<Cons*>(obj);
     return new Cons(
-      apply(fn, vector<Obj>({ls->car})), 
+      get<Obj>(apply(fn, vector<Obj>({ls->car}))), 
       map_rec(fn, ls->cdr)
     );
   }
@@ -455,7 +454,7 @@ filter_rec(Obj fn, Obj obj) {
   else {
     auto ls = get<Cons*>(obj);
     auto rest = filter_rec(fn, ls->cdr);
-    if (is_true(apply(fn, vector<Obj>({ls->car})))) {
+    if (is_true(get<Obj>(apply(fn, vector<Obj>({ls->car}))))) {
       return new Cons(ls->car, rest);
     }
     else {

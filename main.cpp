@@ -23,7 +23,7 @@ interpret(const string& code, Environment *env) {
   const auto tokens = tokenize(code);
   const auto AST_0 = parse(tokens);
   const auto AST_1 = classify(AST_0); 
-  return eval(AST_1, env);
+  return get<Obj>(eval(AST_1, env));
 }
 
 template<class INPUT>
@@ -92,18 +92,11 @@ driver_loop(Environment *env = nullptr) {
     catch (std::bad_variant_access e) {
       cerr << "ERROR: incorrect type\n";
     }
-    catch (TailCall tc) {
-      auto result = apply(tc.proc, tc.args);
-      if (!holds_alternative<Void>(result)) {
-        cout << stringify(result);
-        cout << "\n";
-      }
-    }
   }
 }
 
 void
-run_file(const char *filename) {
+run_file(const char *filename, bool enter_driver_loop) {
   std::ifstream in;
   in.open(filename);
   Obj result;
@@ -120,12 +113,11 @@ run_file(const char *filename) {
       cerr << "\nERROR: " << e.what() << "\n";
       return; 
     }
-    catch (TailCall tc) {
-      apply(tc.proc, tc.args);
-    }
   }
   cout << "\n";
-  driver_loop(env);
+  if (enter_driver_loop) {
+    driver_loop(env);
+  }
 }
 
 int 
@@ -134,9 +126,12 @@ main(const int argc, const char **argv) {
     driver_loop();
   }
   else if (argc == 2) {
-    run_file(argv[1]);
+    run_file(argv[1], true);
+  }
+  else if (argc == 3 && string(argv[1]) == "--no-repl") {
+    run_file(argv[2], false);
   }
   else {
-    cout << "Usage: ./interpreter [file-to-run]" << std::endl;
+    cout << "Usage: ./scheme [--no-repl] [file-to-run]" << std::endl;
   }
 }

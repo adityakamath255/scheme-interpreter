@@ -2,31 +2,31 @@
 
 namespace Scheme {
 
-Obj
+EvalResult
 Literal::eval(Environment *env) const {
   return obj;
 }
 
-Obj
+EvalResult
 Variable::eval(Environment *env) const {
   return env->lookup(sym);
 }
 
-Obj
+EvalResult
 Quoted::eval(Environment *env) const {
   return text_of_quotation;
 }
 
-Obj
+EvalResult
 Set::eval(Environment *env) const {
-  auto eval_value = value->eval(env);
+  auto eval_value = get<Obj>(value->eval(env));
   env->set_variable(variable, eval_value);
   return Void {};
 }
 
-Obj
+EvalResult
 If::eval(Environment *env) const {
-  if (is_true(predicate->eval(env))) {
+  if (is_true(get<Obj>(predicate->eval(env)))) {
     return consequent->eval(env);
   }
   else {
@@ -34,76 +34,80 @@ If::eval(Environment *env) const {
   }
 }
 
-Obj
+EvalResult
 Begin::eval(Environment *env) const {
-  Obj ret;
-  for (const auto exp : actions) {
-    ret = exp->eval(env);
+  for (int i = 0; i < actions.size() - 1; i++) {
+    actions[i]->eval(env);
   }
-  return ret;
+  if (!actions.empty()) {
+    return actions.back()->eval(env);
+  }
+  else {
+    return Void {};
+  }
 }
 
-Obj
+EvalResult
 Lambda::eval(Environment *env) const {
   return new Procedure(parameters, body, env);
 }
 
 
-Obj
+EvalResult
 Define::eval(Environment *env) const {
-  env->define_variable(variable, value->eval(env));
+  env->define_variable(variable, get<Obj>(value->eval(env)));
   return Void {};
 }
 
-Obj
+EvalResult
 Let::eval(Environment *env) const {
   const auto env2 = get_frame(env);
   return body->eval(env2);
 }
 
-Obj
+EvalResult
 Cond::eval(Environment *env) const {
   return if_form->eval(env);
 }
 
-Obj
+EvalResult
 Application::eval(Environment *env) const {
-  auto proc = op->eval(env);
+  auto proc = get<Obj>(op->eval(env));
   vector<Obj> args {};
   for (const auto param : params) {
-    args.push_back(param->eval(env));
+    args.push_back(get<Obj>(param->eval(env)));
   }
   if (at_tail) {
-    throw TailCall(proc, args);
+    return TailCall(proc, move(args));
   }
   else {
     return apply(proc, args);
   }
 } 
 
-Obj
+EvalResult
 And::eval(Environment *env) const {
   for (const auto exp : exprs) {
-    if (is_false(exp->eval(env))) {
+    if (is_false(get<Obj>(exp->eval(env)))) {
       return false;
     }
   }
   return true;
 }
 
-Obj
+EvalResult
 Or::eval(Environment *env) const {
   for (const auto exp : exprs) {
-    if (is_true(exp->eval(env))) {
+    if (is_true(get<Obj>(exp->eval(env)))) {
       return true;
     }
   }
   return false;
 }
 
-Obj
+EvalResult
 Cxr::eval(Environment *env) const {
-  const auto val = expr->eval(env);
+  auto val = get<Obj>(expr->eval(env));
   if (!holds_alternative<Cons*>(val)) {
     throw runtime_error(word.name + " type error: expected cons");
   }

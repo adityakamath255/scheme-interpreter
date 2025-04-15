@@ -26,6 +26,7 @@ class Procedure;
 class Environment;
 class Expression;
 class Void {};
+class TailCall;
 
 using Obj = std::variant<
   bool,
@@ -37,6 +38,11 @@ using Obj = std::variant<
   Procedure*,
   nullptr_t,
   Void
+>;
+
+using EvalResult = std::variant<
+  Obj,
+  TailCall
 >;
 
 struct Symbol {
@@ -87,7 +93,7 @@ public:
 struct TailCall {
   Obj proc;
   vector<Obj> args;
-  TailCall(Obj& proc, vector<Obj>& args);
+  TailCall(Obj proc, vector<Obj> args);
 };  
 
 class Expression {
@@ -99,7 +105,7 @@ protected:
 public:
   Expression(const string& n, Cons *obj = nullptr, const int lb = -1, const int ub = -1);
   string get_name() const;
-  virtual Obj eval(Environment*) const = 0;
+  virtual EvalResult eval(Environment*) const = 0;
   virtual void tco() {}
 };
 
@@ -107,8 +113,8 @@ bool is_pair(const Obj obj);
 bool is_null(const Obj obj);
 bool is_true(const Obj obj);
 bool is_false(const Obj obj);
-Obj eval(Expression *expr, Environment *const env);
-Obj apply(Obj p, vector<Obj> args);
+EvalResult eval(Expression *expr, Environment *const env);
+EvalResult apply(Obj p, vector<Obj> args);
 
 constexpr double precision = 1e-9;
 
