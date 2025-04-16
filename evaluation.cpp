@@ -1,6 +1,42 @@
+#include "types.hpp"
+#include "environment.hpp"
 #include "expressions.hpp"
+#include "tco.hpp"
 
 namespace Scheme {
+
+EvalResult 
+eval(Expression *expr, Environment *const env) {
+  return expr->eval(env);
+}
+
+EvalResult 
+apply(Obj p, vector<Obj> args) {
+  while (true) {
+    if (is_primitive(p)) {
+      const auto func = *get<Primitive*>(p);
+      return func(args);
+    }
+    else if (is_procedure(p)) {
+      const auto func = get<Procedure*>(p);
+      if (func->parameters.size() != args.size()) {
+        throw runtime_error(" wrong number of arguments: expected " + std::to_string(func->parameters.size()));
+      }
+      const auto new_env = func->env->extend(func->parameters, args);
+      auto res = func->body->eval(new_env);
+      if (std::holds_alternative<Obj>(res)) {
+        return res;
+      }
+      else if (std::holds_alternative<TailCall>(res)) {
+        p = std::move(get<TailCall>(res).proc);
+        args = std::move(get<TailCall>(res).args);
+      }
+    }
+    else {
+      throw runtime_error("tried to apply an object that is not a procedure");
+    }
+  } 
+}
 
 EvalResult
 Literal::eval(Environment *env) const {

@@ -1,9 +1,29 @@
 #pragma once
-#include "common.hpp"
+#include "types.hpp"
+#include "environment.hpp"
+#include "tco.hpp"
 
 namespace Scheme {
 
-Expression *classify(Obj obj);
+using EvalResult = std::variant<
+  Obj,
+  TailCall
+>;
+
+class Expression {
+private:
+  int get_size(Cons* obj) const;
+  void assert_size(Cons *obj, const int lb, const int ub) const;
+protected:
+  string name;
+public:
+  Expression(const string& n, Cons *obj = nullptr, const int lb = -1, const int ub = -1);
+  string get_name() const;
+  virtual EvalResult eval(Environment*) const = 0;
+  virtual void tco() {}
+};
+
+Expression *classify(const Obj& obj);
 
 struct Literal : public Expression {
   Obj obj;
@@ -13,7 +33,7 @@ struct Literal : public Expression {
 
 struct Variable : public Expression {
   Symbol sym;
-  Variable(Symbol& obj);
+  Variable(Symbol obj);
   EvalResult eval(Environment* env) const override;
 };
 

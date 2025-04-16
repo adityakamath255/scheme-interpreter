@@ -25,7 +25,6 @@ class Procedure;
 class Environment;
 class Expression;
 class Void {};
-class TailCall;
 
 using Obj = std::variant<
   bool,
@@ -52,10 +51,7 @@ bool is_callable(const Obj&);
 bool is_null(const Obj&);
 bool is_void(const Obj&);
 
-using EvalResult = std::variant<
-  Obj,
-  TailCall
->;
+Symbol as_symbol(Obj&);
 
 struct Symbol {
   string name;
@@ -87,43 +83,5 @@ struct Procedure {
   Environment *const env;
   Procedure(vector<Symbol> p, Expression *b, Environment *e);
 };
-
-class Environment {
-private:
-  std::map<Symbol, Obj> frame {};
-  Environment *const super;
-  decltype(frame)::iterator assoc(const Symbol& s);
-public:
-  Environment();
-  Environment(Environment *super_);
-  void set_variable(const Symbol& s, const Obj obj);
-  Obj lookup(const Symbol& s);
-  void define_variable(const Symbol& s, Obj obj);
-  Environment *extend(const vector<Symbol>& parameters, const vector<Obj>& arguments);
-};
-
-struct TailCall {
-  Obj proc;
-  vector<Obj> args;
-  TailCall(Obj proc, vector<Obj> args);
-};  
-
-class Expression {
-private:
-  int get_size(Cons* obj) const;
-  void assert_size(Cons *obj, const int lb, const int ub) const;
-protected:
-  string name;
-public:
-  Expression(const string& n, Cons *obj = nullptr, const int lb = -1, const int ub = -1);
-  string get_name() const;
-  virtual EvalResult eval(Environment*) const = 0;
-  virtual void tco() {}
-};
-
-EvalResult eval(Expression *expr, Environment *const env);
-EvalResult apply(Obj p, vector<Obj> args);
-
-constexpr double precision = 1e-9;
 
 }

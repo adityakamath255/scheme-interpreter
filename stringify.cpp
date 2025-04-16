@@ -1,5 +1,5 @@
-#include "common.hpp"
-#include "primitives.hpp"
+#include "types.hpp"
+#include "stringify.hpp"
 #include <sstream>
 #include <format>
 
@@ -55,10 +55,11 @@ static string
 stringify(Cons *const ls) {
   std::ostringstream ret;
   ret << "(" + stringify(ls->car);
-  Obj obj;
-  for (obj = ls->cdr; is_pair(obj); obj = get<Cons*>(obj)->cdr) {
+  Obj& obj = ls->cdr;
+  while (is_pair(obj)) {
     ret << " ";
     ret << stringify(get<Cons*>(obj)->car);
+    obj = get<Cons*>(obj)->cdr;
   }
   if (!is_null(obj)) {
     ret << " . ";
@@ -71,13 +72,13 @@ stringify(Cons *const ls) {
 static struct {
   template<typename T>
   string operator
-  ()(T x) {
+  ()(T& x) {
     return stringify(x);
   }
 } stringify_overload;
 
 string 
-stringify(const Obj obj) {
+stringify(const Obj& obj) {
   return visit(stringify_overload, obj);
 }
 

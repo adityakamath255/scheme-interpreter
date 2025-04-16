@@ -1,9 +1,8 @@
 #pragma once
-#include "common.hpp"
+#include "types.hpp"
 
 namespace Scheme {
 
-string stringify(const Obj obj);
 vector<std::pair<string, Obj(*)(const vector<Obj>&)>> get_primitive_functions();
 vector<std::pair<string, Obj>> get_consts();
 

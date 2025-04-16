@@ -1,42 +1,84 @@
+#include "types.hpp"
+#include "environment.hpp"
 #include "expressions.hpp"
+#include "tco.hpp"
 
 namespace Scheme {
 
 using namespace std::string_literals;
 static constexpr int MAXARGS = 256;
 
-template<typename T, T (*f)(Obj)>
+int
+Expression::get_size(Cons* obj) const {
+  int sz = 0;
+  while (obj != nullptr) {
+    sz++;
+    if (!is_pair(obj->cdr)) {
+      break;
+    }
+    else {
+      obj = get<Cons*>(obj->cdr);
+    }
+  }
+  return sz;
+}
+
+void
+Expression::assert_size(Cons *obj, const int lb, const int ub) const {
+  const int sz = get_size(obj);
+  if (sz < lb || sz > ub) {
+    throw runtime_error(
+      name + 
+      " expression is of wrong size [" + 
+      std::to_string(sz) + 
+      "]"
+    );
+  }
+}
+
+Expression::Expression(const string& n, Cons *obj, const int lb, const int ub):
+  name {n} 
+{
+  if (lb != -1) {
+    assert_size(obj, lb, ub);
+  }
+}
+
+string
+Expression::get_name() const {
+  return name;
+}
+
+template<typename T, typename F>
 static vector<T>
-cons2vec(Obj ls) {
+cons2vec(Obj ls, F fn) {
   vector<T> ret {};
   while (is_pair(ls)) {
     const auto as_cons = get<Cons*>(ls);
-    ret.push_back(f(as_cons->car));
+    ret.push_back(fn(as_cons->car));
     ls = as_cons->cdr;
   }
   return ret;
 }
 
-static Symbol as_symbol(Obj obj) {return get<Symbol>(obj); }
-
 static vector<Symbol> 
 cons2symbols(Obj ls) {
-  return cons2vec<Symbol, as_symbol>(ls);
+  return cons2vec<Symbol>(ls, as_symbol);
 }
 
 static vector<Expression*>
 cons2exprs(Obj ls) {
-  return cons2vec<Expression*, classify>(ls);
+  return cons2vec<Expression*>(ls, classify);
 }
 
 Literal::Literal(Obj obj):
-  Expression("self-evaluating"s),
-  obj {obj}
+  Expression("literal"s),
+  obj {std::move(obj)}
 {}
 
-Variable::Variable(Symbol& obj):
-  Expression("Variable"s),
-  sym {obj}
+Variable::Variable(Symbol obj):
+  Expression("variable"s),
+  sym {std::move(obj)}
 {}
 
 Quoted::Quoted(Cons *obj):
@@ -45,7 +87,7 @@ Quoted::Quoted(Cons *obj):
 {}
 
 Set::Set(Cons *obj):
-  Expression("Set"s, obj, 3, 3)
+  Expression("set!"s, obj, 3, 3)
 {
   if (!is_symbol(obj->at("cadr"))) {
     throw runtime_error("tried to assign something to a non-variable");
@@ -288,7 +330,7 @@ is_cxr(const string& s) {
 }
 
 Expression*
-classify(Obj obj) {
+classify(const Obj& obj) {
   if (is_pair(obj)) {
     const auto p = get<Cons*>(obj);
     if (is_symbol(p->car)) {

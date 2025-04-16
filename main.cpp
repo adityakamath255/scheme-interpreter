@@ -1,6 +1,9 @@
-#include "common.hpp"
-#include "primitives.hpp"
+#include "types.hpp"
+#include "environment.hpp"
 #include "expressions.hpp"
+#include "evaluation.hpp"
+#include "primitives.hpp"
+#include "stringify.hpp"
 #include "parsing.hpp"
 #include <fstream>
 
@@ -20,9 +23,9 @@ install_initial_environment() {
 
 Obj
 interpret(const string& code, Environment *env) {
-  const auto tokens = tokenize(code);
-  const auto AST_0 = parse(tokens);
-  const auto AST_1 = classify(AST_0); 
+  auto tokens = tokenize(code);
+  auto AST_0 = parse(tokens);
+  auto AST_1 = classify(AST_0); 
   return get<Obj>(eval(AST_1, env));
 }
 
@@ -99,7 +102,6 @@ void
 run_file(const char *filename, bool enter_driver_loop) {
   std::ifstream in;
   in.open(filename);
-  Obj result;
   auto env = install_initial_environment();
   while (true) {
     try {

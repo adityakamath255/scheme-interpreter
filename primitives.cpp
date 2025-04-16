@@ -1,14 +1,19 @@
+#include "types.hpp"
+#include "environment.hpp"
+#include "stringify.hpp"
 #include "primitives.hpp"
+#include "evaluation.hpp"
 #include <cmath>
 #include <climits>
 
 namespace Scheme {
 
+constexpr double precision = 1e-9;
 constexpr int MAX_ARGS = INT_MAX;
 
 template<typename T>
 static void
-assert_obj_type(const Obj obj, const string& type) {
+assert_obj_type(const Obj& obj, const string& type) {
   if (!std::holds_alternative<T>(obj)) {
     throw runtime_error("incorrect type for " + stringify(obj) + ", expected " + type);
   }
@@ -23,7 +28,7 @@ assert_vec_type(const vector<Obj>& args, const string& type) {
 }
 
 static void
-assert_callable(const Obj obj) {
+assert_callable(const Obj& obj) {
   if (!is_procedure(obj) && !is_primitive(obj)) {
     throw runtime_error("incorrect type for " + stringify(obj) + ", exprected procedure");
   }
@@ -422,7 +427,7 @@ append(const vector<Obj>& args) {
 }
 
 static Obj 
-map_rec(Obj fn, Obj obj) {
+map_rec(Obj& fn, Obj& obj) {
   if (!is_pair(obj)) {
     return obj;
   }
@@ -447,7 +452,7 @@ map_fn(const vector<Obj>& args) {
 }
 
 static Obj 
-filter_rec(Obj fn, Obj obj) {
+filter_rec(Obj& fn, Obj& obj) {
   if (!is_pair(obj)) {
     return obj;
   }
