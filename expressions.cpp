@@ -47,7 +47,7 @@ Quoted::Quoted(Cons *obj):
 Set::Set(Cons *obj):
   Expression("Set"s, obj, 3, 3)
 {
-  if (!holds_alternative<Symbol>(obj->at("cadr"))) {
+  if (!is_symbol(obj->at("cadr"))) {
     throw runtime_error("tried to assign something to a non-variable");
   }
   variable = get<Symbol>(obj->at("cadr"));
@@ -106,15 +106,15 @@ Define::Define(Cons *obj):
 {
   const auto cadr = obj->at("cadr");
 
-  if (holds_alternative<Symbol>(cadr)) {  
+  if (is_symbol(cadr)) {  
     variable = get<Symbol>(cadr);
     value = classify(obj->at("caddr"));
   }
 
-  else if (holds_alternative<Cons*>(cadr)) {
+  else if (is_pair(cadr)) {
     const auto parameters = obj->at("cdadr");
     const auto body = obj->at("cddr");
-    if (!holds_alternative<Symbol>(obj->at("caadr"))) {
+    if (!is_symbol(obj->at("caadr"))) {
       throw runtime_error("procedure name must be a symbol");
     }
     variable = get<Symbol>(obj->at("caadr"));
@@ -131,11 +131,11 @@ Let::get_bindings(Obj li) {
   std::map<Symbol, Expression*> ret {};
   while (is_pair(li)) {
     const auto as_cons = get<Cons*>(li);
-    if (!holds_alternative<Cons*>(as_cons->car)) {
+    if (!is_pair(as_cons->car)) {
       throw runtime_error("Let::get_bindings: type error");
     }
     const auto car = get<Cons*>(as_cons->car);
-    if (!holds_alternative<Symbol>(car->car)) {
+    if (!is_symbol(car->car)) {
       throw runtime_error("Let::get_bindings: type error");
     }
     
@@ -170,7 +170,7 @@ Let::Let(Cons *obj):
 bool
 Clause::is_else_clause(Obj obj) const {
   return
-    holds_alternative<Symbol>(obj) &&
+    is_symbol(obj) &&
     get<Symbol>(obj).name == "else";
 }
 
@@ -201,7 +201,7 @@ Cond::Cond(Obj obj):
   obj = get<Cons*>(obj)->cdr;
   while (is_pair(obj)) {
     const auto as_cons = get<Cons*>(obj);
-    if (!holds_alternative<Cons*>(as_cons->car)) {
+    if (!is_pair(as_cons->car)) {
       throw runtime_error("cond type error\n");
     }
     const auto new_clause = Clause(get<Cons*>(as_cons->car));
@@ -291,7 +291,7 @@ Expression*
 classify(Obj obj) {
   if (is_pair(obj)) {
     const auto p = get<Cons*>(obj);
-    if (holds_alternative<Symbol>(p->car)) {
+    if (is_symbol(p->car)) {
       const auto tag = get<Symbol>(p->car);
       const auto found = special_forms.find(tag.name);
       if (found != special_forms.end()) {
@@ -304,7 +304,7 @@ classify(Obj obj) {
     }
     return new Application(p);
   }
-  else if (holds_alternative<Symbol>(obj))
+  else if (is_symbol(obj))
     return new Variable(get<Symbol>(obj));
   else
     return new Literal(obj);

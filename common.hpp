@@ -14,7 +14,6 @@ using std::cerr;
 using std::vector;
 using std::string;
 using std::get;
-using std::holds_alternative;
 using std::runtime_error;
 
 namespace Scheme {
@@ -39,6 +38,19 @@ using Obj = std::variant<
   nullptr_t,
   Void
 >;
+
+bool is_bool(const Obj&);
+bool is_true(const Obj&);
+bool is_false(const Obj&);
+bool is_number(const Obj&);
+bool is_symbol(const Obj&);
+bool is_string(const Obj&);
+bool is_pair(const Obj&);
+bool is_primitive(const Obj&);
+bool is_procedure(const Obj&);
+bool is_callable(const Obj&);
+bool is_null(const Obj&);
+bool is_void(const Obj&);
 
 using EvalResult = std::variant<
   Obj,
@@ -109,10 +121,6 @@ public:
   virtual void tco() {}
 };
 
-bool is_pair(const Obj obj);
-bool is_null(const Obj obj);
-bool is_true(const Obj obj);
-bool is_false(const Obj obj);
 EvalResult eval(Expression *expr, Environment *const env);
 EvalResult apply(Obj p, vector<Obj> args);
 

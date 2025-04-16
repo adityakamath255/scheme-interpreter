@@ -81,7 +81,7 @@ driver_loop(Environment *env = nullptr) {
       if (input_expr == "exit\n") 
         return;
       auto result = interpret(input_expr, env);
-      if (!holds_alternative<Void>(result)) {
+      if (!is_void(result)) {
         cout << stringify(result);
         cout << "\n";
       }

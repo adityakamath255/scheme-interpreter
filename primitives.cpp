@@ -9,7 +9,7 @@ constexpr int MAX_ARGS = INT_MAX;
 template<typename T>
 static void
 assert_obj_type(const Obj obj, const string& type) {
-  if (!holds_alternative<T>(obj)) {
+  if (!std::holds_alternative<T>(obj)) {
     throw runtime_error("incorrect type for " + stringify(obj) + ", expected " + type);
   }
 }
@@ -24,7 +24,7 @@ assert_vec_type(const vector<Obj>& args, const string& type) {
 
 static void
 assert_callable(const Obj obj) {
-  if (!holds_alternative<Procedure*>(obj) && !holds_alternative<Primitive*>(obj)) {
+  if (!is_procedure(obj) && !is_primitive(obj)) {
     throw runtime_error("incorrect type for " + stringify(obj) + ", exprected procedure");
   }
 }
@@ -279,7 +279,7 @@ static bool
 eq_list(const vector<Obj>& args) {
   Obj l0 = args[0];
   Obj l1 = args[1];
-  while (holds_alternative<Cons*>(l0) && holds_alternative<Cons*>(l1)) {
+  while (is_pair(l0) && std::holds_alternative<Cons*>(l1)) {
     if (get<Cons*>(l0)->car != get<Cons*>(l1)->car) {
       return false;
     }
@@ -292,7 +292,7 @@ eq_list(const vector<Obj>& args) {
 static Obj
 is_equal(const vector<Obj>& args) {
   assert_arg_count(args, 2, 2);
-  if (holds_alternative<Cons*>(args[0])) {
+  if (is_pair(args[0])) {
     return eq_list(args);
   }
   else {
@@ -318,43 +318,43 @@ list_fn(const vector<Obj>& args) {
 static Obj
 is_null(const vector<Obj>& args) {
   assert_arg_count(args, 1, 1);
-  return holds_alternative<nullptr_t>(args[0]);
+  return is_null(args[0]);
 }
 
 static Obj
 is_boolean(const vector<Obj>& args) {
   assert_arg_count(args, 1, 1);
-  return holds_alternative<bool>(args[0]);
+  return is_bool(args[0]);
 }
 
 static Obj
 is_number(const vector<Obj>& args) {
   assert_arg_count(args, 1, 1);
-  return holds_alternative<double>(args[0]);
+  return is_number(args[0]);
 }
 
 static Obj
 is_pair(const vector<Obj>& args) {
   assert_arg_count(args, 1, 1);
-  return holds_alternative<Cons*>(args[0]);
+  return is_pair(args[0]);
 }
 
 static Obj
 is_symbol(const vector<Obj>& args) {
   assert_arg_count(args, 1, 1);
-  return holds_alternative<Symbol>(args[0]);
+  return is_symbol(args[0]);
 }
 
 static Obj
 is_string(const vector<Obj>& args) {
   assert_arg_count(args, 1, 1);
-  return holds_alternative<string>(args[0]);
+  return is_string(args[0]);
 }
 
 static Obj
 is_procedure(const vector<Obj>& args) {
   assert_arg_count(args, 1, 1);
-  return holds_alternative<Procedure*>(args[0]) || holds_alternative<Primitive*>(args[0]);
+  return is_procedure(args[0]) || is_primitive(args[0]);
 }
 
 static Obj
@@ -385,7 +385,7 @@ list_ref(const vector<Obj>& args) {
   Obj ls = args[0];
   int i = 0;
   const auto n = get<double>(args[1]);
-  while (holds_alternative<Cons*>(ls) && i < n) {
+  while (is_pair(ls) && i < n) {
     ls = get<Cons*>(ls)->cdr;
     i++;
   }
@@ -399,7 +399,7 @@ list_ref(const vector<Obj>& args) {
 
 static Obj
 append_rec(Obj list1, Obj list2) {
-  if (holds_alternative<Cons*>(list1)) {
+  if (is_pair(list1)) {
     return new Cons(
       get<Cons*>(list1)->car,
       append_rec(get<Cons*>(list1)->cdr, list2)
@@ -423,7 +423,7 @@ append(const vector<Obj>& args) {
 
 static Obj 
 map_rec(Obj fn, Obj obj) {
-  if (!holds_alternative<Cons*>(obj)) {
+  if (!is_pair(obj)) {
     return obj;
   }
   else {
@@ -448,7 +448,7 @@ map_fn(const vector<Obj>& args) {
 
 static Obj 
 filter_rec(Obj fn, Obj obj) {
-  if (!holds_alternative<Cons*>(obj)) {
+  if (!is_pair(obj)) {
     return obj;
   }
   else {

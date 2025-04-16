@@ -2,6 +2,19 @@
 
 namespace Scheme {
 
+bool is_bool(const Obj& obj) {return std::holds_alternative<bool>(obj); }
+bool is_true(const Obj& obj) {return (!is_bool(obj) || get<bool>(obj) == true); }
+bool is_false(const Obj& obj) {return !is_true(obj); }
+bool is_number(const Obj& obj) {return std::holds_alternative<double>(obj); }
+bool is_symbol(const Obj& obj){return std::holds_alternative<Symbol>(obj); }
+bool is_string(const Obj& obj) {return std::holds_alternative<string>(obj); }
+bool is_pair(const Obj& obj) {return std::holds_alternative<Cons*>(obj); }
+bool is_primitive(const Obj& obj) {return std::holds_alternative<Primitive*>(obj); }
+bool is_procedure(const Obj& obj) {return std::holds_alternative<Procedure*>(obj); }
+bool is_callable(const Obj& obj) {return is_primitive(obj) || is_procedure(obj); }
+bool is_null(const Obj& obj) {return std::holds_alternative<nullptr_t>(obj); }
+bool is_void(const Obj& obj) {return std::holds_alternative<Void>(obj); }
+
 Symbol::Symbol(): name {"*undefined*"} {}
 Symbol::Symbol(const string& s): name {s} {}
 
@@ -125,7 +138,7 @@ Expression::get_size(Cons* obj) const {
   int sz = 0;
   while (obj != nullptr) {
     sz++;
-    if (!holds_alternative<Cons*>(obj->cdr)) {
+    if (!is_pair(obj->cdr)) {
       break;
     }
     else {
@@ -161,29 +174,6 @@ Expression::get_name() const {
   return name;
 }
 
-bool
-is_pair(const Obj obj) {
-  return holds_alternative<Cons*>(obj);
-}
-
-bool 
-is_null(const Obj obj) {
-  return holds_alternative<nullptr_t>(obj);
-}
-
-bool 
-is_true(const Obj obj) {
-  return (
-    !holds_alternative<bool>(obj) ||
-    get<bool>(obj) == true
-  );
-}
-
-bool
-is_false(const Obj obj) {
-  return !is_true(obj);
-}
-
 EvalResult 
 eval(Expression *expr, Environment *const env) {
   return expr->eval(env);
@@ -192,21 +182,21 @@ eval(Expression *expr, Environment *const env) {
 EvalResult 
 apply(Obj p, vector<Obj> args) {
   while (true) {
-    if (holds_alternative<Primitive*>(p)) {
+    if (is_primitive(p)) {
       const auto func = *get<Primitive*>(p);
       return func(args);
     }
-    else if (holds_alternative<Procedure*>(p)) {
+    else if (is_procedure(p)) {
       const auto func = get<Procedure*>(p);
       if (func->parameters.size() != args.size()) {
         throw runtime_error(" wrong number of arguments: expected " + std::to_string(func->parameters.size()));
       }
       const auto new_env = func->env->extend(func->parameters, args);
       auto res = func->body->eval(new_env);
-      if (holds_alternative<Obj>(res)) {
+      if (std::holds_alternative<Obj>(res)) {
         return get<Obj>(res);
       }
-      else if (holds_alternative<TailCall>(res)) {
+      else if (std::holds_alternative<TailCall>(res)) {
         p = get<TailCall>(res).proc;
         args = get<TailCall>(res).args;
       }

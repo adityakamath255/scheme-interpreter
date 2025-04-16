@@ -56,11 +56,11 @@ stringify(Cons *const ls) {
   std::ostringstream ret;
   ret << "(" + stringify(ls->car);
   Obj obj;
-  for (obj = ls->cdr; holds_alternative<Cons*>(obj); obj = get<Cons*>(obj)->cdr) {
+  for (obj = ls->cdr; is_pair(obj); obj = get<Cons*>(obj)->cdr) {
     ret << " ";
     ret << stringify(get<Cons*>(obj)->car);
   }
-  if (!holds_alternative<nullptr_t>(obj)) {
+  if (!is_null(obj)) {
     ret << " . ";
     ret << stringify(obj);
   }

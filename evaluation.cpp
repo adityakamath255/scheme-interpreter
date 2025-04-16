@@ -108,7 +108,7 @@ Or::eval(Environment *env) const {
 EvalResult
 Cxr::eval(Environment *env) const {
   auto val = get<Obj>(expr->eval(env));
-  if (!holds_alternative<Cons*>(val)) {
+  if (!is_pair(val)) {
     throw runtime_error(word.name + " type error: expected cons");
   }
   auto found = get<Cons*>(val);
