@@ -2,6 +2,7 @@
 #include "environment.hpp"
 #include "expressions.hpp"
 #include "tco.hpp"
+#include <map>
 
 namespace Scheme {
 
@@ -36,7 +37,7 @@ void
 Expression::assert_size(Cons *obj, const int lb, const int ub) const {
   const int sz = get_size(obj);
   if (sz < lb || sz > ub) {
-    throw runtime_error(
+    throw std::runtime_error(
       name + 
       " expression is of wrong size [" + 
       std::to_string(sz) + 
@@ -99,7 +100,7 @@ Set::Set(Cons *obj):
   Expression("set!"s, obj, 3, 3)
 {
   if (!is_symbol(obj->at("cadr"))) {
-    throw runtime_error("tried to assign something to a non-variable");
+    throw std::runtime_error("tried to assign something to a non-variable");
   }
   variable = as_symbol(obj->at("cadr"));
   const auto cddr = obj->at("cddr");
@@ -166,14 +167,14 @@ Define::Define(Cons *obj):
     const auto parameters = obj->at("cdadr");
     const auto body = obj->at("cddr");
     if (!is_symbol(obj->at("caadr"))) {
-      throw runtime_error("procedure name must be a symbol");
+      throw std::runtime_error("procedure name must be a symbol");
     }
     variable = as_symbol(obj->at("caadr"));
     value = new Lambda(parameters, body);
   }
 
   else {
-    throw runtime_error("bad definition identifier");
+    throw std::runtime_error("bad definition identifier");
   }
 }
 
@@ -183,11 +184,11 @@ Let::get_bindings(Obj li) {
   while (is_pair(li)) {
     const auto as_cons = as_pair(li);
     if (!is_pair(as_cons->car)) {
-      throw runtime_error("Let::get_bindings: type error");
+      throw std::runtime_error("Let::get_bindings: type error");
     }
     const auto car = as_pair(as_cons->car);
     if (!is_symbol(car->car)) {
-      throw runtime_error("Let::get_bindings: type error");
+      throw std::runtime_error("Let::get_bindings: type error");
     }
     
     ret.insert({
@@ -253,7 +254,7 @@ Cond::Cond(Obj obj):
   while (is_pair(obj)) {
     const auto as_cons = as_pair(obj);
     if (!is_pair(as_cons->car)) {
-      throw runtime_error("cond type error\n");
+      throw std::runtime_error("cond type error\n");
     }
     const auto new_clause = Clause(as_pair(as_cons->car));
     clauses.push_back(new_clause);

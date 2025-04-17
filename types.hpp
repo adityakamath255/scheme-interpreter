@@ -1,19 +1,12 @@
 #pragma once
 
-#include <iostream>
 #include <vector>
-#include <map>
 #include <string>
+#include <stdexcept>
 #include <variant>
-#include <algorithm>
-#include <functional>
 
-using std::cin;
-using std::cout;
-using std::cerr;
 using std::vector;
 using std::string;
-using std::runtime_error;
 
 namespace Scheme {
 
@@ -59,8 +52,8 @@ const double& as_number(const Obj&);
 Symbol& as_symbol(Obj&);
 const Symbol& as_symbol(const Obj&);
 
-std::string& as_string(Obj&);
-const std::string& as_string(const Obj&);
+string& as_string(Obj&);
+const string& as_string(const Obj&);
 
 Cons*& as_pair(Obj&);
 Cons* const& as_pair(const Obj&);

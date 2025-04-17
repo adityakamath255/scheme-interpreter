@@ -137,7 +137,7 @@ common.cpp:      obj = as_pair(obj->cdr);
 common.cpp:  if (lb != -1) {
 common.cpp:  return expr->eval(env);
 common.cpp:        if (func->parameters.size() != args.size()) {
-common.cpp:          throw runtime_error(" wrong number of arguments: expected " + std::to_string(func->parameters.size()));
+common.cpp:          throw std::runtime_error(" wrong number of arguments: expected " + std::to_string(func->parameters.size()));
 common.cpp:        const auto new_env = func->env->extend(func->parameters, args);
 common.cpp:        return func->body->eval(new_env);
 common.hpp:  Expression(const string& n, Cons *obj = nullptr, const int lb = -1, const int ub = -1);
@@ -165,7 +165,7 @@ expressions.cpp:    seq = as_cons->cdr;
 expressions.cpp:  Expression("self-evaluating"s),
 expressions.cpp:  text_of_quotation {obj->at("cadr")}
 expressions.cpp:  if (!holds_alternative<Symbol>(obj->at("cadr"))) {
-expressions.cpp:    throw runtime_error("tried to assign something to a non-variable");
+expressions.cpp:    throw std::runtime_error("tried to assign something to a non-variable");
 expressions.cpp:  variable = as_symbol(obj->at("cadr"));
 expressions.cpp:  const auto cddr = obj->at("cddr");
 expressions.cpp:  value = classify(obj->at("caddr"));
@@ -214,7 +214,7 @@ main.cpp:    env->define_variable(p.first, new Primitive(p.second));
 main.cpp:    env->define_variable(p.first, p.second);
 main.cpp:          open_parens--;
 main.cpp:  else if (argc == 3 && string(argv[1]) == "--no-repl") {
-main.cpp:    cout << "Usage: ./scheme [--no-repl] [file-to-run]" << std::endl;
+main.cpp:    std::cout << "Usage: ./scheme [--no-repl] [file-to-run]" << std::endl;
 Makefile:CXXFLAGS := -std=c++23 -O2
 Makefile:	$(CXX) $(CXXFLAGS) -o $@ $^
 Makefile:	$(CXX) $(CXXFLAGS) -c $<
@@ -224,7 +224,7 @@ parsing.cpp:    if (!token->empty()) {
 parsing.cpp:      token->clear();
 parsing.cpp:  Obj *ret = new Obj(str.substr(1, str.size() - 2));
 parsing.cpp:  else if (str[0] == '-') {
-parsing.cpp:      throw runtime_error("ill-formed syntax");
+parsing.cpp:      throw std::runtime_error("ill-formed syntax");
 primitives.cpp:    return -as_number(args[0]);
 primitives.cpp:      ret -= as_number(args[i]);
 primitives.cpp:    if (!comp(as_number(args[i - 1]), as_number(args[i]))) {

@@ -5,6 +5,7 @@
 #include "primitives.hpp"
 #include "stringify.hpp"
 #include "parsing.hpp"
+#include <iostream>
 #include <fstream>
 
 using namespace Scheme;
@@ -50,7 +51,7 @@ read(INPUT& in) {
         case ')':
           open_parens--;
           if (open_parens < 0) {
-            throw runtime_error("imbalanced parentheses");
+            throw std::runtime_error("imbalanced parentheses");
           }
           break;
       }
@@ -79,21 +80,21 @@ driver_loop(Environment *env = nullptr) {
   }
   while (true) {
     try {
-      cout << ">>> ";
-      string input_expr = read(cin);
+      std::cout << ">>> ";
+      string input_expr = read(std::cin);
       if (input_expr == "exit\n") 
         return;
       auto result = interpret(input_expr, env);
       if (!is_void(result)) {
-        cout << stringify(result);
-        cout << "\n";
+        std::cout << stringify(result);
+        std::cout << "\n";
       }
     } 
     catch (std::runtime_error& e) {
-      cerr << "ERROR: " << e.what() << "\n";
+      std::cerr << "ERROR: " << e.what() << "\n";
     }
     catch (std::bad_variant_access e) {
-      cerr << "ERROR: incorrect type\n";
+      std::cerr << "ERROR: incorrect type\n";
     }
   }
 }
@@ -111,12 +112,12 @@ run_file(const char *filename, bool enter_driver_loop) {
       }
       interpret(input_expr, env);
     } 
-    catch (runtime_error& e) {
-      cerr << "\nERROR: " << e.what() << "\n";
+    catch (std::runtime_error& e) {
+      std::cerr << "\nERROR: " << e.what() << "\n";
       return; 
     }
   }
-  cout << "\n";
+  std::cout << "\n";
   if (enter_driver_loop) {
     driver_loop(env);
   }
@@ -134,6 +135,6 @@ main(const int argc, const char **argv) {
     run_file(argv[2], false);
   }
   else {
-    cout << "Usage: ./scheme [--no-repl] [file-to-run]" << std::endl;
+    std::cout << "Usage: ./scheme [--no-repl] [file-to-run]" << std::endl;
   }
 }

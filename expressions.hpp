@@ -2,6 +2,8 @@
 #include "types.hpp"
 #include "environment.hpp"
 #include "tco.hpp"
+#include <map>
+#include <variant>
 
 namespace Scheme {
 

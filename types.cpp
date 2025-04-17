@@ -24,8 +24,8 @@ const double& as_number(const Obj& obj) { return std::get<double>(obj); }
 Symbol& as_symbol(Obj& obj) { return std::get<Symbol>(obj); }
 const Symbol& as_symbol(const Obj& obj) { return std::get<Symbol>(obj); }
 
-std::string& as_string(Obj& obj) { return std::get<std::string>(obj); }
-const std::string& as_string(const Obj& obj) { return std::get<std::string>(obj); }
+string& as_string(Obj& obj) { return std::get<string>(obj); }
+const string& as_string(const Obj& obj) { return std::get<string>(obj); }
 
 Cons*& as_pair(Obj& obj) { return std::get<Cons*>(obj); }
 Cons* const& as_pair(const Obj& obj) { return std::get<Cons*>(obj); }
@@ -67,7 +67,7 @@ Cons::at(const string& s) {
   Obj curr = const_cast<Cons*>(this);
 
   if (*s.begin() != 'c' || *s.rbegin() != 'r') {
-    throw runtime_error("invalid cons operation: " + s);
+    throw std::runtime_error("invalid cons operation: " + s);
   }
 
   for (int i = s.size() - 2; i > 0; i--) {
@@ -79,7 +79,7 @@ Cons::at(const string& s) {
         curr = as_pair(curr)->cdr;
         break;
       default:
-        throw runtime_error("invalid cons operation: " + s);
+        throw std::runtime_error("invalid cons operation: " + s);
     }
   }
 

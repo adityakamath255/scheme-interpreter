@@ -3,6 +3,7 @@
 #include "stringify.hpp"
 #include "primitives.hpp"
 #include "evaluation.hpp"
+#include <iostream>
 #include <cmath>
 #include <climits>
 
@@ -15,7 +16,7 @@ template<typename T>
 static void
 assert_obj_type(const Obj& obj, const string& type) {
   if (!std::holds_alternative<T>(obj)) {
-    throw runtime_error("incorrect type for " + stringify(obj) + ", expected " + type);
+    throw std::runtime_error("incorrect type for " + stringify(obj) + ", expected " + type);
   }
 }
 
@@ -30,7 +31,7 @@ assert_vec_type(const vector<Obj>& args, const string& type) {
 static void
 assert_callable(const Obj& obj) {
   if (!is_procedure(obj) && !is_primitive(obj)) {
-    throw runtime_error("incorrect type for " + stringify(obj) + ", exprected procedure");
+    throw std::runtime_error("incorrect type for " + stringify(obj) + ", exprected procedure");
   }
 }
 
@@ -38,13 +39,13 @@ static void
 assert_arg_count(const vector<Obj>& args, const int lb, const int rb) {
   if (!(lb <= args.size() && args.size() <= rb)) {
     if (rb == MAX_ARGS) {
-      throw runtime_error("incorrect number of arguments: expected at least " + std::to_string(lb));
+      throw std::runtime_error("incorrect number of arguments: expected at least " + std::to_string(lb));
     }
     else if (lb == rb) {
-      throw runtime_error("incorrect number of arguments: expected " + std::to_string(lb));
+      throw std::runtime_error("incorrect number of arguments: expected " + std::to_string(lb));
     }
     else {
-      throw runtime_error("incorrect number of arguments: expected between " + std::to_string(lb) + " and " + std::to_string(rb));
+      throw std::runtime_error("incorrect number of arguments: expected between " + std::to_string(lb) + " and " + std::to_string(rb));
     }
   }
 }
@@ -52,7 +53,7 @@ assert_arg_count(const vector<Obj>& args, const int lb, const int rb) {
 static Obj
 display(const vector<Obj>& args) {
   assert_arg_count(args, 1, 1);
-  cout << stringify(args[0]);
+  std::cout << stringify(args[0]);
   return Void {};
 }
 
@@ -365,7 +366,7 @@ is_procedure(const vector<Obj>& args) {
 static Obj
 new_line(const vector<Obj>& args) {
   assert_arg_count(args, 0, 0);
-  cout << "\n";
+  std::cout << "\n";
   return Void {};
 }
 
@@ -398,7 +399,7 @@ list_ref(const vector<Obj>& args) {
     return ls;
   }
   else {
-    throw runtime_error("longer list expected");
+    throw std::runtime_error("longer list expected");
   }
 }
 
@@ -480,10 +481,10 @@ filter_fn(const vector<Obj>& args) {
 
 static Obj
 error_fn(const vector<Obj>& args) {
-  cerr << "ERROR: ";
+  std::cerr << "ERROR: ";
   for (auto obj : args) {
-    cerr << stringify(obj);
-    cerr << " ";
+    std::cerr << stringify(obj);
+    std::cerr << " ";
   }
   return Void {};
 }

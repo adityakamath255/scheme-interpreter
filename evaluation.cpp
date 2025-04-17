@@ -20,7 +20,7 @@ apply(Obj p, vector<Obj> args) {
     else if (is_procedure(p)) {
       const auto func = as_procedure(p);
       if (func->parameters.size() != args.size()) {
-        throw runtime_error(" wrong number of arguments: expected " + std::to_string(func->parameters.size()));
+        throw std::runtime_error(" wrong number of arguments: expected " + std::to_string(func->parameters.size()));
       }
       const auto new_env = func->env->extend(func->parameters, args);
       auto res = func->body->eval(new_env);
@@ -33,7 +33,7 @@ apply(Obj p, vector<Obj> args) {
       }
     }
     else {
-      throw runtime_error("tried to apply an object that is not a procedure");
+      throw std::runtime_error("tried to apply an object that is not a procedure");
     }
   } 
 }
@@ -145,7 +145,7 @@ EvalResult
 Cxr::eval(Environment *env) const {
   auto val = as_obj(expr->eval(env));
   if (!is_pair(val)) {
-    throw runtime_error(word.name + " type error: expected cons");
+    throw std::runtime_error(word.name + " type error: expected cons");
   }
   auto found = as_pair(val);
   return found->at(word.name);

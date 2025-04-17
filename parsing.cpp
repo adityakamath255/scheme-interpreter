@@ -1,6 +1,7 @@
 #include "types.hpp"
 #include "parsing.hpp"
 #include <cmath>
+#include <algorithm>
 
 namespace Scheme {
 
@@ -125,7 +126,7 @@ parse_impl(const vector<string>& tokens, const int curr_index, bool recursive) {
   else if (token[0] == '.') {
     tie(head, next_index) = parse_impl(tokens, curr_index + 1, false);
     if (next_index >= tokens.size() || tokens[next_index] != ")") {
-      throw runtime_error("bad positioning of '.'");
+      throw std::runtime_error("bad positioning of '.'");
     }
     next_index++;
     recursive = 0;
@@ -157,7 +158,7 @@ parse_impl(const vector<string>& tokens, const int curr_index, bool recursive) {
       return {new Obj(c), k};
     }
     else {
-      throw runtime_error("ill-formed syntax");
+      throw std::runtime_error("ill-formed syntax");
       return {nullptr, 0};
     }
   }

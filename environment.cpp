@@ -1,5 +1,6 @@
 #include "types.hpp"
 #include "environment.hpp"
+#include <map>
 
 namespace Scheme {
 
@@ -13,7 +14,7 @@ Environment::assoc(const Symbol& s) {
     return super->assoc(s);
   }
   else {
-    throw runtime_error("unbound variable: " + s.name);
+    throw std::runtime_error("unbound variable: " + s.name);
   }
   return found;
 }
@@ -38,7 +39,7 @@ void
 Environment::define_variable(const Symbol& s, Obj obj) {
   const auto found = frame.find(s);
   if (found != frame.end()) {
-    throw runtime_error("binding already present: " + s.name);
+    throw std::runtime_error("binding already present: " + s.name);
   }
   else {
     frame.insert({s, std::move(obj)});
@@ -48,7 +49,7 @@ Environment::define_variable(const Symbol& s, Obj obj) {
 Environment *
 Environment::extend(const vector<Symbol>& parameters, const vector<Obj>& arguments) {
   if (parameters.size() != arguments.size()) {
-    throw runtime_error("env extend size mismatch");
+    throw std::runtime_error("env extend size mismatch");
   }
   Environment *ret = new Environment(this);
   for (int i = 0; i < parameters.size(); i++) {
