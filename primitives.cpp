@@ -61,7 +61,7 @@ add(const vector<Obj>& args) {
   assert_vec_type<double>(args, "number");
   double ret = 0.0;
   for (const auto& arg : args) {
-    ret += get<double>(arg);
+    ret += as_number(arg);
   }
   return ret;
 }
@@ -71,12 +71,12 @@ sub(const vector<Obj>& args) {
   assert_arg_count(args, 1, MAX_ARGS);
   assert_vec_type<double>(args, "number");
   if (args.size() == 1) {
-    return -get<double>(args[0]);
+    return -as_number(args[0]);
   }
   else {
-    double ret = get<double>(args[0]);
+    double ret = as_number(args[0]);
     for (int i = 1; i < args.size(); i++) {
-      ret -= get<double>(args[i]);
+      ret -= as_number(args[i]);
     }
     return ret;
   }
@@ -87,7 +87,7 @@ mul(const vector<Obj>& args) {
   assert_vec_type<double>(args, "number");
   double ret = 1.0;
   for (const auto& arg : args) {
-    ret *= get<double>(arg);
+    ret *= as_number(arg);
   }
   return ret;
 }
@@ -97,12 +97,12 @@ div(const vector<Obj>& args) {
   assert_arg_count(args, 1, MAX_ARGS);
   assert_vec_type<double>(args, "number");
   if (args.size() == 1) {
-    return 1.0 / get<double>(args[0]);
+    return 1.0 / as_number(args[0]);
   }
   else {
-    double ret = get<double>(args[0]);
+    double ret = as_number(args[0]);
     for (int i = 1; i < args.size(); i++) {
-      ret /= get<double>(args[i]);
+      ret /= as_number(args[i]);
     }
     return ret;
   }
@@ -114,29 +114,29 @@ quotient(const vector<Obj>& args) {
   assert_vec_type<double>(args, "number");
   return static_cast<double>(
     static_cast<int>(
-      get<double>(args[0]) / 
-      get<double>(args[1])));
+      as_number(args[0]) / 
+      as_number(args[1])));
 }
 
 static Obj 
 remainder(const vector<Obj>& args) {
   assert_arg_count(args, 2, 2);
   assert_vec_type<double>(args, "number");
-  return fmod(get<double>(args[0]), get<double>(args[1]));
+  return fmod(as_number(args[0]), as_number(args[1]));
 }
 
 static Obj
 expt(const vector<Obj>& args) {
   assert_arg_count(args, 2, 2);
   assert_vec_type<double>(args, "number");
-  return std::pow(get<double>(args[0]), get<double>(args[1]));
+  return std::pow(as_number(args[0]), as_number(args[1]));
 }
 
 template<class Comp>
 static bool
 check_comp(const vector<Obj>& args, Comp comp) {
   for (int i = 1; i < args.size(); i++) {
-    if (!comp(get<double>(args[i - 1]), get<double>(args[i]))) {
+    if (!comp(as_number(args[i - 1]), as_number(args[i]))) {
       return false;
     }
   }
@@ -182,35 +182,35 @@ static Obj
 abs_fn(const vector<Obj>& args) {
   assert_arg_count(args, 1, 1);
   assert_obj_type<double>(args[0], "number");
-  return std::abs(get<double>(args[0]));
+  return std::abs(as_number(args[0]));
 }
 
 static Obj
 sqrt_fn(const vector<Obj>& args) {
   assert_arg_count(args, 1, 1);
   assert_obj_type<double>(args[0], "number");
-  return std::sqrt(get<double>(args[0]));
+  return std::sqrt(as_number(args[0]));
 }
 
 static Obj
 sin_fn(const vector<Obj>& args) {
   assert_arg_count(args, 1, 1);
   assert_obj_type<double>(args[0], "number");
-  return sin(get<double>(args[0]));
+  return sin(as_number(args[0]));
 }
 
 static Obj
 cos_fn(const vector<Obj>& args) {
   assert_arg_count(args, 1, 1);
   assert_obj_type<double>(args[0], "number");
-  return cos(get<double>(args[0]));
+  return cos(as_number(args[0]));
 }
 
 static Obj
 log_fn(const vector<Obj>& args) {
   assert_arg_count(args, 1, 1);
   assert_obj_type<double>(args[0], "number");
-  return log(get<double>(args[0]));
+  return log(as_number(args[0]));
 }
 
 static Obj
@@ -219,7 +219,7 @@ max_fn(const vector<Obj>& args) {
   assert_vec_type<double>(args, "number");
   double ret = -INFINITY;
   for (const auto& arg : args)
-    ret = std::max(ret, get<double>(arg));
+    ret = std::max(ret, as_number(arg));
   return ret;
 }
 
@@ -229,7 +229,7 @@ min_fn(const vector<Obj>& args) {
   assert_vec_type<double>(args, "number");
   double ret = INFINITY;
   for (const auto& arg : args)
-    ret = std::min(ret, get<double>(arg));
+    ret = std::min(ret, as_number(arg));
   return ret;
 }
 
@@ -237,35 +237,35 @@ static Obj
 is_even(const vector<Obj>& args) {
   assert_arg_count(args, 1, 1);
   assert_obj_type<double>(args[0], "number");
-  return (bool) !(1 & static_cast<int>(get<double>(args[0])));
+  return (bool) !(1 & static_cast<int>(as_number(args[0])));
 }
 
 static Obj
 is_odd(const vector<Obj>& args) {
   assert_arg_count(args, 1, 1);
   assert_obj_type<double>(args[0], "number");
-  return (bool) (1 & static_cast<int>(get<double>(args[0])));
+  return (bool) (1 & static_cast<int>(as_number(args[0])));
 }
 
 static Obj
 ceil_fn(const vector<Obj>& args) {
   assert_arg_count(args, 1, 1);
   assert_obj_type<double>(args[0], "number");
-  return std::ceil(get<double>(args[0]));
+  return std::ceil(as_number(args[0]));
 }
 
 static Obj
 floor_fn(const vector<Obj>& args) {
   assert_arg_count(args, 1, 1);
   assert_obj_type<double>(args[0], "number");
-  return std::floor(get<double>(args[0]));
+  return std::floor(as_number(args[0]));
 }
 
 static Obj
 round_fn(const vector<Obj>& args) {
   assert_arg_count(args, 1, 1);
   assert_obj_type<double>(args[0], "number");
-  return std::round(get<double>(args[0]));
+  return std::round(as_number(args[0]));
 }
 
 static Obj
@@ -284,12 +284,12 @@ static bool
 eq_list(const vector<Obj>& args) {
   Obj l0 = args[0];
   Obj l1 = args[1];
-  while (is_pair(l0) && std::holds_alternative<Cons*>(l1)) {
-    if (get<Cons*>(l0)->car != get<Cons*>(l1)->car) {
+  while (is_pair(l0) && is_pair(l1)) {
+    if (as_pair(l0)->car != as_pair(l1)->car) {
       return false;
     }
-    l0 = get<Cons*>(l0)->cdr;
-    l1 = get<Cons*>(l1)->cdr;
+    l0 = as_pair(l0)->cdr;
+    l1 = as_pair(l1)->cdr;
   }
   return l0 == l1;
 }
@@ -377,7 +377,7 @@ list_len(const vector<Obj>& args) {
   auto curr = args[0];
   while (is_pair(curr)) {
     ret++;
-    curr = get<Cons*>(curr)->cdr;
+    curr = as_pair(curr)->cdr;
   }
   return ret;
 }
@@ -389,9 +389,9 @@ list_ref(const vector<Obj>& args) {
   assert_obj_type<double>(args[1], "number");
   Obj ls = args[0];
   int i = 0;
-  const auto n = get<double>(args[1]);
+  const auto n = as_number(args[1]);
   while (is_pair(ls) && i < n) {
-    ls = get<Cons*>(ls)->cdr;
+    ls = as_pair(ls)->cdr;
     i++;
   }
   if (i == n) {
@@ -403,11 +403,11 @@ list_ref(const vector<Obj>& args) {
 }
 
 static Obj
-append_rec(Obj list1, Obj list2) {
+append_rec(const Obj& list1, const Obj& list2) {
   if (is_pair(list1)) {
     return new Cons(
-      get<Cons*>(list1)->car,
-      append_rec(get<Cons*>(list1)->cdr, list2)
+      as_pair(list1)->car,
+      append_rec(as_pair(list1)->cdr, list2)
     );
   }
   else {
@@ -432,9 +432,9 @@ map_rec(Obj& fn, Obj& obj) {
     return obj;
   }
   else {
-    auto ls = get<Cons*>(obj);
+    auto ls = as_pair(obj);
     return new Cons(
-      get<Obj>(apply(fn, vector<Obj>({ls->car}))), 
+      as_obj(apply(fn, vector<Obj>({ls->car}))), 
       map_rec(fn, ls->cdr)
     );
   }
@@ -457,9 +457,9 @@ filter_rec(Obj& fn, Obj& obj) {
     return obj;
   }
   else {
-    auto ls = get<Cons*>(obj);
+    auto ls = as_pair(obj);
     auto rest = filter_rec(fn, ls->cdr);
-    if (is_true(get<Obj>(apply(fn, vector<Obj>({ls->car}))))) {
+    if (is_true(as_obj(apply(fn, vector<Obj>({ls->car}))))) {
       return new Cons(ls->car, rest);
     }
     else {

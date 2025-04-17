@@ -10,6 +10,15 @@ using EvalResult = std::variant<
   TailCall
 >;
 
+bool is_obj(const EvalResult&);
+bool is_tailcall(const EvalResult&);
+
+Obj& as_obj(EvalResult& res);
+const Obj& as_obj(const EvalResult& res);
+
+TailCall& as_tailcall(EvalResult& res);
+const TailCall& as_tailcall(const EvalResult& res);
+
 class Expression {
 private:
   int get_size(Cons* obj) const;

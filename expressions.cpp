@@ -8,6 +8,15 @@ namespace Scheme {
 using namespace std::string_literals;
 static constexpr int MAXARGS = 256;
 
+bool is_obj(const EvalResult& res) {return std::holds_alternative<Obj>(res); }
+bool is_tailcall(const EvalResult& res) {return std::holds_alternative<TailCall>(res); }
+
+Obj& as_obj(EvalResult& res) { return std::get<Obj>(res); }
+const Obj& as_obj(const EvalResult& res) { return std::get<Obj>(res); }
+
+TailCall& as_tailcall(EvalResult& res) { return std::get<TailCall>(res); }
+const TailCall& as_tailcall(const EvalResult& res) { return std::get<TailCall>(res); }
+
 int
 Expression::get_size(Cons* obj) const {
   int sz = 0;
@@ -17,7 +26,7 @@ Expression::get_size(Cons* obj) const {
       break;
     }
     else {
-      obj = get<Cons*>(obj->cdr);
+      obj = as_pair(obj->cdr);
     }
   }
   return sz;
@@ -54,7 +63,7 @@ static vector<T>
 cons2vec(Obj ls, F fn) {
   vector<T> ret {};
   while (is_pair(ls)) {
-    const auto as_cons = get<Cons*>(ls);
+    const auto as_cons = as_pair(ls);
     ret.push_back(fn(as_cons->car));
     ls = as_cons->cdr;
   }
@@ -63,7 +72,7 @@ cons2vec(Obj ls, F fn) {
 
 static vector<Symbol> 
 cons2symbols(Obj ls) {
-  return cons2vec<Symbol>(ls, as_symbol);
+  return cons2vec<Symbol>(ls, [](const Obj& o) -> const Symbol& {return as_symbol(o); });
 }
 
 static vector<Expression*>
@@ -92,7 +101,7 @@ Set::Set(Cons *obj):
   if (!is_symbol(obj->at("cadr"))) {
     throw runtime_error("tried to assign something to a non-variable");
   }
-  variable = get<Symbol>(obj->at("cadr"));
+  variable = as_symbol(obj->at("cadr"));
   const auto cddr = obj->at("cddr");
   value = classify(obj->at("caddr"));
 }
@@ -149,7 +158,7 @@ Define::Define(Cons *obj):
   const auto cadr = obj->at("cadr");
 
   if (is_symbol(cadr)) {  
-    variable = get<Symbol>(cadr);
+    variable = as_symbol(cadr);
     value = classify(obj->at("caddr"));
   }
 
@@ -159,7 +168,7 @@ Define::Define(Cons *obj):
     if (!is_symbol(obj->at("caadr"))) {
       throw runtime_error("procedure name must be a symbol");
     }
-    variable = get<Symbol>(obj->at("caadr"));
+    variable = as_symbol(obj->at("caadr"));
     value = new Lambda(parameters, body);
   }
 
@@ -172,17 +181,17 @@ std::map<Symbol, Expression*>
 Let::get_bindings(Obj li) {
   std::map<Symbol, Expression*> ret {};
   while (is_pair(li)) {
-    const auto as_cons = get<Cons*>(li);
+    const auto as_cons = as_pair(li);
     if (!is_pair(as_cons->car)) {
       throw runtime_error("Let::get_bindings: type error");
     }
-    const auto car = get<Cons*>(as_cons->car);
+    const auto car = as_pair(as_cons->car);
     if (!is_symbol(car->car)) {
       throw runtime_error("Let::get_bindings: type error");
     }
     
     ret.insert({
-      get<Symbol>(car->at("car")),
+      as_symbol(car->at("car")),
       classify(car->at("cadr"))
     });
     li = as_cons->cdr;
@@ -196,7 +205,7 @@ Let::get_frame(Environment *env) const {
   for (const auto& p : bindings) {
     ret->define_variable(
       p.first,
-      get<Obj>(p.second->eval(env))
+      as_obj(p.second->eval(env))
     );
   }
   return ret;
@@ -213,7 +222,7 @@ bool
 Clause::is_else_clause(Obj obj) const {
   return
     is_symbol(obj) &&
-    get<Symbol>(obj).name == "else";
+    as_symbol(obj).name == "else";
 }
 
 Clause::Clause (Cons *obj) {
@@ -240,13 +249,13 @@ Cond::cond2if() const {
 Cond::Cond(Obj obj):
   Expression("cond"s) 
 {
-  obj = get<Cons*>(obj)->cdr;
+  obj = as_pair(obj)->cdr;
   while (is_pair(obj)) {
-    const auto as_cons = get<Cons*>(obj);
+    const auto as_cons = as_pair(obj);
     if (!is_pair(as_cons->car)) {
       throw runtime_error("cond type error\n");
     }
-    const auto new_clause = Clause(get<Cons*>(as_cons->car));
+    const auto new_clause = Clause(as_pair(as_cons->car));
     clauses.push_back(new_clause);
     if (new_clause.is_else)
       break;
@@ -332,9 +341,9 @@ is_cxr(const string& s) {
 Expression*
 classify(const Obj& obj) {
   if (is_pair(obj)) {
-    const auto p = get<Cons*>(obj);
+    const auto p = as_pair(obj);
     if (is_symbol(p->car)) {
-      const auto tag = get<Symbol>(p->car);
+      const auto tag = as_symbol(p->car);
       const auto found = special_forms.find(tag.name);
       if (found != special_forms.end()) {
         const auto func = found->second;
@@ -347,7 +356,7 @@ classify(const Obj& obj) {
     return new Application(p);
   }
   else if (is_symbol(obj))
-    return new Variable(get<Symbol>(obj));
+    return new Variable(as_symbol(obj));
   else
     return new Literal(obj);
 }

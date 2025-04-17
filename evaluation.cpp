@@ -14,22 +14,22 @@ EvalResult
 apply(Obj p, vector<Obj> args) {
   while (true) {
     if (is_primitive(p)) {
-      const auto func = *get<Primitive*>(p);
+      const auto func = *as_primitive(p);
       return func(args);
     }
     else if (is_procedure(p)) {
-      const auto func = get<Procedure*>(p);
+      const auto func = as_procedure(p);
       if (func->parameters.size() != args.size()) {
         throw runtime_error(" wrong number of arguments: expected " + std::to_string(func->parameters.size()));
       }
       const auto new_env = func->env->extend(func->parameters, args);
       auto res = func->body->eval(new_env);
-      if (std::holds_alternative<Obj>(res)) {
+      if (is_obj(res)) {
         return res;
       }
-      else if (std::holds_alternative<TailCall>(res)) {
-        p = std::move(get<TailCall>(res).proc);
-        args = std::move(get<TailCall>(res).args);
+      else if (is_tailcall(res)) {
+        p = std::move(as_tailcall(res).proc);
+        args = std::move(as_tailcall(res).args);
       }
     }
     else {
@@ -55,14 +55,14 @@ Quoted::eval(Environment *env) const {
 
 EvalResult
 Set::eval(Environment *env) const {
-  auto eval_value = get<Obj>(value->eval(env));
+  auto eval_value = as_obj(value->eval(env));
   env->set_variable(variable, eval_value);
   return Void {};
 }
 
 EvalResult
 If::eval(Environment *env) const {
-  if (is_true(get<Obj>(predicate->eval(env)))) {
+  if (is_true(as_obj(predicate->eval(env)))) {
     return consequent->eval(env);
   }
   else {
@@ -91,7 +91,7 @@ Lambda::eval(Environment *env) const {
 
 EvalResult
 Define::eval(Environment *env) const {
-  env->define_variable(variable, get<Obj>(value->eval(env)));
+  env->define_variable(variable, as_obj(value->eval(env)));
   return Void {};
 }
 
@@ -108,10 +108,10 @@ Cond::eval(Environment *env) const {
 
 EvalResult
 Application::eval(Environment *env) const {
-  auto proc = get<Obj>(op->eval(env));
+  auto proc = as_obj(op->eval(env));
   vector<Obj> args {};
   for (const auto param : params) {
-    args.push_back(get<Obj>(param->eval(env)));
+    args.push_back(as_obj(param->eval(env)));
   }
   if (at_tail) {
     return TailCall(proc, move(args));
@@ -124,7 +124,7 @@ Application::eval(Environment *env) const {
 EvalResult
 And::eval(Environment *env) const {
   for (const auto exp : exprs) {
-    if (is_false(get<Obj>(exp->eval(env)))) {
+    if (is_false(as_obj(exp->eval(env)))) {
       return false;
     }
   }
@@ -134,7 +134,7 @@ And::eval(Environment *env) const {
 EvalResult
 Or::eval(Environment *env) const {
   for (const auto exp : exprs) {
-    if (is_true(get<Obj>(exp->eval(env)))) {
+    if (is_true(as_obj(exp->eval(env)))) {
       return true;
     }
   }
@@ -143,11 +143,11 @@ Or::eval(Environment *env) const {
 
 EvalResult
 Cxr::eval(Environment *env) const {
-  auto val = get<Obj>(expr->eval(env));
+  auto val = as_obj(expr->eval(env));
   if (!is_pair(val)) {
     throw runtime_error(word.name + " type error: expected cons");
   }
-  auto found = get<Cons*>(val);
+  auto found = as_pair(val);
   return found->at(word.name);
 } 
 

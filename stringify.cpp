@@ -58,8 +58,8 @@ stringify(Cons *const ls) {
   Obj& obj = ls->cdr;
   while (is_pair(obj)) {
     ret << " ";
-    ret << stringify(get<Cons*>(obj)->car);
-    obj = get<Cons*>(obj)->cdr;
+    ret << stringify(as_pair(obj)->car);
+    obj = as_pair(obj)->cdr;
   }
   if (!is_null(obj)) {
     ret << " . ";

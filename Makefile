@@ -2,21 +2,25 @@ CXX := g++
 CXXFLAGS := -std=c++23 -O2
 
 SRC := \
-  main.cpp \
-  common.cpp \
-  stringify.cpp \
-  evaluation.cpp \
-  expressions.cpp \
-  parsing.cpp \
-  primitives.cpp \
-  tco.cpp
+	types.cpp \
+	environment.cpp \
+	stringify.cpp \
+	primitives.cpp \
+	expressions.cpp \
+	evaluation.cpp \
+	tco.cpp \
+	parsing.cpp \
+	main.cpp
 
 HDR := \
-  common.hpp \
-  display.hpp \
-  expressions.hpp \
-  parsing.hpp \
-  primitives.hpp
+	types.hpp \
+	environment.hpp \
+	stringify.hpp \
+	primitives.hpp \
+	expressions.hpp \
+	evaluation.hpp \
+	tco.hpp \
+	parsing.hpp
 
 OBJ := $(SRC:.cpp=.o)
 

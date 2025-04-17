@@ -13,7 +13,6 @@ using std::cout;
 using std::cerr;
 using std::vector;
 using std::string;
-using std::get;
 using std::runtime_error;
 
 namespace Scheme {
@@ -51,7 +50,32 @@ bool is_callable(const Obj&);
 bool is_null(const Obj&);
 bool is_void(const Obj&);
 
-Symbol as_symbol(Obj&);
+bool& as_bool(Obj& obj);
+const bool& as_bool(const Obj& obj);
+
+double& as_number(Obj& obj);
+const double& as_number(const Obj& obj);
+
+Symbol& as_symbol(Obj& obj);
+const Symbol& as_symbol(const Obj& obj);
+
+std::string& as_string(Obj& obj);
+const std::string& as_string(const Obj& obj);
+
+Cons*& as_pair(Obj& obj);
+Cons* const& as_pair(const Obj& obj);
+
+Primitive*& as_primitive(Obj& obj);
+Primitive* const& as_primitive(const Obj& obj);
+
+Procedure*& as_procedure(Obj& obj);
+Procedure* const& as_procedure(const Obj& obj);
+
+std::nullptr_t& as_null(Obj& obj);
+const std::nullptr_t& as_null(const Obj& obj);
+
+Void& as_void(Obj& obj);
+const Void& as_void(const Obj& obj);
 
 struct Symbol {
   string name;

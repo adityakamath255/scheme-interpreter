@@ -26,7 +26,7 @@ Environment::Environment(Environment *super_):
 
 void
 Environment::set_variable(const Symbol& s, const Obj obj) {
-  assoc(s)->second = obj;
+  assoc(s)->second = std::move(obj);
 }
 
 Obj 
@@ -41,7 +41,7 @@ Environment::define_variable(const Symbol& s, Obj obj) {
     throw runtime_error("binding already present: " + s.name);
   }
   else {
-    frame.insert({s, obj});
+    frame.insert({s, std::move(obj)});
   }
 }
 

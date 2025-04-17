@@ -26,7 +26,7 @@ interpret(const string& code, Environment *env) {
   auto tokens = tokenize(code);
   auto AST_0 = parse(tokens);
   auto AST_1 = classify(AST_0); 
-  return get<Obj>(eval(AST_1, env));
+  return as_obj(eval(AST_1, env));
 }
 
 template<class INPUT>
