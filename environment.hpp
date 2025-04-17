@@ -7,14 +7,14 @@ class Environment {
 private:
   std::map<Symbol, Obj> frame {};
   Environment *const super;
-  decltype(frame)::iterator assoc(const Symbol& s);
+  decltype(frame)::iterator assoc(const Symbol&);
 public:
   Environment();
-  Environment(Environment *super_);
-  void set_variable(const Symbol& s, const Obj obj);
-  Obj lookup(const Symbol& s);
-  void define_variable(const Symbol& s, Obj obj);
-  Environment *extend(const vector<Symbol>& parameters, const vector<Obj>& arguments);
+  Environment(Environment*);
+  void set_variable(const Symbol&, const Obj);
+  Obj lookup(const Symbol&);
+  void define_variable(const Symbol&, Obj);
+  Environment *extend(const vector<Symbol>&, const vector<Obj>&);
 };
 
 }

@@ -5,7 +5,7 @@
 
 namespace Scheme {
 
-EvalResult eval(Expression *expr, Environment *const env);
-EvalResult apply(Obj p, vector<Obj> args);
+EvalResult eval(Expression*, Environment *const);
+EvalResult apply(Obj, vector<Obj>);
 
 }

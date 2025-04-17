@@ -4,7 +4,7 @@
 
 namespace Scheme {
 
-vector<string> tokenize(const string& input);
-Obj parse(const vector<string>& tokens);
+vector<string> tokenize(const string&);
+Obj parse(const vector<string>&);
 
 }

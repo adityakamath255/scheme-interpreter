@@ -1,0 +1,261 @@
+benchmark.sh:    echo -n "Run #$i: "
+benchmark.sh:    ./scheme --no-repl code.scm > /dev/null
+benchmark.sh:    elapsed=$(echo "$end_time - $start_time" | bc)
+code.scm:(define (for-each-except exception 
+code.scm:(define (make-connector)
+code.scm:    (define (set-my-value newval setter)
+code.scm:      (cond ((not (has-value? me))
+code.scm:             (for-each-except 
+code.scm:              inform-about-value
+code.scm:    (define (forget-my-value retractor)
+code.scm:                 (for-each-except 
+code.scm:                  inform-about-no-value
+code.scm:    (define (connect new-constraint)
+code.scm:      (if (not (memq new-constraint 
+code.scm:                (cons new-constraint 
+code.scm:      (if (has-value? me)
+code.scm:          (inform-about-value new-constraint))
+code.scm:      (cond ((eq? request 'has-value?)
+code.scm:            ((eq? request 'set-value!) 
+code.scm:             set-my-value)
+code.scm:             forget-my-value)
+code.scm:(define (has-value? connector)
+code.scm:  (connector 'has-value?))
+code.scm:(define (get-value connector)
+code.scm:(define (set-value! connector 
+code.scm:                    new-value 
+code.scm:  ((connector 'set-value!) 
+code.scm:   new-value 
+code.scm:(define (forget-value! connector retractor)
+code.scm:(define (connect connector new-constraint)
+code.scm:  ((connector 'connect) new-constraint))
+code.scm:  (set-value! connector value me)
+code.scm:(define (inform-about-value constraint)
+code.scm:  (constraint 'I-have-a-value))
+code.scm:(define (inform-about-no-value constraint)
+code.scm:  (constraint 'I-lost-my-value))
+code.scm:  (define (process-new-value)
+code.scm:    (cond ((and (has-value? a1) 
+code.scm:                (has-value? a2))
+code.scm:           (set-value! sum
+code.scm:                       (+ (get-value a1) 
+code.scm:                          (get-value a2))
+code.scm:          ((and (has-value? a1) 
+code.scm:                (has-value? sum))
+code.scm:           (set-value! a2
+code.scm:                       (- (get-value sum) 
+code.scm:                          (get-value a1))
+code.scm:          ((and (has-value? a2) 
+code.scm:                (has-value? sum))
+code.scm:           (set-value! a1
+code.scm:                       (- (get-value sum) 
+code.scm:                          (get-value a2))
+code.scm:  (define (process-forget-value)
+code.scm:    (forget-value! sum me)
+code.scm:    (forget-value! a1 me)
+code.scm:    (forget-value! a2 me)
+code.scm:    (process-new-value))
+code.scm:    (cond ((eq? request 'I-have-a-value)
+code.scm:           (process-new-value))
+code.scm:          ((eq? request 'I-lost-my-value)
+code.scm:           (process-forget-value))
+code.scm:  (define (process-new-value)
+code.scm:    (cond ((or (and (has-value? m1) 
+code.scm:                    (= (get-value m1) 0))
+code.scm:               (and (has-value? m2) 
+code.scm:                    (= (get-value m2) 0)))
+code.scm:           (set-value! product 0 me))
+code.scm:          ((and (has-value? m1) 
+code.scm:                (has-value? m2))
+code.scm:           (set-value! product
+code.scm:                       (* (get-value m1) 
+code.scm:                          (get-value m2))
+code.scm:          ((and (has-value? product) 
+code.scm:                (has-value? m1))
+code.scm:           (set-value! m2
+code.scm:                       (/ (get-value product) 
+code.scm:                          (get-value m1))
+code.scm:          ((and (has-value? product) 
+code.scm:                (has-value? m2))
+code.scm:           (set-value! m1
+code.scm:                       (/ (get-value product) 
+code.scm:                          (get-value m2))
+code.scm:  (define (process-forget-value)
+code.scm:    (forget-value! product me)
+code.scm:    (forget-value! m1 me)
+code.scm:    (forget-value! m2 me)
+code.scm:    (process-new-value))
+code.scm:    (cond ((eq? request 'I-have-a-value)
+code.scm:           (process-new-value))
+code.scm:          ((eq? request 'I-lost-my-value)
+code.scm:           (process-forget-value))
+code.scm:  (define (print-probe value)
+code.scm:  (define (process-new-value)
+code.scm:    (print-probe (get-value connector)))
+code.scm:  (define (process-forget-value)
+code.scm:    (print-probe "?"))
+code.scm:    (cond ((eq? request 'I-have-a-value)
+code.scm:           (process-new-value))
+code.scm:          ((eq? request 'I-lost-my-value)
+code.scm:           (process-forget-value))
+code.scm:(define (celsius-fahrenheit-converter c f)
+code.scm:  (let ((u (make-connector))
+code.scm:        (v (make-connector))
+code.scm:        (w (make-connector))
+code.scm:        (x (make-connector))
+code.scm:        (y (make-connector)))
+code.scm:  (let ((u (make-connector))
+code.scm:        (v (make-connector)))
+code.scm:  (define (process-new-value)
+code.scm:    (if (has-value? b)
+code.scm:        (if (< (get-value b) 0)
+code.scm:                   (get-value b))
+code.scm:            (set-value! a (sqrt (get-value b) me)))
+code.scm:        (if (has-value? a)
+code.scm:            (set-value! b (sq (get-value a)) me))))
+code.scm:  (define (process-forget-value)
+code.scm:    (forget-value! a me)
+code.scm:    (forget-value! b me)
+code.scm:    (process-new-value))
+code.scm:    (cond ((eq? request 'I-have-a-value)
+code.scm:           (process-new-value))
+code.scm:          ((eq? request 'I-lost-my-value)
+code.scm:           (process-forget-value))
+code.scm:(define C (make-connector))
+code.scm:(define F (make-connector))
+code.scm:(celsius-fahrenheit-converter C F)
+code.scm:(set-value! C 25 'user)
+common.cpp:  for (int i = s.size() - 2; i > 0; i--) {
+common.cpp:        curr = as_pair(curr)->car;
+common.cpp:        curr = as_pair(curr)->cdr;
+common.cpp:    return super->assoc(s);
+common.cpp:  assoc(s)->second = obj;
+common.cpp:  return assoc(s)->second;
+common.cpp:    ret->define_variable(parameters[i], arguments[i]);
+common.cpp:    if (!holds_alternative<Cons*>(obj->cdr)) {
+common.cpp:      obj = as_pair(obj->cdr);
+common.cpp:  if (lb != -1) {
+common.cpp:  return expr->eval(env);
+common.cpp:        if (func->parameters.size() != args.size()) {
+common.cpp:          throw runtime_error(" wrong number of arguments: expected " + std::to_string(func->parameters.size()));
+common.cpp:        const auto new_env = func->env->extend(func->parameters, args);
+common.cpp:        return func->body->eval(new_env);
+common.hpp:  Expression(const string& n, Cons *obj = nullptr, const int lb = -1, const int ub = -1);
+common.hpp:constexpr double precision = 1e-9;
+evaluation.cpp:  return env->lookup(sym);
+evaluation.cpp:  auto eval_value = value->eval(env);
+evaluation.cpp:  env->set_variable(variable, eval_value);
+evaluation.cpp:  if (is_true(predicate->eval(env))) {
+evaluation.cpp:    return consequent->eval(env);
+evaluation.cpp:    return alternative->eval(env);
+evaluation.cpp:    ret = exp->eval(env);
+evaluation.cpp:  env->define_variable(variable, value->eval(env));
+evaluation.cpp:  return body->eval(env2);
+evaluation.cpp:  return if_form->eval(env);
+evaluation.cpp:  auto proc = op->eval(env);
+evaluation.cpp:    args.push_back(param->eval(env));
+evaluation.cpp:    if (is_false(exp->eval(env))) {
+evaluation.cpp:    if (is_true(exp->eval(env))) {
+evaluation.cpp:  const auto val = expr->eval(env);
+evaluation.cpp:  return found->at(word.name);
+expressions.cpp:    vec.push_back(as_symbol(as_cons->car));
+expressions.cpp:    c = as_cons->cdr;
+expressions.cpp:    vec.push_back(classify(as_cons->car));
+expressions.cpp:    seq = as_cons->cdr; 
+expressions.cpp:  Expression("self-evaluating"s),
+expressions.cpp:  text_of_quotation {obj->at("cadr")}
+expressions.cpp:  if (!holds_alternative<Symbol>(obj->at("cadr"))) {
+expressions.cpp:    throw runtime_error("tried to assign something to a non-variable");
+expressions.cpp:  variable = as_symbol(obj->at("cadr"));
+expressions.cpp:  const auto cddr = obj->at("cddr");
+expressions.cpp:  value = classify(obj->at("caddr"));
+expressions.cpp:  predicate {classify(obj->at("cadr"))},
+expressions.cpp:  consequent {classify(obj->at("caddr"))},
+expressions.cpp:    !is_null(obj->at("cdddr"))
+expressions.cpp:  ? classify(obj->at("cadddr"))
+expressions.cpp:  parameters {cons2symbols(obj->at("cadr"))},
+expressions.cpp:  body {combine_expr(obj->at("cddr"))}
+expressions.cpp:  const auto cadr = obj->at("cadr");
+expressions.cpp:    value = classify(obj->at("caddr"));
+expressions.cpp:    const auto parameters = obj->at("cdadr");
+expressions.cpp:    const auto body = obj->at("cddr");
+expressions.cpp:    if (!holds_alternative<Symbol>(obj->at("caadr"))) {
+expressions.cpp:    variable = as_symbol(obj->at("caadr"));
+expressions.cpp:    if (!holds_alternative<Cons*>(as_cons->car)) {
+expressions.cpp:    const auto car = as_pair(as_cons->car);
+expressions.cpp:    if (!holds_alternative<Symbol>(car->car)) {
+expressions.cpp:      as_symbol(car->at("car")),
+expressions.cpp:      classify(car->at("cadr"))
+expressions.cpp:    li = as_cons->cdr;
+expressions.cpp:    ret->define_variable(
+expressions.cpp:      p.second->eval(env)
+expressions.cpp:  bindings {get_bindings(obj->at("cadr"))},
+expressions.cpp:  body {combine_expr(obj->at("cddr"))}
+expressions.cpp:  if (is_else_clause(obj->car)) {
+expressions.cpp:    predicate = classify(obj->car);
+expressions.cpp:  actions = combine_expr(obj->cdr);
+expressions.cpp:    ret = new If(curr->predicate, curr->actions, ret);
+expressions.cpp:  obj = as_pair(obj)->cdr;
+expressions.cpp:    if (!holds_alternative<Cons*>(as_cons->car)) {
+expressions.cpp:    const auto new_clause = Clause(as_pair(as_cons->car));
+expressions.cpp:    obj = as_cons->cdr;
+expressions.cpp:  op {classify(obj->car)},
+expressions.cpp:  params {cons2vec(obj->cdr)}
+expressions.cpp:  exprs {cons2vec(obj->cdr)}
+expressions.cpp:  exprs {cons2vec(obj->cdr)}
+expressions.cpp:  expr {classify(obj->at("cadr"))} 
+expressions.cpp:  ret->tco();
+expressions.cpp:static Expression* make_begin(Cons *obj) { return combine_expr(obj->cdr); }
+expressions.cpp:  for (int i = 1; i < s.size() - 1; i++) {
+expressions.cpp:    if (holds_alternative<Symbol>(p->car)) {
+expressions.cpp:      const auto tag = as_symbol(p->car);
+expressions.cpp:        const auto func = found->second;
+main.cpp:    env->define_variable(p.first, new Primitive(p.second));
+main.cpp:    env->define_variable(p.first, p.second);
+main.cpp:          open_parens--;
+main.cpp:  else if (argc == 3 && string(argv[1]) == "--no-repl") {
+main.cpp:    cout << "Usage: ./scheme [--no-repl] [file-to-run]" << std::endl;
+Makefile:CXXFLAGS := -std=c++23 -O2
+Makefile:	$(CXX) $(CXXFLAGS) -o $@ $^
+Makefile:	$(CXX) $(CXXFLAGS) -c $<
+Makefile:	rm -f $(OBJ) $(TARGET)
+parsing.cpp:  const auto insert_and_clear = [&](string *token) -> void {
+parsing.cpp:    if (!token->empty()) {
+parsing.cpp:      token->clear();
+parsing.cpp:  Obj *ret = new Obj(str.substr(1, str.size() - 2));
+parsing.cpp:  else if (str[0] == '-') {
+parsing.cpp:      throw runtime_error("ill-formed syntax");
+primitives.cpp:    return -as_number(args[0]);
+primitives.cpp:      ret -= as_number(args[i]);
+primitives.cpp:    if (!comp(as_number(args[i - 1]), as_number(args[i]))) {
+primitives.cpp:  double ret = -INFINITY;
+primitives.cpp:    if (as_pair(l0)->car != as_pair(l1)->car) {
+primitives.cpp:    l0 = as_pair(l0)->cdr;
+primitives.cpp:    l1 = as_pair(l1)->cdr;
+primitives.cpp:    curr = as_pair(curr)->cdr;
+primitives.cpp:    ls = as_pair(ls)->cdr;
+primitives.cpp:      as_pair(list1)->car,
+primitives.cpp:      append_rec(as_pair(list1)->cdr, list2)
+primitives.cpp:  for (int i = args.size() - 1; i >= 0; i--) {
+primitives.cpp:      apply(fn, vector<Obj>({ls->car})), 
+primitives.cpp:      map_rec(fn, ls->cdr)
+primitives.cpp:    auto rest = filter_rec(fn, ls->cdr);
+primitives.cpp:    if (is_true(apply(fn, vector<Obj>({ls->car})))) {
+primitives.cpp:      return new Cons(ls->car, rest);
+primitives.cpp:    {"-", sub},
+primitives.cpp:    {"list-ref", list_ref},
+readme.txt:---
+readme.txt:This file defines how tail-call optimization is implemented.
+readme.txt:Here, the tokenizer and recursive-descent parser are implemented. The tokenizer breaks the input code into tokens, and the parser converts those tokens into abstract syntax trees (ASTs) that can be evaluated by the interpreter.
+readme.txt:--- 
+readme.txt:./scheme [--no-repl] [filename] 
+readme.txt:The Scheme interpreter can either be run on a specific file, or not. Use the --no-repl file to exit the process after interpretation of the file, rather than beginning the REPL loop.
+readme.txt:The interpreter provides an interactive REPL (Read-Eval-Print Loop) for you to interact with the interpreter by typing Scheme expressions directly. 
+readme.txt:          (* n (factorial (- n 1)))))
+stringify.cpp:  ret << "(" + stringify(ls->car);
+stringify.cpp:  for (obj = ls->cdr; holds_alternative<Cons*>(obj); obj = as_pair(obj)->cdr) {
+stringify.cpp:    ret << stringify(as_pair(obj)->car);
+tco.cpp:  consequent->tco();
+tco.cpp:  alternative->tco();
+tco.cpp:    actions.back()->tco();
+tco.cpp:  if_form->tco();

@@ -13,102 +13,102 @@ using EvalResult = std::variant<
 bool is_obj(const EvalResult&);
 bool is_tailcall(const EvalResult&);
 
-Obj& as_obj(EvalResult& res);
-const Obj& as_obj(const EvalResult& res);
+Obj& as_obj(EvalResult&);
+const Obj& as_obj(const EvalResult&);
 
-TailCall& as_tailcall(EvalResult& res);
-const TailCall& as_tailcall(const EvalResult& res);
+TailCall& as_tailcall(EvalResult&);
+const TailCall& as_tailcall(const EvalResult&);
 
 class Expression {
 private:
-  int get_size(Cons* obj) const;
-  void assert_size(Cons *obj, const int lb, const int ub) const;
+  int get_size(Cons*) const;
+  void assert_size(Cons*, const int, const int) const;
 protected:
   string name;
 public:
-  Expression(const string& n, Cons *obj = nullptr, const int lb = -1, const int ub = -1);
+  Expression(const string&, Cons* = nullptr, const int = -1, const int = -1);
   string get_name() const;
   virtual EvalResult eval(Environment*) const = 0;
   virtual void tco() {}
 };
 
-Expression *classify(const Obj& obj);
+Expression *classify(const Obj&);
 
 struct Literal : public Expression {
   Obj obj;
-  Literal(Obj obj);
-  EvalResult eval(Environment* env) const override;
+  Literal(Obj);
+  EvalResult eval(Environment*) const override;
 };
 
 struct Variable : public Expression {
   Symbol sym;
   Variable(Symbol obj);
-  EvalResult eval(Environment* env) const override;
+  EvalResult eval(Environment*) const override;
 };
 
 struct Quoted : public Expression {
   Obj text_of_quotation;
-  Quoted(Cons *obj);
-  EvalResult eval(Environment *env) const override;
+  Quoted(Cons*);
+  EvalResult eval(Environment*) const override;
 };
 
 struct Set : public Expression {
   Symbol variable;
   Expression *value;
-  Set(Cons *obj);
-  EvalResult eval(Environment *env) const override;
+  Set(Cons*);
+  EvalResult eval(Environment*) const override;
 };
 
 struct If : public Expression {
   Expression *predicate, *consequent, *alternative;
-  If(Cons *obj);
-  If(Expression *p, Expression *c, Expression *a);
+  If(Cons*);
+  If(Expression*, Expression*, Expression*);
   If();
-  EvalResult eval(Environment *env) const override;
+  EvalResult eval(Environment*) const override;
   void tco() override;
 };
 
 struct Begin : public Expression {
   vector<Expression*> actions;
-  Begin(const vector<Expression*>& seq);
-  EvalResult eval(Environment *env) const override;
+  Begin(const vector<Expression*>&);
+  EvalResult eval(Environment*) const override;
   void tco() override;
 };
 
-Expression *combine_expr(Obj seq);
+Expression *combine_expr(Obj);
 
 struct Lambda : public Expression {
   vector<Symbol> parameters;
   Expression *body;
-  Lambda(Cons *obj);
-  Lambda(Obj parameters_, Obj body_);
-  EvalResult eval(Environment *env) const override;
+  Lambda(Cons*);
+  Lambda(Obj, Obj);
+  EvalResult eval(Environment*) const override;
 };
 
 struct Define : public Expression {
   Symbol variable;
   Expression *value;
-  Define(Cons *obj);
-  EvalResult eval(Environment *env) const override;
+  Define(Cons*);
+  EvalResult eval(Environment*) const override;
 };
 
 struct Let : public Expression {
   std::map<Symbol, Expression*> bindings;
   Expression *body;
-  decltype(bindings) get_bindings(Obj li);
-  Environment *get_frame(Environment *env) const;
-  Let(Cons *obj);
-  EvalResult eval(Environment *env) const override;
+  decltype(bindings) get_bindings(Obj);
+  Environment *get_frame(Environment*) const;
+  Let(Cons*);
+  EvalResult eval(Environment*) const override;
 };
 
 struct Clause {
 private:
-  bool is_else_clause(Obj obj) const;
+  bool is_else_clause(Obj) const;
 public:
   bool is_else;
   Expression *predicate;
   Expression *actions;
-  Clause (Cons *obj);
+  Clause (Cons*);
 };
 
 struct Cond : public Expression {
@@ -117,8 +117,8 @@ private:
 public:
   vector<Clause> clauses;
   Expression *if_form;
-  Cond (Obj obj);
-  EvalResult eval(Environment *env) const override;
+  Cond (Obj);
+  EvalResult eval(Environment*) const override;
   void tco() override;
 };
 
@@ -126,28 +126,28 @@ struct Application : public Expression {
   Expression *op;
   vector<Expression*> params;
   bool at_tail = false;
-  Application(Cons *obj);
-  EvalResult eval(Environment *env) const override;
+  Application(Cons*);
+  EvalResult eval(Environment*) const override;
   void tco() override;
 };
 
 struct And : public Expression {
   vector<Expression*> exprs;
-  And(Cons *obj);
-  EvalResult eval(Environment *env) const override;
+  And(Cons*);
+  EvalResult eval(Environment*) const override;
 };
 
 struct Or : public Expression {
   vector<Expression*> exprs;
-  Or(Cons *obj);
-  EvalResult eval(Environment *env) const override;
+  Or(Cons*);
+  EvalResult eval(Environment*) const override;
 };
 
 struct Cxr : public Expression {
   Symbol word;
   Expression *expr;
-  Cxr(Symbol tag, Cons *obj);
-  EvalResult eval(Environment *env) const override;
+  Cxr(Symbol, Cons*);
+  EvalResult eval(Environment*) const override;
 };
 
 }
