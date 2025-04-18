@@ -4,7 +4,8 @@
 #include "evaluation.hpp"
 #include "primitives.hpp"
 #include "stringify.hpp"
-#include "parsing.hpp"
+#include "lexer.hpp"
+#include "parser.hpp"
 #include <iostream>
 #include <fstream>
 
@@ -24,8 +25,8 @@ install_initial_environment() {
 
 Obj
 interpret(const string& code, Environment *env) {
-  auto tokens = tokenize(code);
-  auto AST_0 = parse(tokens);
+  const auto tokens = Lexer(code).tokenize();
+  const auto AST_0 = Parser(tokens).parse();
   auto AST_1 = classify(AST_0); 
   return as_obj(eval(AST_1, env));
 }

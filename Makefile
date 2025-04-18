@@ -9,7 +9,8 @@ SRC := \
 	expressions.cpp \
 	evaluation.cpp \
 	tco.cpp \
-	parsing.cpp \
+	lexer.cpp \
+	parser.cpp \
 	main.cpp
 
 HDR := \
@@ -20,7 +21,8 @@ HDR := \
 	expressions.hpp \
 	evaluation.hpp \
 	tco.hpp \
-	parsing.hpp
+	lexer.hpp \
+	parser.hpp
 
 OBJ := $(SRC:.cpp=.o)
 
