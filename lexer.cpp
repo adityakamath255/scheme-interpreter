@@ -21,14 +21,12 @@ Lexer::Lexer(const std::string_view input):
 
 void
 Lexer::insert(const bool inclusive) {
-  const size_t substr_size = curr - start + inclusive;
-  if (substr_size > 0) {
-    const std::string_view curr_tok = input.substr(start, substr_size);
-    if (!curr_tok.empty()) {
-      tokens.push_back(curr_tok);
-    }
+  const size_t len = curr - start + (inclusive ? 1 : 0);
+  if (len > 0) {
+    auto tok = input.substr(start, len);
+    tokens.push_back(tok);
+    start += len;
   }
-  start += substr_size;
 }
 
 vector<std::string_view>
@@ -36,7 +34,7 @@ Lexer::tokenize() {
   tokens.push_back("(");
   tokens.push_back("begin");
 
-  bool is_string = 0;
+  bool is_string = false;
 
   while (curr < input.size()) {
     const char c = input[curr];

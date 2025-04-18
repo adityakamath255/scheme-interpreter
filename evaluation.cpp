@@ -145,10 +145,10 @@ EvalResult
 Cxr::eval(Environment *env) const {
   auto val = as_obj(expr->eval(env));
   if (!is_pair(val)) {
-    throw std::runtime_error(word.name + " type error: expected cons");
+    throw std::runtime_error(word.get_name() + " type error: expected cons");
   }
   auto found = as_pair(val);
-  return found->at(word.name);
+  return found->at(word.get_name());
 } 
 
 }

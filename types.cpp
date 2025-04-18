@@ -42,17 +42,30 @@ const std::nullptr_t& as_null(const Obj& obj) { return std::get<std::nullptr_t>(
 Void& as_void(Obj& obj) { return std::get<Void>(obj); }
 const Void& as_void(const Obj& obj) { return std::get<Void>(obj); }
 
-Symbol::Symbol(): name {"*undefined*"} {}
-Symbol::Symbol(const string& s): name {s} {}
+std::unordered_map<string, string*> Symbol::intern_table;
 
-bool operator
-==(const Symbol& s0, const Symbol& s1) {
-  return s0.name == s1.name;
+Symbol::Symbol(const string& s) {
+  auto itr = intern_table.find(s);
+  if (itr == intern_table.end()) {
+    auto new_str = new string(s);
+    intern_table[s] = new_str;
+    id = new_str;
+  }
+  else {
+    id = itr->second;
+  }
 }
 
-bool operator
-==(const Void v0, const Void v1) {
-  return true;
+Symbol::Symbol(): id {nullptr} {}
+
+const string&
+Symbol::get_name() const {
+  return *id;
+}
+
+bool
+Symbol::operator ==(const Symbol& other) const {
+  return id == other.id;
 }
 
 Cons::Cons(Obj a, Obj b): car {std::move(a)}, cdr {std::move(b)} {}
@@ -95,6 +108,8 @@ Procedure::Procedure(vector<Symbol> p, Expression *b, Environment *e):
   body {b},
   env {e}
 {}
+
+bool operator ==(const Void& v0, const Void& v1) {return true; }
 
 }
 

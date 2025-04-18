@@ -4,6 +4,7 @@
 #include <string>
 #include <stdexcept>
 #include <variant>
+#include <unordered_map>
 
 using std::vector;
 using std::string;
@@ -14,9 +15,10 @@ class Symbol;
 class Cons;
 class Primitive;
 class Procedure;
+class Void {};
+
 class Environment;
 class Expression;
-class Void {};
 
 using Obj = std::variant<
   bool,
@@ -71,34 +73,45 @@ Void& as_void(Obj&);
 const Void& as_void(const Obj&);
 
 struct Symbol {
-  string name;
+  friend struct std::hash<Symbol>;
+
+private:
+  const string *id;
+  static std::unordered_map<string, string*> intern_table;
+
+public:
   Symbol();
   Symbol(const string&);
+  const string& get_name() const;
+  bool operator ==(const Symbol& other) const;
 };
 
-bool operator ==(const Symbol&, const Symbol&);
-
-bool operator ==(const Void, const Void);
-
-struct Cons {
+class Cons {
+public:
   Obj car;
   Obj cdr;
   Cons(Obj, Obj);
   Obj at(const string&);
 };
 
-struct Primitive {
+class Primitive {
+private:
   Obj(*func)(const vector<Obj>&);
+public:
   Primitive(decltype(func) f);
   Obj operator()(const vector<Obj>&) const;
 };
 
-struct Procedure {
+class Procedure {
+public:
   const vector<Symbol> parameters;
   const Expression *body;
   Environment *const env;
   Procedure(vector<Symbol>, Expression*, Environment*);
 };
+
+bool 
+operator ==(const Void& v0, const Void& v1);
 
 }
 
@@ -106,7 +119,7 @@ namespace std {
   template<>
   struct hash<Scheme::Symbol> {
     size_t operator()(const Scheme::Symbol& s) const {
-      return hash<string>()(s.name);
+      return hash<const void*>()(s.id);
     }
   };
 }

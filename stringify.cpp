@@ -19,7 +19,7 @@ stringify(const double n) {
 
 static string 
 stringify(const Symbol& s) {
-  return s.name;
+  return s.get_name();
 }
 
 static string 

@@ -14,7 +14,7 @@ Environment::assoc(const Symbol& s) {
     return super->assoc(s);
   }
   else {
-    throw std::runtime_error("unbound variable: " + s.name);
+    throw std::runtime_error("unbound variable: " + s.get_name());
   }
   return found;
 }
@@ -39,7 +39,7 @@ void
 Environment::define_variable(const Symbol& s, Obj obj) {
   const auto found = frame.find(s);
   if (found != frame.end()) {
-    throw std::runtime_error("binding already present: " + s.name);
+    throw std::runtime_error("binding already present: " + s.get_name());
   }
   else {
     frame.insert({s, std::move(obj)});

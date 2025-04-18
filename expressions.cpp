@@ -223,7 +223,7 @@ bool
 Clause::is_else_clause(Obj obj) const {
   return
     is_symbol(obj) &&
-    as_symbol(obj).name == "else";
+    as_symbol(obj).get_name() == "else";
 }
 
 Clause::Clause (Cons *obj) {
@@ -282,7 +282,7 @@ Or::Or(Cons *obj):
 {}
 
 Cxr::Cxr(Symbol tag, Cons *obj): 
-  Expression(tag.name, obj, 2, 2),
+  Expression(tag.get_name(), obj, 2, 2),
   word {tag}, 
   expr {classify(obj->at("cadr"))} 
 {}
@@ -345,12 +345,12 @@ classify(const Obj& obj) {
     const auto p = as_pair(obj);
     if (is_symbol(p->car)) {
       const auto tag = as_symbol(p->car);
-      const auto found = special_forms.find(tag.name);
+      const auto found = special_forms.find(tag.get_name());
       if (found != special_forms.end()) {
         const auto func = found->second;
         return func(p);
       }
-      else if (is_cxr(tag.name)) {
+      else if (is_cxr(tag.get_name())) {
         return new Cxr(tag, p);
       }
     }

@@ -36,11 +36,13 @@ Manual. RAII for scoped cleanup. GC planned.
 
 ### Compile & Run
 
-git clone https://github.com/adityakamath255/scheme-interpreter
-cd scheme-interpreter
+```bash 
+git clone https://github.com/adityakamath255/scheme-interpreter 
+cd scheme-interpreter 
 
-make        # builds 'scheme'
-./scheme    # starts REPL
-./scheme file.scm  # runs a Scheme script
+make # builds 'scheme' 
+./scheme # starts REPL 
+./scheme file.scm # runs a Scheme script 
 
-make clean  # removes build artifacts
+make clean # removes build artifacts 
+```
