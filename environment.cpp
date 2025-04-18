@@ -1,10 +1,10 @@
 #include "types.hpp"
 #include "environment.hpp"
-#include <map>
+#include <unordered_map>
 
 namespace Scheme {
 
-std::map<Symbol, Obj>::iterator
+std::unordered_map<Symbol, Obj>::iterator
 Environment::assoc(const Symbol& s) {
   const auto found = frame.find(s);
   if (found != frame.end()) {

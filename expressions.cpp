@@ -2,7 +2,7 @@
 #include "environment.hpp"
 #include "expressions.hpp"
 #include "tco.hpp"
-#include <map>
+#include <unordered_map>
 
 namespace Scheme {
 
@@ -178,9 +178,9 @@ Define::Define(Cons *obj):
   }
 }
 
-std::map<Symbol, Expression*>
+std::unordered_map<Symbol, Expression*>
 Let::get_bindings(Obj li) {
-  std::map<Symbol, Expression*> ret {};
+  std::unordered_map<Symbol, Expression*> ret {};
   while (is_pair(li)) {
     const auto as_cons = as_pair(li);
     if (!is_pair(as_cons->car)) {
@@ -312,7 +312,7 @@ static Expression* make_application(Cons *obj) { return new Application(obj); }
 static Expression* make_and(Cons *obj) { return new And(obj); }
 static Expression* make_or(Cons *obj) { return new Or(obj); }
 
-static std::map<Symbol, Expression*(*)(Cons*)> 
+static std::unordered_map<Symbol, Expression*(*)(Cons*)> 
 special_forms = {
   {"quote"s, make_quoted},
   {"set!"s, make_set},

@@ -77,7 +77,6 @@ struct Symbol {
 };
 
 bool operator ==(const Symbol&, const Symbol&);
-bool operator <(const Symbol&, const Symbol&);
 
 bool operator ==(const Void, const Void);
 
@@ -101,4 +100,13 @@ struct Procedure {
   Procedure(vector<Symbol>, Expression*, Environment*);
 };
 
+}
+
+namespace std {
+  template<>
+  struct hash<Scheme::Symbol> {
+    size_t operator()(const Scheme::Symbol& s) const {
+      return hash<string>()(s.name);
+    }
+  };
 }

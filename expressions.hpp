@@ -2,7 +2,7 @@
 #include "types.hpp"
 #include "environment.hpp"
 #include "tco.hpp"
-#include <map>
+#include <unordered_map>
 #include <variant>
 
 namespace Scheme {
@@ -95,7 +95,7 @@ struct Define : public Expression {
 };
 
 struct Let : public Expression {
-  std::map<Symbol, Expression*> bindings;
+  std::unordered_map<Symbol, Expression*> bindings;
   Expression *body;
   decltype(bindings) get_bindings(Obj);
   Environment *get_frame(Environment*) const;

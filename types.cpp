@@ -50,11 +50,6 @@ bool operator
   return s0.name == s1.name;
 }
 
-bool operator 
-<(const Symbol& s0, const Symbol& s1) {
-  return s0.name < s1.name;
-}
-
 bool operator
 ==(const Void v0, const Void v1) {
   return true;

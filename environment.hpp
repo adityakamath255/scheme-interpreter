@@ -1,12 +1,12 @@
 #pragma once
 #include "types.hpp"
-#include <map>
+#include <unordered_map>
 
 namespace Scheme {
 
 class Environment {
 private:
-  std::map<Symbol, Obj> frame {};
+  std::unordered_map<Symbol, Obj> frame {};
   Environment *const super;
   decltype(frame)::iterator assoc(const Symbol&);
 public:
