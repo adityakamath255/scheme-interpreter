@@ -5,10 +5,11 @@ namespace Scheme {
 class Lexer {
 private:
   const string& input;
-  string curr_tok;
+  size_t start;
+  size_t curr;
   vector<string> tokens;
 
-  void insert_and_clear();
+  void insert(const bool);
 
 public:
   Lexer(const string&);

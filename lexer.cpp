@@ -13,16 +13,21 @@ is_special(const char c) {
 
 Lexer::Lexer(const string& input): 
   input {input},
-  curr_tok {},
+  start {0},
+  curr {0},
   tokens {}
 {}
 
 void
-Lexer::insert_and_clear() {
-  if (!curr_tok.empty()) {
-    tokens.push_back(curr_tok);
-    curr_tok.clear();
+Lexer::insert(const bool inclusive) {
+  const size_t substr_size = curr - start + inclusive;
+  if (substr_size > 0) {
+    const string curr_tok = input.substr(start, substr_size);
+    if (!curr_tok.empty()) {
+      tokens.push_back(curr_tok);
+    }
   }
+  start += substr_size;
 }
 
 vector<string>
@@ -32,40 +37,32 @@ Lexer::tokenize() {
 
   bool is_string = 0;
 
-  for (const char c : input) {
+  while (curr < input.size()) {
+    const char c = input[curr];
     if (c == '"') {
       if (is_string) {
-        curr_tok += c;
-        insert_and_clear();
+        insert(true);
       }
       else {
-        insert_and_clear();
-        curr_tok += c;
+        insert(false);
       }
       is_string = !is_string;
     }
     else if (!is_string) {
       if (isspace(c)) {
-        insert_and_clear();
+        insert(false);
+        start++;
       }
 
       else if (is_special(c)) {
-        insert_and_clear();
-        tokens.push_back(string(1, c));
+        insert(false);
+        insert(true);
       }
-
-      else {
-        curr_tok += c;
-      } 
-
     } 
-    else {
-      curr_tok += c;
-    }
+    curr++;
   }
 
-  if (!curr_tok.empty())
-    insert_and_clear();
+  insert(false);
 
   tokens.push_back(")");
   return tokens;
