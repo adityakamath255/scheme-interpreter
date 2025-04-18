@@ -1,21 +1,22 @@
 #include "types.hpp"
 #include "parser.hpp"
 #include <cmath>
+#include <string_view>
 
 namespace Scheme {
 
 static Obj*
-make_num_obj(const string& str) {
-  return new Obj(stod(str));
+make_num_obj(const std::string_view str) {
+  return new Obj(stod(string(str)));
 }
 
 static Obj*
-make_sym_obj(const string& str) {
-  return new Obj(Symbol(str));
+make_sym_obj(const std::string_view str) {
+  return new Obj(Symbol(string(str)));
 }
 
 static Obj*
-make_bool_obj(const string& str) {
+make_bool_obj(const std::string_view str) {
   if (str[1] == 't')
     return new Obj(true);
   else if (str[1] == 'f') 
@@ -25,13 +26,13 @@ make_bool_obj(const string& str) {
 }
 
 static Obj*
-make_str_obj(const string& str) {
-  Obj *ret = new Obj(str.substr(1, str.size() - 2));
+make_str_obj(const std::string_view str) {
+  Obj *ret = new Obj(string(str.substr(1, str.size() - 2)));
   return ret;
 }
 
 static Obj*
-from_str(const string& str) {
+from_str(const std::string_view str) {
   if (str[0] == '#') {
     return make_bool_obj(str);
   }
@@ -52,14 +53,14 @@ from_str(const string& str) {
   }
 } 
 
-Parser::Parser(const vector<string>& tokens):
+Parser::Parser(const vector<std::string_view>& tokens):
   tokens {tokens},
   index {0}
 {}
 
 Obj*
 Parser::parse_impl(bool recursive) {
-  const string& token = tokens[index];
+  const auto token = tokens[index];
   Obj *head;
 
   index++;

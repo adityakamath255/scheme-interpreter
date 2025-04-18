@@ -1,16 +1,17 @@
 #include "types.hpp"
+#include <string_view>
 
 namespace Scheme {
 
 class Parser {
 private:
-  const vector<string>& tokens;
+  const vector<std::string_view>& tokens;
   size_t index;
 
   Obj* parse_impl(bool);
 
 public:
-  Parser(const vector<string>&);
+  Parser(const vector<std::string_view>&);
   Obj parse();
 };
 
