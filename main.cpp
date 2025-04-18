@@ -7,6 +7,7 @@
 #include "lexer.hpp"
 #include "parser.hpp"
 #include <iostream>
+#include <sstream>
 #include <fstream>
 
 using namespace Scheme;
@@ -34,18 +35,18 @@ interpret(const string& code, Environment *env) {
 template<class INPUT>
 string 
 read(INPUT& in) {
-  string line, input;
+  std::ostringstream result;
+  string line;
   int open_parens = 0;
 
-  while (true) {
-    getline(in, line);
-    bool is_comment = false;
+  while (std::getline(in, line)) {
+    size_t comment_pos = line.find(';');
+    if (comment_pos != string::npos) {
+      line = line.substr(0, comment_pos);
+    }
 
-    for (char& c : line) {
+    for (char c : line) {
       switch (c) {
-        case ';':
-          is_comment = true;
-          break;
         case '(':
           open_parens++;
           break;
@@ -56,22 +57,19 @@ read(INPUT& in) {
           }
           break;
       }
-
-      if (is_comment) {
-        break;
-      }
-      else {
-        input += c;
-      }
     }
 
-    input += "\n";
+    result << line << '\n';
 
     if (open_parens == 0) 
       break;
   }
 
-  return input;
+  if (open_parens != 0) {
+    throw std::runtime_error("unmatched parentheses at end of input");
+  }
+
+  return result.str();
 }
 
 void

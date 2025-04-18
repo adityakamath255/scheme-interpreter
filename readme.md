@@ -1,10 +1,12 @@
 # Scheme Interpreter (C++23)
 
-A minimal, fast, and correct Scheme interpreter written in C++23. Implements core R7RS semantics with lexical scoping, first-class procedures, and tail-call optimization. 
+A minimal, fast, and correct Scheme interpreter written in C++23. 
 
 ## Features
 
-- Special forms: lambda, define, if, cond, let, quote, set!, begin
+- Basic types: Booleans, numbers, strings, symbols, pairs, procedures, void.
+
+- Special forms: lambda, define, if, cond, let, quote, set!, begin, and, or
 
 - Proper tail recursion
 
@@ -22,15 +24,21 @@ A minimal, fast, and correct Scheme interpreter written in C++23. Implements cor
 
   - I/O: display, newline, error
 
-## Memory Management
+## Known Limitations
 
-Manual. RAII for scoped cleanup. GC planned.
+- No proper memory management or garbage collection yet.
+
+- No continuations or macros.
+
+- Error messages can be vague.
+
+- Floats only - no exact rationals.
 
 ## Build
 
 ### Requirements
 
-- C++23-compatible compiler (tested with g++ 13+)
+- C++23 compatible compiler
 
 - GNU Make
 
@@ -43,6 +51,7 @@ cd scheme-interpreter
 make # builds 'scheme' 
 ./scheme # starts REPL 
 ./scheme file.scm # runs a Scheme script 
+./scheme --no-repl file.scm $ runs a Scheme script without invoking a REPL loop
 
 make clean # removes build artifacts 
 ```

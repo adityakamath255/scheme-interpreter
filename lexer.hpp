@@ -10,6 +10,7 @@ private:
   vector<std::string_view> tokens;
 
   void insert(const bool);
+  void skip_whitespace();
 
 public:
   Lexer(const std::string_view);

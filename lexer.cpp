@@ -29,6 +29,14 @@ Lexer::insert(const bool inclusive) {
   }
 }
 
+void 
+Lexer::skip_whitespace() {
+  do {
+    curr++;
+  } while (curr < input.size() && isspace(input[curr]));
+  start = curr;
+}
+
 vector<std::string_view>
 Lexer::tokenize() {
   tokens.push_back("(");
@@ -50,7 +58,8 @@ Lexer::tokenize() {
     else if (!is_string) {
       if (isspace(c)) {
         insert(false);
-        start++;
+        skip_whitespace();
+        continue;
       }
 
       else if (is_special(c)) {
