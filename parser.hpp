@@ -15,4 +15,6 @@ public:
   Obj parse();
 };
 
+void rec_drop_obj(Obj& obj);
+
 }

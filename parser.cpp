@@ -103,4 +103,14 @@ Parser::parse() {
   return parse_impl(true);
 }
 
+void
+rec_drop_obj(Obj& obj) {
+  if (is_pair(obj)) {
+    auto pair = as_pair(obj);
+    rec_drop_obj(pair->car);
+    rec_drop_obj(pair->cdr);
+    delete pair;
+  }  
+}
+
 }

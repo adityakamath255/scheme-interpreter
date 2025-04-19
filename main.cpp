@@ -27,8 +27,9 @@ install_initial_environment() {
 Obj
 interpret(const string& code, Environment *env) {
   const auto tokens = Lexer(code).tokenize();
-  const auto AST_0 = Parser(tokens).parse();
+  auto AST_0 = Parser(tokens).parse();
   auto AST_1 = classify(AST_0); 
+  rec_drop_obj(AST_0);
   return as_obj(eval(AST_1, env));
 }
 
