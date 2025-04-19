@@ -5,33 +5,32 @@
 
 namespace Scheme {
 
-static Obj*
+static Obj
 make_num_obj(const std::string_view str) {
-  return new Obj(stod(string(str)));
+  return Obj(stod(string(str)));
 }
 
-static Obj*
+static Obj
 make_sym_obj(const std::string_view str) {
-  return new Obj(Symbol(string(str)));
+  return Obj(Symbol(string(str)));
 }
 
-static Obj*
+static Obj
 make_bool_obj(const std::string_view str) {
   if (str[1] == 't')
-    return new Obj(true);
+    return Obj(true);
   else if (str[1] == 'f') 
-    return new Obj(false);
+    return Obj(false);
   else 
     return make_sym_obj(str);
 }
 
-static Obj*
+static Obj
 make_str_obj(const std::string_view str) {
-  Obj *ret = new Obj(string(str.substr(1, str.size() - 2)));
-  return ret;
+  return Obj(string(str.substr(1, str.size() - 2)));
 }
 
-static Obj*
+static Obj
 from_str(const std::string_view str) {
   if (str[0] == '#') {
     return make_bool_obj(str);
@@ -58,15 +57,15 @@ Parser::Parser(const vector<std::string_view>& tokens):
   index {0}
 {}
 
-Obj*
+Obj
 Parser::parse_impl(bool recursive) {
   const auto token = tokens[index];
-  Obj *head;
+  Obj head;
 
   index++;
 
   if (token == ")") {
-    return new Obj(nullptr);
+    return Obj(nullptr);
   }
   else if (token == "(") {
     head = parse_impl(true);
@@ -81,9 +80,9 @@ Parser::parse_impl(bool recursive) {
   }
   else if (token == "'") {
     auto quoted = parse_impl(false);
-    head = new Obj(new Cons(
-      *make_sym_obj("quote"), new Cons(
-      *quoted, 
+    head = Obj(new Cons(
+      make_sym_obj("quote"), new Cons(
+      quoted, 
       nullptr)));
   }
   else {
@@ -95,13 +94,13 @@ Parser::parse_impl(bool recursive) {
   }
   else {
     auto tail = parse_impl(true);
-    return new Obj(new Cons(*head, *tail));
+    return Obj(new Cons(head, tail));
   }
 }
 
 Obj
 Parser::parse() {
-  return *parse_impl(true);
+  return parse_impl(true);
 }
 
 }

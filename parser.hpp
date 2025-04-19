@@ -8,7 +8,7 @@ private:
   const vector<std::string_view>& tokens;
   size_t index;
 
-  Obj* parse_impl(bool);
+  Obj parse_impl(bool);
 
 public:
   Parser(const vector<std::string_view>&);
