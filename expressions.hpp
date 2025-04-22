@@ -2,6 +2,7 @@
 #include "types.hpp"
 #include "environment.hpp"
 #include "tco.hpp"
+#include <memory>
 #include <unordered_map>
 #include <variant>
 
@@ -12,7 +13,9 @@ using EvalResult = std::variant<
   TailCall
 >;
 
-using ExprList = std::vector<Expression*>;
+using ExprPtr = std::unique_ptr<Expression>;
+using LambdaBody = std::shared_ptr<Expression>;
+using ExprList = std::vector<ExprPtr>;
 
 bool is_obj(const EvalResult&);
 bool is_tailcall(const EvalResult&);
@@ -58,13 +61,13 @@ struct Quoted : public Expression {
 
 struct Set : public Expression {
   Symbol variable;
-  Expression *value;
+  ExprPtr value;
   Set(Cons*);
   EvalResult eval(Environment*) const override;
 };
 
 struct If : public Expression {
-  Expression *predicate, *consequent, *alternative;
+  ExprPtr predicate, consequent, alternative;
   If(Cons*);
   If(Expression*, Expression*, Expression*);
   If();
@@ -74,7 +77,7 @@ struct If : public Expression {
 
 struct Begin : public Expression {
   ExprList actions;
-  Begin(const ExprList&);
+  Begin(ExprList);
   EvalResult eval(Environment*) const override;
   void tco() override;
 };
@@ -83,7 +86,7 @@ Expression *combine_expr(Obj);
 
 struct Lambda : public Expression {
   ParamList parameters;
-  Expression *body;
+  LambdaBody body;
   Lambda(Cons*);
   Lambda(Obj, Obj);
   EvalResult eval(Environment*) const override;
@@ -91,14 +94,14 @@ struct Lambda : public Expression {
 
 struct Define : public Expression {
   Symbol variable;
-  Expression *value;
+  ExprPtr value;
   Define(Cons*);
   EvalResult eval(Environment*) const override;
 };
 
 struct Let : public Expression {
-  std::unordered_map<Symbol, Expression*> bindings;
-  Expression *body;
+  std::unordered_map<Symbol, ExprPtr> bindings;
+  ExprPtr body;
   decltype(bindings) get_bindings(Obj);
   Environment *get_frame(Environment*) const;
   Let(Cons*);
@@ -110,8 +113,8 @@ private:
   bool is_else_clause(Obj) const;
 public:
   bool is_else;
-  Expression *predicate;
-  Expression *actions;
+  ExprPtr predicate;
+  ExprPtr actions;
   Clause (Cons*);
 };
 
@@ -120,14 +123,14 @@ private:
   If *cond2if() const;
 public:
   std::vector<Clause> clauses;
-  Expression *if_form;
+  ExprPtr if_form;
   Cond (Obj);
   EvalResult eval(Environment*) const override;
   void tco() override;
 };
 
 struct Application : public Expression {
-  Expression *op;
+  ExprPtr op;
   ExprList params;
   bool at_tail = false;
   Application(Cons*);
@@ -149,7 +152,7 @@ struct Or : public Expression {
 
 struct Cxr : public Expression {
   Symbol word;
-  Expression *expr;
+  ExprPtr expr;
   Cxr(Symbol, Cons*);
   EvalResult eval(Environment*) const override;
 };

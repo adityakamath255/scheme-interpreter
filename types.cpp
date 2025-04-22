@@ -1,6 +1,9 @@
 #include "types.hpp"
+#include <memory>
 
 namespace Scheme {
+
+using LambdaBody = std::shared_ptr<Expression>;
 
 bool is_bool(const Obj& obj) {return std::holds_alternative<bool>(obj); }
 bool is_true(const Obj& obj) {return (!is_bool(obj) || as_bool(obj) == true); }
@@ -103,7 +106,7 @@ Primitive::operator ()(const ArgList& args) const {
   return func(args);
 }
 
-Procedure::Procedure(ParamList p, Expression *b, Environment *e):
+Procedure::Procedure(ParamList p, LambdaBody b, Environment *e):
   parameters {p},
   body {b},
   env {e}

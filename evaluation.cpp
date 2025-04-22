@@ -110,7 +110,7 @@ EvalResult
 Application::eval(Environment *env) const {
   auto proc = as_obj(op->eval(env));
   ArgList args {};
-  for (const auto param : params) {
+  for (const auto& param : params) {
     args.push_back(as_obj(param->eval(env)));
   }
   if (at_tail) {
@@ -123,7 +123,7 @@ Application::eval(Environment *env) const {
 
 EvalResult
 And::eval(Environment *env) const {
-  for (const auto exp : exprs) {
+  for (const auto& exp : exprs) {
     if (is_false(as_obj(exp->eval(env)))) {
       return false;
     }
@@ -133,7 +133,7 @@ And::eval(Environment *env) const {
 
 EvalResult
 Or::eval(Environment *env) const {
-  for (const auto exp : exprs) {
+  for (const auto& exp : exprs) {
     if (is_true(as_obj(exp->eval(env)))) {
       return true;
     }

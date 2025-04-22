@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <variant>
 #include <unordered_map>
+#include <memory>
 
 namespace Scheme {
 
@@ -31,6 +32,7 @@ using Obj = std::variant<
 
 using ParamList = std::vector<Symbol>;
 using ArgList = std::vector<Obj>;
+using LambdaBody = std::shared_ptr<Expression>;
 
 bool is_bool(const Obj&);
 bool is_true(const Obj&);
@@ -105,9 +107,9 @@ public:
 class Procedure {
 public:
   const ParamList parameters;
-  const Expression *body;
+  const LambdaBody body;
   Environment *const env;
-  Procedure(ParamList, Expression*, Environment*);
+  Procedure(ParamList, LambdaBody, Environment*);
 };
 
 bool 
