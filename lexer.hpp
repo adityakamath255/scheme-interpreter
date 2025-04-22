@@ -7,14 +7,14 @@ private:
   const std::string_view input;
   size_t start;
   size_t curr;
-  vector<std::string_view> tokens;
+  std::vector<std::string_view> tokens;
 
   void insert(const bool);
   void skip_whitespace();
 
 public:
   Lexer(const std::string_view);
-  vector<std::string_view> tokenize();
+  std::vector<std::string_view> tokenize();
 };
 
 }

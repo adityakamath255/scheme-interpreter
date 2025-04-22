@@ -11,7 +11,7 @@ eval(Expression *expr, Environment *const env) {
 }
 
 EvalResult 
-apply(Obj p, vector<Obj> args) {
+apply(Obj p, ArgList args) {
   while (true) {
     if (is_primitive(p)) {
       const auto func = *as_primitive(p);
@@ -109,7 +109,7 @@ Cond::eval(Environment *env) const {
 EvalResult
 Application::eval(Environment *env) const {
   auto proc = as_obj(op->eval(env));
-  vector<Obj> args {};
+  ArgList args {};
   for (const auto param : params) {
     args.push_back(as_obj(param->eval(env)));
   }

@@ -12,6 +12,8 @@ using EvalResult = std::variant<
   TailCall
 >;
 
+using ExprList = std::vector<Expression*>;
+
 bool is_obj(const EvalResult&);
 bool is_tailcall(const EvalResult&);
 
@@ -26,10 +28,10 @@ private:
   int get_size(Cons*) const;
   void assert_size(Cons*, const int, const int) const;
 protected:
-  string name;
+  std::string name;
 public:
-  Expression(const string&, Cons* = nullptr, const int = -1, const int = -1);
-  string get_name() const;
+  Expression(const std::string&, Cons* = nullptr, const int = -1, const int = -1);
+  std::string get_name() const;
   virtual EvalResult eval(Environment*) const = 0;
   virtual void tco() {}
 };
@@ -71,8 +73,8 @@ struct If : public Expression {
 };
 
 struct Begin : public Expression {
-  vector<Expression*> actions;
-  Begin(const vector<Expression*>&);
+  ExprList actions;
+  Begin(const ExprList&);
   EvalResult eval(Environment*) const override;
   void tco() override;
 };
@@ -80,7 +82,7 @@ struct Begin : public Expression {
 Expression *combine_expr(Obj);
 
 struct Lambda : public Expression {
-  vector<Symbol> parameters;
+  ParamList parameters;
   Expression *body;
   Lambda(Cons*);
   Lambda(Obj, Obj);
@@ -117,7 +119,7 @@ struct Cond : public Expression {
 private:
   If *cond2if() const;
 public:
-  vector<Clause> clauses;
+  std::vector<Clause> clauses;
   Expression *if_form;
   Cond (Obj);
   EvalResult eval(Environment*) const override;
@@ -126,7 +128,7 @@ public:
 
 struct Application : public Expression {
   Expression *op;
-  vector<Expression*> params;
+  ExprList params;
   bool at_tail = false;
   Application(Cons*);
   EvalResult eval(Environment*) const override;
@@ -134,13 +136,13 @@ struct Application : public Expression {
 };
 
 struct And : public Expression {
-  vector<Expression*> exprs;
+  ExprList exprs;
   And(Cons*);
   EvalResult eval(Environment*) const override;
 };
 
 struct Or : public Expression {
-  vector<Expression*> exprs;
+  ExprList exprs;
   Or(Cons*);
   EvalResult eval(Environment*) const override;
 };

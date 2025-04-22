@@ -37,7 +37,7 @@ Lexer::skip_whitespace() {
   start = curr;
 }
 
-vector<std::string_view>
+std::vector<std::string_view>
 Lexer::tokenize() {
   tokens.push_back("(");
   tokens.push_back("begin");

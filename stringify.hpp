@@ -3,6 +3,6 @@
 
 namespace Scheme {
 
-string stringify(const Obj&);
+std::string stringify(const Obj&);
 
 }

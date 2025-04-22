@@ -5,13 +5,13 @@ namespace Scheme {
 
 class Parser {
 private:
-  const vector<std::string_view>& tokens;
+  const std::vector<std::string_view>& tokens;
   size_t index;
 
   Obj parse_impl(bool);
 
 public:
-  Parser(const vector<std::string_view>&);
+  Parser(const std::vector<std::string_view>&);
   Obj parse();
 };
 

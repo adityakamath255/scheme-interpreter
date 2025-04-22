@@ -46,7 +46,7 @@ Expression::assert_size(Cons *obj, const int lb, const int ub) const {
   }
 }
 
-Expression::Expression(const string& n, Cons *obj, const int lb, const int ub):
+Expression::Expression(const std::string& n, Cons *obj, const int lb, const int ub):
   name {n} 
 {
   if (lb != -1) {
@@ -54,15 +54,15 @@ Expression::Expression(const string& n, Cons *obj, const int lb, const int ub):
   }
 }
 
-string
+std::string
 Expression::get_name() const {
   return name;
 }
 
 template<typename T, typename F>
-static vector<T>
+static std::vector<T>
 cons2vec(Obj ls, F fn) {
-  vector<T> ret {};
+  std::vector<T> ret {};
   while (is_pair(ls)) {
     const auto as_cons = as_pair(ls);
     ret.push_back(fn(as_cons->car));
@@ -71,12 +71,12 @@ cons2vec(Obj ls, F fn) {
   return ret;
 }
 
-static vector<Symbol> 
+static ParamList 
 cons2symbols(Obj ls) {
   return cons2vec<Symbol>(ls, [](const Obj& o) -> const Symbol& {return as_symbol(o); });
 }
 
-static vector<Expression*>
+static ExprList
 cons2exprs(Obj ls) {
   return cons2vec<Expression*>(ls, classify);
 }
@@ -132,7 +132,7 @@ If::If():
   alternative {new Literal(false)}
 {}
 
-Begin::Begin(const vector<Expression*>& seq):
+Begin::Begin(const ExprList& seq):
   Expression("begin"s),
   actions {seq}
 {}
@@ -327,7 +327,7 @@ special_forms = {
 };
 
 static bool
-is_cxr(const string& s) {
+is_cxr(const std::string& s) {
   if (s.front() != 'c' || s.back() != 'r') {
     return false;
   }

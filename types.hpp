@@ -6,9 +6,6 @@
 #include <variant>
 #include <unordered_map>
 
-using std::vector;
-using std::string;
-
 namespace Scheme {
 
 class Symbol;
@@ -24,13 +21,16 @@ using Obj = std::variant<
   bool,
   double,
   Symbol,
-  string,
+  std::string,
   Cons*,
   Primitive*,
   Procedure*,
   nullptr_t,
   Void
 >;
+
+using ParamList = std::vector<Symbol>;
+using ArgList = std::vector<Obj>;
 
 bool is_bool(const Obj&);
 bool is_true(const Obj&);
@@ -54,8 +54,8 @@ const double& as_number(const Obj&);
 Symbol& as_symbol(Obj&);
 const Symbol& as_symbol(const Obj&);
 
-string& as_string(Obj&);
-const string& as_string(const Obj&);
+std::string& as_string(Obj&);
+const std::string& as_string(const Obj&);
 
 Cons*& as_pair(Obj&);
 Cons* const& as_pair(const Obj&);
@@ -76,13 +76,13 @@ struct Symbol {
   friend struct std::hash<Symbol>;
 
 private:
-  const string *id;
-  static std::unordered_map<string, string*> intern_table;
+  const std::string *id;
+  static std::unordered_map<std::string, std::string*> intern_table;
 
 public:
   Symbol();
-  Symbol(const string&);
-  const string& get_name() const;
+  Symbol(const std::string&);
+  const std::string& get_name() const;
   bool operator ==(const Symbol& other) const;
 };
 
@@ -91,23 +91,23 @@ public:
   Obj car;
   Obj cdr;
   Cons(Obj, Obj);
-  Obj at(const string&);
+  Obj at(const std::string&);
 };
 
 class Primitive {
 private:
-  Obj(*func)(const vector<Obj>&);
+  Obj(*func)(const ArgList&);
 public:
   Primitive(decltype(func) f);
-  Obj operator()(const vector<Obj>&) const;
+  Obj operator()(const ArgList&) const;
 };
 
 class Procedure {
 public:
-  const vector<Symbol> parameters;
+  const ParamList parameters;
   const Expression *body;
   Environment *const env;
-  Procedure(vector<Symbol>, Expression*, Environment*);
+  Procedure(ParamList, Expression*, Environment*);
 };
 
 bool 

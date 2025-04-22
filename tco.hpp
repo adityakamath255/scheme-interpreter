@@ -5,8 +5,8 @@ namespace Scheme {
 
 struct TailCall {
   Obj proc;
-  vector<Obj> args;
-  TailCall(Obj, vector<Obj>);
+  ArgList args;
+  TailCall(Obj, ArgList);
 };  
 
 }

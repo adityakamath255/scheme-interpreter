@@ -7,12 +7,12 @@ namespace Scheme {
 
 static Obj
 make_num_obj(const std::string_view str) {
-  return Obj(stod(string(str)));
+  return Obj(stod(std::string(str)));
 }
 
 static Obj
 make_sym_obj(const std::string_view str) {
-  return Obj(Symbol(string(str)));
+  return Obj(Symbol(std::string(str)));
 }
 
 static Obj
@@ -27,7 +27,7 @@ make_bool_obj(const std::string_view str) {
 
 static Obj
 make_str_obj(const std::string_view str) {
-  return Obj(string(str.substr(1, str.size() - 2)));
+  return Obj(std::string(str.substr(1, str.size() - 2)));
 }
 
 static Obj
@@ -52,7 +52,7 @@ from_str(const std::string_view str) {
   }
 } 
 
-Parser::Parser(const vector<std::string_view>& tokens):
+Parser::Parser(const std::vector<std::string_view>& tokens):
   tokens {tokens},
   index {0}
 {}

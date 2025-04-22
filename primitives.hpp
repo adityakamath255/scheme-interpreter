@@ -3,7 +3,7 @@
 
 namespace Scheme {
 
-vector<std::pair<string, Obj(*)(const vector<Obj>&)>> get_primitive_functions();
-vector<std::pair<string, Obj>> get_consts();
+std::vector<std::pair<std::string, Obj(*)(const ArgList&)>> get_primitive_functions();
+std::vector<std::pair<std::string, Obj>> get_consts();
 
 }

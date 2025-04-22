@@ -4,7 +4,7 @@
 
 namespace Scheme {
 
-TailCall::TailCall(Obj proc, vector<Obj> args): 
+TailCall::TailCall(Obj proc, ArgList args): 
   proc {std::move(proc)}, 
   args {std::move(args)} 
 {}

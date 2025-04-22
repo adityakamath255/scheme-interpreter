@@ -6,6 +6,6 @@
 namespace Scheme {
 
 EvalResult eval(Expression*, Environment *const);
-EvalResult apply(Obj, vector<Obj>);
+EvalResult apply(Obj, ArgList);
 
 }

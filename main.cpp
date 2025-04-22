@@ -25,7 +25,7 @@ install_initial_environment() {
 }
 
 Obj
-interpret(const string& code, Environment *env) {
+interpret(const std::string& code, Environment *env) {
   const auto tokens = Lexer(code).tokenize();
   const auto AST_0 = Parser(tokens).parse();
   auto AST_1 = classify(AST_0); 
@@ -33,15 +33,15 @@ interpret(const string& code, Environment *env) {
 }
 
 template<class INPUT>
-string 
+std::string 
 read(INPUT& in) {
   std::ostringstream result;
-  string line;
+  std::string line;
   int open_parens = 0;
 
   while (std::getline(in, line)) {
     size_t comment_pos = line.find(';');
-    if (comment_pos != string::npos) {
+    if (comment_pos != std::string::npos) {
       line = line.substr(0, comment_pos);
     }
 
@@ -80,7 +80,7 @@ driver_loop(Environment *env = nullptr) {
   while (true) {
     try {
       std::cout << ">>> ";
-      string input_expr = read(std::cin);
+      std::string input_expr = read(std::cin);
       if (input_expr == "exit\n") 
         return;
       auto result = interpret(input_expr, env);
@@ -105,7 +105,7 @@ run_file(const char *filename, bool enter_driver_loop) {
   auto env = install_initial_environment();
   while (true) {
     try {
-      const string& input_expr = read(in);
+      const std::string& input_expr = read(in);
       if (in.eof()) {
         break;
       }
@@ -130,7 +130,7 @@ main(const int argc, const char **argv) {
   else if (argc == 2) {
     run_file(argv[1], true);
   }
-  else if (argc == 3 && string(argv[1]) == "--no-repl") {
+  else if (argc == 3 && std::string(argv[1]) == "--no-repl") {
     run_file(argv[2], false);
   }
   else {

@@ -5,6 +5,8 @@
 
 namespace Scheme {
 
+using std::string;
+
 static string 
 stringify(const bool b) {
   return (b ? "#t" : "#f");
