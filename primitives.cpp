@@ -371,6 +371,22 @@ new_line(const vector<Obj>& args) {
 }
 
 static Obj
+set_car(const vector<Obj>& args) {
+  assert_arg_count(args, 2, 2);
+  assert_obj_type<Cons*>(args[0], "list");
+  as_pair(args[0])->car = args[1];
+  return Void {};
+}
+
+static Obj
+set_cdr(const vector<Obj>& args) {
+  assert_arg_count(args, 2, 2);
+  assert_obj_type<Cons*>(args[0], "list");
+  as_pair(args[0])->cdr = args[1];
+  return Void {};
+}
+
+static Obj
 list_len(const vector<Obj>& args) {
   assert_arg_count(args, 1, 1);
   assert_obj_type<Cons*>(args[0], "list");
@@ -530,6 +546,8 @@ get_primitive_functions() {
     {"remainder", remainder},
     {"newline", new_line},
     {"display", display},
+    {"set-car!", set_car},
+    {"set-cdr!", set_cdr},
     {"length", list_len},
     {"list-ref", list_ref},
     {"append", append},
