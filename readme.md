@@ -51,7 +51,7 @@ cd scheme-interpreter
 make # builds 'scheme' 
 ./scheme # starts REPL 
 ./scheme file.scm # runs a Scheme script 
-./scheme --no-repl file.scm $ runs a Scheme script without invoking a REPL loop
+./scheme --no-repl file.scm # runs a Scheme script without invoking a REPL loop
 
 make clean # removes build artifacts 
 ```

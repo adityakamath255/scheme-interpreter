@@ -24,7 +24,9 @@ Begin::tco() {
 
 void
 Cond::tco() {
-  if_form->tco();
+  for (auto& clause : clauses) {
+    clause.actions->tco();
+  }
 }
 
 void

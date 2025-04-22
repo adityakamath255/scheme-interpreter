@@ -242,35 +242,26 @@ Clause::Clause(Cons *obj) {
   actions = ExprPtr(combine_expr(obj->cdr));
 }
 
-If*
-Cond::cond2if() const {
-  If* ret = new If;
-  /*
-  for (auto curr = clauses.rbegin(); curr != clauses.rend(); curr++) {
-    ret = new If(curr->predicate, curr->actions, ret);
-  }
-  */
-  return ret;
-}
-
 Cond::Cond(Obj obj):
   Expression("cond"s) 
 {
   obj = as_pair(obj)->cdr;
-  /*
   while (is_pair(obj)) {
     const auto as_cons = as_pair(obj);
     if (!is_pair(as_cons->car)) {
-      throw std::runtime_error("cond type error\n");
+      throw std::runtime_error("bad form for cond expression\n");
     }
-    const auto new_clause = Clause(as_pair(as_cons->car));
-    clauses.push_back(new_clause);
-    if (new_clause.is_else)
-      break;
+    clauses.push_back(Clause(as_pair(as_cons->car)));
+    if (clauses.back().is_else) {
+      if (!is_null(as_cons->cdr)) {
+        throw std::runtime_error("no clauses allowed after else clause\n");
+      }
+      else {
+        break;
+      }
+    }
     obj = as_cons->cdr;
   }
-  */
-  if_form = ExprPtr(cond2if());
 }
 
 Application::Application(Cons *obj):

@@ -120,10 +120,8 @@ public:
 
 struct Cond : public Expression {
 private:
-  If *cond2if() const;
-public:
   std::vector<Clause> clauses;
-  ExprPtr if_form;
+public:
   Cond (Obj);
   EvalResult eval(Environment*) const override;
   void tco() override;

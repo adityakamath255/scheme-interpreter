@@ -103,7 +103,12 @@ Let::eval(Environment *env) const {
 
 EvalResult
 Cond::eval(Environment *env) const {
-  return if_form->eval(env);
+  for (const Clause& clause : clauses) {
+    if (is_true(as_obj(clause.predicate->eval(env))) || clause.is_else) {
+      return clause.actions->eval(env);
+    }
+  }
+  return Void {}; 
 }
 
 EvalResult
