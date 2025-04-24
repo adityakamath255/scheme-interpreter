@@ -46,7 +46,7 @@ Interpreter::interpret(const std::string& code) {
   const auto tokens = Lexer(code).tokenize();
   const auto AST_0 = Parser(tokens, *this).parse();
   auto AST_1 = classify(AST_0); 
-  return as_obj(eval(AST_1, &global_env));
+  return as_obj(AST_1->eval(&global_env, *this));
 }
 
 Interpreter::~Interpreter() {

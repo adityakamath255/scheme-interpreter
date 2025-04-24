@@ -5,7 +5,8 @@
 
 namespace Scheme {
 
-EvalResult eval(Expression*, Environment *const);
-EvalResult apply(Obj, ArgList);
+class Interpreter;
+
+EvalResult apply(Obj, ArgList, Interpreter&);
 
 }

@@ -45,12 +45,12 @@ Environment::define(const Symbol& s, Obj obj) {
 }
 
 Environment*
-Environment::extend() {
+Environment::extend(Interpreter& interp) {
   return new Environment(this);
 }
 
 Environment*
-Environment::extend(const ParamList& parameters, const ArgList& arguments) {
+Environment::extend(const ParamList& parameters, const ArgList& arguments, Interpreter& interp) {
   if (parameters.size() != arguments.size()) {
     throw std::runtime_error("env extend size mismatch");
   }

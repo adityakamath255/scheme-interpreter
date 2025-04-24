@@ -16,6 +16,7 @@ class Void {};
 
 class Environment;
 class Expression;
+class Interpreter;
 
 using Obj = std::variant<
   bool,
@@ -94,12 +95,13 @@ public:
   Obj at(const std::string&);
 };
 
+// this is a class because I might want to augment this later on with separate type-checking and arg-count-checking objects
 class Primitive {
 private:
-  Obj(*func)(const ArgList&);
+  Obj(*func)(const ArgList&, Interpreter&);
 public:
   Primitive(decltype(func) f);
-  Obj operator()(const ArgList&) const;
+  Obj operator()(const ArgList&, Interpreter&) const;
 };
 
 class Procedure {

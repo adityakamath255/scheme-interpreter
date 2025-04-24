@@ -51,14 +51,14 @@ assert_arg_count(const ArgList& args, const int lb, const int rb) {
 }
 
 static Obj
-display(const ArgList& args) {
+display(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, 1);
   std::cout << stringify(args[0]);
   return Void {};
 }
 
 static Obj
-add(const ArgList& args) {
+add(const ArgList& args, Interpreter& interp) {
   assert_vec_type<double>(args, "number");
   double ret = 0.0;
   for (const auto& arg : args) {
@@ -68,7 +68,7 @@ add(const ArgList& args) {
 }
 
 static Obj
-sub(const ArgList& args) {
+sub(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, MAX_ARGS);
   assert_vec_type<double>(args, "number");
   if (args.size() == 1) {
@@ -84,7 +84,7 @@ sub(const ArgList& args) {
 }
 
 static Obj
-mul(const ArgList& args) {
+mul(const ArgList& args, Interpreter& interp) {
   assert_vec_type<double>(args, "number");
   double ret = 1.0;
   for (const auto& arg : args) {
@@ -94,7 +94,7 @@ mul(const ArgList& args) {
 }
 
 static Obj
-div(const ArgList& args) {
+div(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, MAX_ARGS);
   assert_vec_type<double>(args, "number");
   if (args.size() == 1) {
@@ -110,7 +110,7 @@ div(const ArgList& args) {
 }
 
 static Obj
-quotient(const ArgList& args) {
+quotient(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 2, 2);
   assert_vec_type<double>(args, "number");
   return static_cast<double>(
@@ -120,14 +120,14 @@ quotient(const ArgList& args) {
 }
 
 static Obj 
-remainder(const ArgList& args) {
+remainder(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 2, 2);
   assert_vec_type<double>(args, "number");
   return fmod(as_number(args[0]), as_number(args[1]));
 }
 
 static Obj
-expt(const ArgList& args) {
+expt(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 2, 2);
   assert_vec_type<double>(args, "number");
   return std::pow(as_number(args[0]), as_number(args[1]));
@@ -136,6 +136,8 @@ expt(const ArgList& args) {
 template<class Comp>
 static bool
 check_comp(const ArgList& args, Comp comp) {
+  assert_arg_count(args, 1, MAX_ARGS);
+  assert_vec_type<double>(args, "number");
   for (int i = 1; i < args.size(); i++) {
     if (!comp(as_number(args[i - 1]), as_number(args[i]))) {
       return false;
@@ -145,77 +147,67 @@ check_comp(const ArgList& args, Comp comp) {
 }
 
 static Obj
-lt(const ArgList& args) {
-  assert_arg_count(args, 1, MAX_ARGS);
-  assert_vec_type<double>(args, "number");
+lt(const ArgList& args, Interpreter& interp) {
   return check_comp(args, std::less<double>());
 }
 
 static Obj
-gt(const ArgList& args) {
-  assert_arg_count(args, 1, MAX_ARGS);
-  assert_vec_type<double>(args, "number");
+gt(const ArgList& args, Interpreter& interp) {
   return check_comp(args, std::greater<double>());
 }
 
 static Obj 
-eq(const ArgList& args) {
-  assert_arg_count(args, 1, MAX_ARGS);
-  assert_vec_type<double>(args, "number");
+eq(const ArgList& args, Interpreter& interp) {
   return check_comp(args, std::equal_to<double>());
 }
 
 static Obj 
-le(const ArgList& args) {
-  assert_arg_count(args, 1, MAX_ARGS);
-  assert_vec_type<double>(args, "number");
+le(const ArgList& args, Interpreter& interp) {
   return check_comp(args, std::less_equal<double>());
 }
 
 static Obj
-ge(const ArgList& args) {
-  assert_arg_count(args, 1, MAX_ARGS);
-  assert_vec_type<double>(args, "number");
+ge(const ArgList& args, Interpreter& interp) {
   return check_comp(args, std::greater_equal<double>());
 }
 
 static Obj
-abs_fn(const ArgList& args) {
+abs_fn(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, 1);
   assert_obj_type<double>(args[0], "number");
   return std::abs(as_number(args[0]));
 }
 
 static Obj
-sqrt_fn(const ArgList& args) {
+sqrt_fn(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, 1);
   assert_obj_type<double>(args[0], "number");
   return std::sqrt(as_number(args[0]));
 }
 
 static Obj
-sin_fn(const ArgList& args) {
+sin_fn(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, 1);
   assert_obj_type<double>(args[0], "number");
   return sin(as_number(args[0]));
 }
 
 static Obj
-cos_fn(const ArgList& args) {
+cos_fn(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, 1);
   assert_obj_type<double>(args[0], "number");
   return cos(as_number(args[0]));
 }
 
 static Obj
-log_fn(const ArgList& args) {
+log_fn(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, 1);
   assert_obj_type<double>(args[0], "number");
   return log(as_number(args[0]));
 }
 
 static Obj
-max_fn(const ArgList& args) {
+max_fn(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, MAX_ARGS);
   assert_vec_type<double>(args, "number");
   double ret = -INFINITY;
@@ -225,7 +217,7 @@ max_fn(const ArgList& args) {
 }
 
 static Obj
-min_fn(const ArgList& args) {
+min_fn(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, MAX_ARGS);
   assert_vec_type<double>(args, "number");
   double ret = INFINITY;
@@ -235,48 +227,48 @@ min_fn(const ArgList& args) {
 }
 
 static Obj
-is_even(const ArgList& args) {
+is_even(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, 1);
   assert_obj_type<double>(args[0], "number");
   return (bool) !(1 & static_cast<int>(as_number(args[0])));
 }
 
 static Obj
-is_odd(const ArgList& args) {
+is_odd(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, 1);
   assert_obj_type<double>(args[0], "number");
   return (bool) (1 & static_cast<int>(as_number(args[0])));
 }
 
 static Obj
-ceil_fn(const ArgList& args) {
+ceil_fn(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, 1);
   assert_obj_type<double>(args[0], "number");
   return std::ceil(as_number(args[0]));
 }
 
 static Obj
-floor_fn(const ArgList& args) {
+floor_fn(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, 1);
   assert_obj_type<double>(args[0], "number");
   return std::floor(as_number(args[0]));
 }
 
 static Obj
-round_fn(const ArgList& args) {
+round_fn(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, 1);
   assert_obj_type<double>(args[0], "number");
   return std::round(as_number(args[0]));
 }
 
 static Obj
-not_fn(const ArgList& args) {
+not_fn(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, 1);
   return is_false(args[0]);
 }
 
 static Obj
-is_eq(const ArgList& args) {
+is_eq(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 2, 2);
   return args[0] == args[1];
 }
@@ -296,24 +288,24 @@ eq_list(const ArgList& args) {
 }
 
 static Obj
-is_equal(const ArgList& args) {
+is_equal(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 2, 2);
   if (is_pair(args[0])) {
     return eq_list(args);
   }
   else {
-    return is_eq(args);
+    return is_eq(args, interp);
   }
 }
 
 static Obj
-cons_fn(const ArgList& args) {
+cons_fn(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 2, 2);
   return new Cons(args[0], args[1]);
 }
 
 static Obj
-list_fn(const ArgList& args) {
+list_fn(const ArgList& args, Interpreter& interp) {
   Obj ret = nullptr;
   for (auto curr = args.rbegin(); curr != args.rend(); curr++) {
     ret = new Cons(*curr, ret);
@@ -322,56 +314,56 @@ list_fn(const ArgList& args) {
 }
 
 static Obj
-is_null(const ArgList& args) {
+is_null(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, 1);
   return is_null(args[0]);
 }
 
 static Obj
-is_boolean(const ArgList& args) {
+is_boolean(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, 1);
   return is_bool(args[0]);
 }
 
 static Obj
-is_number(const ArgList& args) {
+is_number(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, 1);
   return is_number(args[0]);
 }
 
 static Obj
-is_pair(const ArgList& args) {
+is_pair(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, 1);
   return is_pair(args[0]);
 }
 
 static Obj
-is_symbol(const ArgList& args) {
+is_symbol(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, 1);
   return is_symbol(args[0]);
 }
 
 static Obj
-is_string(const ArgList& args) {
+is_string(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, 1);
   return is_string(args[0]);
 }
 
 static Obj
-is_procedure(const ArgList& args) {
+is_procedure(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, 1);
   return is_procedure(args[0]) || is_primitive(args[0]);
 }
 
 static Obj
-new_line(const ArgList& args) {
+new_line(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 0, 0);
   std::cout << "\n";
   return Void {};
 }
 
 static Obj
-set_car(const ArgList& args) {
+set_car(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 2, 2);
   assert_obj_type<Cons*>(args[0], "list");
   as_pair(args[0])->car = args[1];
@@ -379,7 +371,7 @@ set_car(const ArgList& args) {
 }
 
 static Obj
-set_cdr(const ArgList& args) {
+set_cdr(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 2, 2);
   assert_obj_type<Cons*>(args[0], "list");
   as_pair(args[0])->cdr = args[1];
@@ -387,7 +379,7 @@ set_cdr(const ArgList& args) {
 }
 
 static Obj
-list_len(const ArgList& args) {
+list_len(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, 1);
   assert_obj_type<Cons*>(args[0], "list");
   double ret = 0;
@@ -400,7 +392,7 @@ list_len(const ArgList& args) {
 }
 
 static Obj
-list_ref(const ArgList& args) {
+list_ref(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 2, 2);
   assert_obj_type<Cons*>(args[0], "list");
   assert_obj_type<double>(args[1], "number");
@@ -433,7 +425,7 @@ append_rec(const Obj& list1, const Obj& list2) {
 }
 
 static Obj
-append(const ArgList& args) {
+append(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, MAX_ARGS);
   assert_vec_type<Cons*>(args, "list");
   Obj ret = nullptr;
@@ -444,39 +436,39 @@ append(const ArgList& args) {
 }
 
 static Obj 
-map_rec(Obj& fn, Obj& obj) {
+map_rec(Obj& fn, Obj& obj, Interpreter& interp) {
   if (!is_pair(obj)) {
     return obj;
   }
   else {
     auto ls = as_pair(obj);
     return new Cons(
-      as_obj(apply(fn, ArgList({ls->car}))), 
-      map_rec(fn, ls->cdr)
+      as_obj(apply(fn, ArgList({ls->car}), interp)), 
+      map_rec(fn, ls->cdr, interp)
     );
   }
 }
 
 static Obj
-map_fn(const ArgList& args) {
+map_fn(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 2, 2);
   assert_callable(args[0]);
   assert_obj_type<Cons*>(args[1], "list");
   auto fn = args[0];
   auto ls = args[1];
-  auto ret = map_rec(fn, ls);
+  auto ret = map_rec(fn, ls, interp);
   return ret;
 }
 
 static Obj 
-filter_rec(Obj& fn, Obj& obj) {
+filter_rec(Obj& fn, Obj& obj, Interpreter& interp) {
   if (!is_pair(obj)) {
     return obj;
   }
   else {
     auto ls = as_pair(obj);
-    auto rest = filter_rec(fn, ls->cdr);
-    if (is_true(as_obj(apply(fn, ArgList({ls->car}))))) {
+    auto rest = filter_rec(fn, ls->cdr, interp);
+    if (is_true(as_obj(apply(fn, ArgList({ls->car}), interp)))) {
       return new Cons(ls->car, rest);
     }
     else {
@@ -486,17 +478,17 @@ filter_rec(Obj& fn, Obj& obj) {
 }
 
 static Obj
-filter_fn(const ArgList& args) {
+filter_fn(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 2, 2);
   assert_callable(args[0]);
   assert_obj_type<Cons*>(args[1], "list");
   auto fn = args[0];
   auto ls = args[1];
-  return filter_rec(fn, ls);
+  return filter_rec(fn, ls, interp);
 }
 
 static Obj
-error_fn(const ArgList& args) {
+error_fn(const ArgList& args, Interpreter& interp) {
   std::cerr << "ERROR: ";
   for (auto obj : args) {
     std::cerr << stringify(obj);
@@ -505,7 +497,7 @@ error_fn(const ArgList& args) {
   return Void {};
 }
 
-std::vector<std::pair<std::string, Obj(*)(const ArgList&)>> 
+std::vector<std::pair<std::string, Obj(*)(const ArgList&, Interpreter&)>> 
 get_primitive_functions() {
   return {
     {"+", add},

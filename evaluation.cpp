@@ -2,28 +2,29 @@
 #include "environment.hpp"
 #include "expressions.hpp"
 #include "tco.hpp"
+#include "interpreter.hpp"
 
 namespace Scheme {
 
 EvalResult 
-eval(Expression *expr, Environment *const env) {
-  return expr->eval(env);
+eval(Expression *expr, Environment *const env, Interpreter& interp) {
+  return expr->eval(env, interp);
 }
 
 EvalResult 
-apply(Obj p, ArgList args) {
+apply(Obj p, ArgList args, Interpreter& interp) {
   while (true) {
     if (is_primitive(p)) {
       const auto func = *as_primitive(p);
-      return func(args);
+      return func(args, interp);
     }
     else if (is_procedure(p)) {
       const auto func = as_procedure(p);
       if (func->parameters.size() != args.size()) {
         throw std::runtime_error(" wrong number of arguments: expected " + std::to_string(func->parameters.size()));
       }
-      const auto new_env = func->env->extend(func->parameters, args);
-      auto res = func->body->eval(new_env);
+      const auto new_env = func->env->extend(func->parameters, args, interp);
+      auto res = func->body->eval(new_env, interp);
       if (is_obj(res)) {
         return res;
       }
@@ -39,12 +40,12 @@ apply(Obj p, ArgList args) {
 }
 
 EvalResult
-Literal::eval(Environment *env) {
+Literal::eval(Environment *env, Interpreter& interp) {
   return obj;
 }
 
 EvalResult
-Variable::eval(Environment *env) {
+Variable::eval(Environment *env, Interpreter& interp) {
   if (resolved) {
     for (int i = 0; i < depth; i++) {
       env = env->super;
@@ -60,34 +61,34 @@ Variable::eval(Environment *env) {
 }
 
 EvalResult
-Quoted::eval(Environment *env) {
+Quoted::eval(Environment *env, Interpreter& interp) {
   return text_of_quotation;
 }
 
 EvalResult
-Set::eval(Environment *env) {
-  auto eval_value = as_obj(value->eval(env));
+Set::eval(Environment *env, Interpreter& interp) {
+  auto eval_value = as_obj(value->eval(env, interp));
   env->set(variable, eval_value);
   return Void {};
 }
 
 EvalResult
-If::eval(Environment *env) {
-  if (is_true(as_obj(predicate->eval(env)))) {
-    return consequent->eval(env);
+If::eval(Environment *env, Interpreter& interp) {
+  if (is_true(as_obj(predicate->eval(env, interp)))) {
+    return consequent->eval(env, interp);
   }
   else {
-    return alternative->eval(env);
+    return alternative->eval(env, interp);
   }
 }
 
 EvalResult
-Begin::eval(Environment *env) {
+Begin::eval(Environment *env, Interpreter& interp) {
   for (int i = 0; i < actions.size() - 1; i++) {
-    actions[i]->eval(env);
+    actions[i]->eval(env, interp);
   }
   if (!actions.empty()) {
-    return actions.back()->eval(env);
+    return actions.back()->eval(env, interp);
   }
   else {
     return Void {};
@@ -95,52 +96,64 @@ Begin::eval(Environment *env) {
 }
 
 EvalResult
-Lambda::eval(Environment *env) {
+Lambda::eval(Environment *env, Interpreter& interp) {
   return new Procedure(parameters, body, env);
 }
 
 
 EvalResult
-Define::eval(Environment *env) {
-  env->define(variable, as_obj(value->eval(env)));
+Define::eval(Environment *env, Interpreter& interp) {
+  env->define(variable, as_obj(value->eval(env, interp)));
   return Void {};
 }
 
-EvalResult
-Let::eval(Environment *env) {
-  const auto env2 = get_frame(env);
-  return body->eval(env2);
+static Environment *
+get_frame(const Let& expr, Environment *env, Interpreter& interp) {
+  auto ret = env->extend(interp);
+  for (const auto& p : expr.bindings) {
+    ret->define(
+      p.first,
+      as_obj(p.second->eval(env, interp))
+    );
+  }
+  return ret;
 }
 
 EvalResult
-Cond::eval(Environment *env) {
+Let::eval(Environment *env, Interpreter& interp) {
+  const auto env2 = get_frame(*this, env, interp);
+  return body->eval(env2, interp);
+}
+
+EvalResult
+Cond::eval(Environment *env, Interpreter& interp) {
   for (const Clause& clause : clauses) {
-    if (is_true(as_obj(clause.predicate->eval(env))) || clause.is_else) {
-      return clause.actions->eval(env);
+    if (is_true(as_obj(clause.predicate->eval(env, interp))) || clause.is_else) {
+      return clause.actions->eval(env, interp);
     }
   }
   return Void {}; 
 }
 
 EvalResult
-Application::eval(Environment *env) {
-  auto proc = as_obj(op->eval(env));
+Application::eval(Environment *env, Interpreter& interp) {
+  auto proc = as_obj(op->eval(env, interp));
   ArgList args {};
   for (const auto& param : params) {
-    args.push_back(as_obj(param->eval(env)));
+    args.push_back(as_obj(param->eval(env, interp)));
   }
   if (at_tail) {
     return TailCall(proc, move(args));
   }
   else {
-    return apply(proc, args);
+    return apply(proc, args, interp);
   }
 } 
 
 EvalResult
-And::eval(Environment *env) {
+And::eval(Environment *env, Interpreter& interp) {
   for (const auto& exp : exprs) {
-    if (is_false(as_obj(exp->eval(env)))) {
+    if (is_false(as_obj(exp->eval(env, interp)))) {
       return false;
     }
   }
@@ -148,9 +161,9 @@ And::eval(Environment *env) {
 }
 
 EvalResult
-Or::eval(Environment *env) {
+Or::eval(Environment *env, Interpreter& interp) {
   for (const auto& exp : exprs) {
-    if (is_true(as_obj(exp->eval(env)))) {
+    if (is_true(as_obj(exp->eval(env, interp)))) {
       return true;
     }
   }
@@ -158,8 +171,8 @@ Or::eval(Environment *env) {
 }
 
 EvalResult
-Cxr::eval(Environment *env) {
-  auto val = as_obj(expr->eval(env));
+Cxr::eval(Environment *env, Interpreter& interp) {
+  auto val = as_obj(expr->eval(env, interp));
   if (!is_pair(val)) {
     throw std::runtime_error(word.get_name() + " type error: expected cons");
   }

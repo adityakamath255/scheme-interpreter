@@ -50,7 +50,7 @@ public:
 
   Environment*
   make_environment(Environment *super) {
-    auto ret = new Environment(super);
+    auto ret = super->extend();
     live_memory.push_back(ret);
     return ret;
   }

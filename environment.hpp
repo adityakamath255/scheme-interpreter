@@ -16,8 +16,8 @@ public:
   std::pair<Obj&, int> get_with_depth(const Symbol&);
   void set(const Symbol&, const Obj);
   void define(const Symbol&, Obj);
-  Environment *extend();
-  Environment *extend(const ParamList&, const ArgList&);
+  Environment *extend(Interpreter&);
+  Environment *extend(const ParamList&, const ArgList&, Interpreter&);
 };
 
 }

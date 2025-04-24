@@ -90,8 +90,8 @@ Primitive::Primitive(decltype(func) f):
 {}
 
 Obj 
-Primitive::operator ()(const ArgList& args) const {
-  return func(args);
+Primitive::operator ()(const ArgList& args, Interpreter& interp) const {
+  return func(args, interp);
 }
 
 Procedure::Procedure(ParamList p, LambdaBody b, Environment *e):

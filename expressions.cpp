@@ -205,18 +205,6 @@ Let::get_bindings(Obj li) {
   return ret;
 }
 
-Environment *
-Let::get_frame(Environment *env) const {
-  auto ret = new Environment (env);
-  for (const auto& p : bindings) {
-    ret->define(
-      p.first,
-      as_obj(p.second->eval(env))
-    );
-  }
-  return ret;
-}
-
 Let::Let(Cons *obj):
   Expression("let"s, obj, 3, MAXARGS),
   bindings {get_bindings(obj->at("cadr"))},
