@@ -92,7 +92,8 @@ Literal::Literal(Obj obj):
 
 Variable::Variable(Symbol obj):
   Expression("variable"s),
-  sym {std::move(obj)}
+  sym {std::move(obj)},
+  resolved {false}
 {}
 
 Quoted::Quoted(Cons *obj):
@@ -208,7 +209,7 @@ Environment *
 Let::get_frame(Environment *env) const {
   auto ret = new Environment (env);
   for (const auto& p : bindings) {
-    ret->define_variable(
+    ret->define(
       p.first,
       as_obj(p.second->eval(env))
     );

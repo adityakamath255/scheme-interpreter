@@ -35,7 +35,7 @@ protected:
 public:
   Expression(const std::string&, Cons* = nullptr, const int = -1, const int = -1);
   std::string get_name() const;
-  virtual EvalResult eval(Environment*) const = 0;
+  virtual EvalResult eval(Environment*) = 0;
   virtual void tco() {}
 };
 
@@ -44,26 +44,28 @@ Expression *classify(const Obj&);
 struct Literal : public Expression {
   Obj obj;
   Literal(Obj);
-  EvalResult eval(Environment*) const override;
+  EvalResult eval(Environment*) override;
 };
 
 struct Variable : public Expression {
   Symbol sym;
+  int depth;
+  bool resolved;
   Variable(Symbol obj);
-  EvalResult eval(Environment*) const override;
+  EvalResult eval(Environment*) override;
 };
 
 struct Quoted : public Expression {
   Obj text_of_quotation;
   Quoted(Cons*);
-  EvalResult eval(Environment*) const override;
+  EvalResult eval(Environment*) override;
 };
 
 struct Set : public Expression {
   Symbol variable;
   ExprPtr value;
   Set(Cons*);
-  EvalResult eval(Environment*) const override;
+  EvalResult eval(Environment*) override;
 };
 
 struct If : public Expression {
@@ -71,14 +73,14 @@ struct If : public Expression {
   If(Cons*);
   If(Expression*, Expression*, Expression*);
   If();
-  EvalResult eval(Environment*) const override;
+  EvalResult eval(Environment*) override;
   void tco() override;
 };
 
 struct Begin : public Expression {
   ExprList actions;
   Begin(ExprList);
-  EvalResult eval(Environment*) const override;
+  EvalResult eval(Environment*) override;
   void tco() override;
 };
 
@@ -89,14 +91,14 @@ struct Lambda : public Expression {
   LambdaBody body;
   Lambda(Cons*);
   Lambda(Obj, Obj);
-  EvalResult eval(Environment*) const override;
+  EvalResult eval(Environment*) override;
 };
 
 struct Define : public Expression {
   Symbol variable;
   ExprPtr value;
   Define(Cons*);
-  EvalResult eval(Environment*) const override;
+  EvalResult eval(Environment*) override;
 };
 
 struct Let : public Expression {
@@ -105,7 +107,7 @@ struct Let : public Expression {
   decltype(bindings) get_bindings(Obj);
   Environment *get_frame(Environment*) const;
   Let(Cons*);
-  EvalResult eval(Environment*) const override;
+  EvalResult eval(Environment*) override;
 };
 
 struct Clause {
@@ -123,7 +125,7 @@ private:
   std::vector<Clause> clauses;
 public:
   Cond (Obj);
-  EvalResult eval(Environment*) const override;
+  EvalResult eval(Environment*) override;
   void tco() override;
 };
 
@@ -132,27 +134,27 @@ struct Application : public Expression {
   ExprList params;
   bool at_tail = false;
   Application(Cons*);
-  EvalResult eval(Environment*) const override;
+  EvalResult eval(Environment*) override;
   void tco() override;
 };
 
 struct And : public Expression {
   ExprList exprs;
   And(Cons*);
-  EvalResult eval(Environment*) const override;
+  EvalResult eval(Environment*) override;
 };
 
 struct Or : public Expression {
   ExprList exprs;
   Or(Cons*);
-  EvalResult eval(Environment*) const override;
+  EvalResult eval(Environment*) override;
 };
 
 struct Cxr : public Expression {
   Symbol word;
   ExprPtr expr;
   Cxr(Symbol, Cons*);
-  EvalResult eval(Environment*) const override;
+  EvalResult eval(Environment*) override;
 };
 
 }

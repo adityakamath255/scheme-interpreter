@@ -39,29 +39,40 @@ apply(Obj p, ArgList args) {
 }
 
 EvalResult
-Literal::eval(Environment *env) const {
+Literal::eval(Environment *env) {
   return obj;
 }
 
 EvalResult
-Variable::eval(Environment *env) const {
-  return env->lookup(sym);
+Variable::eval(Environment *env) {
+  if (resolved) {
+    for (int i = 0; i < depth; i++) {
+      env = env->super;
+    }
+    return env->get(sym);
+  }
+  else {
+    const auto found = env->get_with_depth(sym);
+    depth = found.second;
+    resolved = true;
+    return found.first;
+  }
 }
 
 EvalResult
-Quoted::eval(Environment *env) const {
+Quoted::eval(Environment *env) {
   return text_of_quotation;
 }
 
 EvalResult
-Set::eval(Environment *env) const {
+Set::eval(Environment *env) {
   auto eval_value = as_obj(value->eval(env));
-  env->set_variable(variable, eval_value);
+  env->set(variable, eval_value);
   return Void {};
 }
 
 EvalResult
-If::eval(Environment *env) const {
+If::eval(Environment *env) {
   if (is_true(as_obj(predicate->eval(env)))) {
     return consequent->eval(env);
   }
@@ -71,7 +82,7 @@ If::eval(Environment *env) const {
 }
 
 EvalResult
-Begin::eval(Environment *env) const {
+Begin::eval(Environment *env) {
   for (int i = 0; i < actions.size() - 1; i++) {
     actions[i]->eval(env);
   }
@@ -84,25 +95,25 @@ Begin::eval(Environment *env) const {
 }
 
 EvalResult
-Lambda::eval(Environment *env) const {
+Lambda::eval(Environment *env) {
   return new Procedure(parameters, body, env);
 }
 
 
 EvalResult
-Define::eval(Environment *env) const {
-  env->define_variable(variable, as_obj(value->eval(env)));
+Define::eval(Environment *env) {
+  env->define(variable, as_obj(value->eval(env)));
   return Void {};
 }
 
 EvalResult
-Let::eval(Environment *env) const {
+Let::eval(Environment *env) {
   const auto env2 = get_frame(env);
   return body->eval(env2);
 }
 
 EvalResult
-Cond::eval(Environment *env) const {
+Cond::eval(Environment *env) {
   for (const Clause& clause : clauses) {
     if (is_true(as_obj(clause.predicate->eval(env))) || clause.is_else) {
       return clause.actions->eval(env);
@@ -112,7 +123,7 @@ Cond::eval(Environment *env) const {
 }
 
 EvalResult
-Application::eval(Environment *env) const {
+Application::eval(Environment *env) {
   auto proc = as_obj(op->eval(env));
   ArgList args {};
   for (const auto& param : params) {
@@ -127,7 +138,7 @@ Application::eval(Environment *env) const {
 } 
 
 EvalResult
-And::eval(Environment *env) const {
+And::eval(Environment *env) {
   for (const auto& exp : exprs) {
     if (is_false(as_obj(exp->eval(env)))) {
       return false;
@@ -137,7 +148,7 @@ And::eval(Environment *env) const {
 }
 
 EvalResult
-Or::eval(Environment *env) const {
+Or::eval(Environment *env) {
   for (const auto& exp : exprs) {
     if (is_true(as_obj(exp->eval(env)))) {
       return true;
@@ -147,7 +158,7 @@ Or::eval(Environment *env) const {
 }
 
 EvalResult
-Cxr::eval(Environment *env) const {
+Cxr::eval(Environment *env) {
   auto val = as_obj(expr->eval(env));
   if (!is_pair(val)) {
     throw std::runtime_error(word.get_name() + " type error: expected cons");

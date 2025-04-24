@@ -15,10 +15,10 @@ Environment
 Interpreter::install_global_environment() {
   auto env = new Environment();
   for (const auto& p : get_primitive_functions()) {
-    env->define_variable(make_symbol(p.first), new Primitive(p.second));
+    env->define(make_symbol(p.first), new Primitive(p.second));
   }
   for (const auto& p : get_consts()) {
-    env->define_variable(make_symbol(p.first), p.second);
+    env->define(make_symbol(p.first), p.second);
   }
   return Environment(env);
 }
