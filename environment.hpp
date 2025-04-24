@@ -15,6 +15,7 @@ public:
   void set_variable(const Symbol&, const Obj);
   Obj lookup(const Symbol&);
   void define_variable(const Symbol&, Obj);
+  Environment *extend();
   Environment *extend(const ParamList&, const ArgList&);
 };
 

@@ -311,7 +311,7 @@ static Expression* make_application(Cons *obj) { return new Application(obj); }
 static Expression* make_and(Cons *obj) { return new And(obj); }
 static Expression* make_or(Cons *obj) { return new Or(obj); }
 
-static std::unordered_map<Symbol, Expression*(*)(Cons*)> 
+static std::unordered_map<std::string, Expression*(*)(Cons*)> 
 special_forms = {
   {"quote"s, make_quoted},
   {"set!"s, make_set},

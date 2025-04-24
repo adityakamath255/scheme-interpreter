@@ -79,11 +79,10 @@ struct Symbol {
 
 private:
   const std::string *id;
-  static std::unordered_map<std::string, std::string*> intern_table;
 
 public:
   Symbol();
-  Symbol(const std::string&);
+  Symbol(const std::string*);
   const std::string& get_name() const;
   bool operator ==(const Symbol& other) const;
 };

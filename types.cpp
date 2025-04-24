@@ -45,19 +45,7 @@ const std::nullptr_t& as_null(const Obj& obj) { return std::get<std::nullptr_t>(
 Void& as_void(Obj& obj) { return std::get<Void>(obj); }
 const Void& as_void(const Obj& obj) { return std::get<Void>(obj); }
 
-std::unordered_map<std::string, std::string*> Symbol::intern_table;
-
-Symbol::Symbol(const std::string& s) {
-  auto itr = intern_table.find(s);
-  if (itr == intern_table.end()) {
-    auto new_str = new std::string(s);
-    intern_table[s] = new_str;
-    id = new_str;
-  }
-  else {
-    id = itr->second;
-  }
-}
+Symbol::Symbol(const std::string *id): id {id} {}
 
 Symbol::Symbol(): id {nullptr} {}
 
@@ -107,8 +95,8 @@ Primitive::operator ()(const ArgList& args) const {
 }
 
 Procedure::Procedure(ParamList p, LambdaBody b, Environment *e):
-  parameters {p},
-  body {b},
+  parameters {std::move(p)},
+  body {std::move(b)},
   env {e}
 {}
 

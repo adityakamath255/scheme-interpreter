@@ -5,18 +5,18 @@
 
 namespace Scheme {
 
-static Obj
-make_num_obj(const std::string_view str) {
+Obj
+Parser::make_num_obj(const std::string_view str) {
   return Obj(stod(std::string(str)));
 }
 
-static Obj
-make_sym_obj(const std::string_view str) {
-  return Obj(Symbol(std::string(str)));
+Obj
+Parser::make_sym_obj(const std::string_view str) {
+  return Obj(interp.make_symbol(std::string(str)));
 }
 
-static Obj
-make_bool_obj(const std::string_view str) {
+Obj
+Parser::make_bool_obj(const std::string_view str) {
   if (str[1] == 't')
     return Obj(true);
   else if (str[1] == 'f') 
@@ -25,13 +25,13 @@ make_bool_obj(const std::string_view str) {
     return make_sym_obj(str);
 }
 
-static Obj
-make_str_obj(const std::string_view str) {
+Obj
+Parser::make_str_obj(const std::string_view str) {
   return Obj(std::string(str.substr(1, str.size() - 2)));
 }
 
-static Obj
-from_str(const std::string_view str) {
+Obj
+Parser::from_str(const std::string_view str) {
   if (str[0] == '#') {
     return make_bool_obj(str);
   }
@@ -52,9 +52,10 @@ from_str(const std::string_view str) {
   }
 } 
 
-Parser::Parser(const std::vector<std::string_view>& tokens):
+Parser::Parser(const std::vector<std::string_view>& tokens, Interpreter& interp):
   tokens {tokens},
-  index {0}
+  index {0},
+  interp {interp}
 {}
 
 Obj

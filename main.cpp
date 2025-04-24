@@ -1,36 +1,10 @@
-#include "types.hpp"
-#include "environment.hpp"
-#include "expressions.hpp"
-#include "evaluation.hpp"
-#include "primitives.hpp"
 #include "stringify.hpp"
-#include "lexer.hpp"
-#include "parser.hpp"
+#include "interpreter.hpp"
 #include <iostream>
 #include <sstream>
 #include <fstream>
 
 using namespace Scheme;
-
-Environment *
-install_initial_environment() {
-  auto env = new Environment();
-  for (const auto& p : get_primitive_functions()) {
-    env->define_variable(p.first, new Primitive(p.second));
-  }
-  for (const auto& p : get_consts()) {
-    env->define_variable(p.first, p.second);
-  }
-  return new Environment(env);
-}
-
-Obj
-interpret(const std::string& code, Environment *env) {
-  const auto tokens = Lexer(code).tokenize();
-  const auto AST_0 = Parser(tokens).parse();
-  auto AST_1 = classify(AST_0); 
-  return as_obj(eval(AST_1, env));
-}
 
 template<class INPUT>
 std::string 
@@ -73,17 +47,14 @@ read(INPUT& in) {
 }
 
 void
-driver_loop(Environment *env = nullptr) {
-  if (env == nullptr) {
-    env = install_initial_environment();
-  }
+driver_loop(Interpreter& interp) {
   while (true) {
     try {
       std::cout << ">>> ";
       std::string input_expr = read(std::cin);
       if (input_expr == "exit\n") 
         return;
-      auto result = interpret(input_expr, env);
+      auto result = interp.interpret(input_expr);
       if (!is_void(result)) {
         std::cout << stringify(result);
         std::cout << "\n";
@@ -99,17 +70,16 @@ driver_loop(Environment *env = nullptr) {
 }
 
 void
-run_file(const char *filename, bool enter_driver_loop) {
+run_file(Interpreter& interp, const char *filename, bool enter_driver_loop) {
   std::ifstream in;
   in.open(filename);
-  auto env = install_initial_environment();
   while (true) {
     try {
       const std::string& input_expr = read(in);
       if (in.eof()) {
         break;
       }
-      interpret(input_expr, env);
+      interp.interpret(input_expr);
     } 
     catch (std::runtime_error& e) {
       std::cerr << "\nERROR: " << e.what() << "\n";
@@ -118,20 +88,21 @@ run_file(const char *filename, bool enter_driver_loop) {
   }
   std::cout << "\n";
   if (enter_driver_loop) {
-    driver_loop(env);
+    driver_loop(interp);
   }
 }
 
 int 
 main(const int argc, const char **argv) {
+  Interpreter interp;
   if (argc == 1) {
-    driver_loop();
+    driver_loop(interp);
   }
   else if (argc == 2) {
-    run_file(argv[1], true);
+    run_file(interp, argv[1], true);
   }
   else if (argc == 3 && std::string(argv[1]) == "--no-repl") {
-    run_file(argv[2], false);
+    run_file(interp, argv[2], false);
   }
   else {
     std::cout << "Usage: ./scheme [--no-repl] [file-to-run]" << std::endl;

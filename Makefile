@@ -11,6 +11,7 @@ SRC := \
 	tco.cpp \
 	lexer.cpp \
 	parser.cpp \
+	interpreter.cpp \
 	main.cpp
 
 HDR := \
@@ -22,6 +23,7 @@ HDR := \
 	evaluation.hpp \
 	tco.hpp \
 	lexer.hpp \
+	interpreter.hpp \
 	parser.hpp
 
 OBJ := $(SRC:.cpp=.o)
