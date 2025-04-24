@@ -1,5 +1,6 @@
 #include "types.hpp"
 #include "parser.hpp"
+#include "interpreter.hpp"
 #include <cmath>
 #include <string_view>
 
@@ -81,8 +82,8 @@ Parser::parse_impl(bool recursive) {
   }
   else if (token == "'") {
     auto quoted = parse_impl(false);
-    head = Obj(new Cons(
-      make_sym_obj("quote"), new Cons(
+    head = Obj(interp.alloc.make_cons(
+      make_sym_obj("quote"), interp.alloc.make_cons(
       quoted, 
       nullptr)));
   }
@@ -95,7 +96,7 @@ Parser::parse_impl(bool recursive) {
   }
   else {
     auto tail = parse_impl(true);
-    return Obj(new Cons(head, tail));
+    return Obj(interp.alloc.make_cons(head, tail));
   }
 }
 

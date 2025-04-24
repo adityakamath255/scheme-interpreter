@@ -97,7 +97,7 @@ Begin::eval(Environment *env, Interpreter& interp) {
 
 EvalResult
 Lambda::eval(Environment *env, Interpreter& interp) {
-  return new Procedure(parameters, body, env);
+  return interp.alloc.make_procedure(parameters, body, env);
 }
 
 

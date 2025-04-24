@@ -4,10 +4,15 @@
 
 namespace Scheme {
 
+class Allocator;
+
 class Environment {
+  friend Allocator;
+
 private:
   std::unordered_map<Symbol, Obj> frame {};
   std::pair<Obj&, int> get_impl(const Symbol&, const int);
+
 public:
   Environment *const super;
   Environment();

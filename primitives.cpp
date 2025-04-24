@@ -3,6 +3,7 @@
 #include "stringify.hpp"
 #include "primitives.hpp"
 #include "evaluation.hpp"
+#include "interpreter.hpp"
 #include <iostream>
 #include <cmath>
 #include <climits>
@@ -301,14 +302,14 @@ is_equal(const ArgList& args, Interpreter& interp) {
 static Obj
 cons_fn(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 2, 2);
-  return new Cons(args[0], args[1]);
+  return interp.alloc.make_cons(args[0], args[1]);
 }
 
 static Obj
 list_fn(const ArgList& args, Interpreter& interp) {
   Obj ret = nullptr;
   for (auto curr = args.rbegin(); curr != args.rend(); curr++) {
-    ret = new Cons(*curr, ret);
+    ret = interp.alloc.make_cons(*curr, ret);
   }
   return ret;
 }
@@ -412,11 +413,11 @@ list_ref(const ArgList& args, Interpreter& interp) {
 }
 
 static Obj
-append_rec(const Obj& list1, const Obj& list2) {
+append_rec(const Obj& list1, const Obj& list2, Interpreter& interp) {
   if (is_pair(list1)) {
-    return new Cons(
+    return interp.alloc.make_cons(
       as_pair(list1)->car,
-      append_rec(as_pair(list1)->cdr, list2)
+      append_rec(as_pair(list1)->cdr, list2, interp)
     );
   }
   else {
@@ -430,7 +431,7 @@ append(const ArgList& args, Interpreter& interp) {
   assert_vec_type<Cons*>(args, "list");
   Obj ret = nullptr;
   for (int i = args.size() - 1; i >= 0; i--) {
-    ret = append_rec(args[i], ret);
+    ret = append_rec(args[i], ret, interp);
   }
   return ret;
 }
@@ -442,7 +443,7 @@ map_rec(Obj& fn, Obj& obj, Interpreter& interp) {
   }
   else {
     auto ls = as_pair(obj);
-    return new Cons(
+    return interp.alloc.make_cons(
       as_obj(apply(fn, ArgList({ls->car}), interp)), 
       map_rec(fn, ls->cdr, interp)
     );
@@ -469,7 +470,7 @@ filter_rec(Obj& fn, Obj& obj, Interpreter& interp) {
     auto ls = as_pair(obj);
     auto rest = filter_rec(fn, ls->cdr, interp);
     if (is_true(as_obj(apply(fn, ArgList({ls->car}), interp)))) {
-      return new Cons(ls->car, rest);
+      return interp.alloc.make_cons(ls->car, rest);
     }
     else {
       return rest;

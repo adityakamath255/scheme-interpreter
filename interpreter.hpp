@@ -3,6 +3,7 @@
 #include "environment.hpp"
 #include "expressions.hpp"
 #include "primitives.hpp"
+#include "memory.hpp"
 #include <unordered_map>
 #include <string>
 #include <string_view>
@@ -17,6 +18,8 @@ private:
   Environment install_global_environment();
 
 public:
+  Allocator alloc;
+
   Interpreter();
   Symbol make_symbol(const std::string_view);
   Obj interpret(const std::string&);

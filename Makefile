@@ -11,6 +11,7 @@ SRC := \
 	tco.cpp \
 	lexer.cpp \
 	parser.cpp \
+	memory.cpp \
 	interpreter.cpp \
 	main.cpp
 
@@ -23,6 +24,7 @@ HDR := \
 	evaluation.hpp \
 	tco.hpp \
 	lexer.hpp \
+	memory.hpp \
 	interpreter.hpp \
 	parser.hpp
 

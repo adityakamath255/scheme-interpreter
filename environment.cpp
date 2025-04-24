@@ -1,5 +1,6 @@
 #include "types.hpp"
 #include "environment.hpp"
+#include "interpreter.hpp"
 #include <unordered_map>
 
 namespace Scheme {
@@ -46,7 +47,7 @@ Environment::define(const Symbol& s, Obj obj) {
 
 Environment*
 Environment::extend(Interpreter& interp) {
-  return new Environment(this);
+  return interp.alloc.make_environment(this);
 }
 
 Environment*
@@ -54,7 +55,7 @@ Environment::extend(const ParamList& parameters, const ArgList& arguments, Inter
   if (parameters.size() != arguments.size()) {
     throw std::runtime_error("env extend size mismatch");
   }
-  Environment *ret = new Environment(this);
+  auto ret = extend(interp);
   for (int i = 0; i < parameters.size(); i++) {
     ret->define(parameters[i], arguments[i]);
   }

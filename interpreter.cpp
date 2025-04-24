@@ -5,6 +5,7 @@
 #include "lexer.hpp"
 #include "parser.hpp"
 #include "interpreter.hpp"
+#include "memory.hpp"
 #include <unordered_map>
 #include <string>
 #include <string_view>
