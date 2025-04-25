@@ -75,14 +75,12 @@ cons2vec(Obj ls, F fn) {
 
 static ParamList 
 cons2symbols(Obj ls) {
-  return cons2vec<Symbol>(ls, [](const Obj& o) -> const Symbol& {return as_symbol(o); });
+  return cons2vec<Symbol>(ls, [](const Obj& obj) -> Symbol {return as_symbol(obj); });
 }
 
 static ExprList
 cons2exprs(Obj ls) {
-  return cons2vec<ExprPtr>(ls, [](const Obj& o) -> ExprPtr {
-    return ExprPtr(classify(o));
-  });
+  return cons2vec<Expression*>(ls, classify);
 }
 
 Literal::Literal(Obj obj):
@@ -109,7 +107,7 @@ Set::Set(Cons *obj):
   }
   variable = as_symbol(obj->at("cadr"));
   const auto cddr = obj->at("cddr");
-  value = ExprPtr(classify(obj->at("caddr")));
+  value = classify(obj->at("caddr"));
 }
 
 If::If(Cons *obj):
@@ -118,23 +116,23 @@ If::If(Cons *obj):
   consequent {classify(obj->at("caddr"))},
   alternative {
     !is_null(obj->at("cdddr"))
-  ? ExprPtr(classify(obj->at("cadddr")))
-  : ExprPtr(new Literal(false))
+  ? classify(obj->at("cadddr"))
+  : new Literal(false)
   }
 {}
 
 If::If(Expression *p, Expression *c, Expression *a):
   Expression("if"s),
-  predicate {ExprPtr(p)},
-  consequent {ExprPtr(c)},
-  alternative {ExprPtr(a)} 
+  predicate {p},
+  consequent {c},
+  alternative {a} 
 {}
 
 If::If():
   Expression("if"s),
-  predicate {ExprPtr(new Literal(Void {}))},
-  consequent {ExprPtr(new Literal(Void {}))},
-  alternative {ExprPtr(new Literal(Void {}))}
+  predicate {new Literal(Void {})},
+  consequent {new Literal(Void {})},
+  alternative {new Literal(Void {})}
 {}
 
 Begin::Begin(ExprList seq):
@@ -145,7 +143,7 @@ Begin::Begin(ExprList seq):
 Lambda::Lambda(Cons *obj):
   Expression("lambda"s, obj, 3, MAXARGS),
   parameters {cons2symbols(obj->at("cadr"))},
-  body {LambdaBody(combine_expr(obj->at("cddr")))}
+  body {combine_expr(obj->at("cddr"))}
 {
   body->tco();
 }
@@ -153,7 +151,7 @@ Lambda::Lambda(Cons *obj):
 Lambda::Lambda(Obj parameters_, Obj body_):
   Expression("lambda"s),
   parameters {cons2symbols(parameters_)},
-  body {LambdaBody(combine_expr(body_))}
+  body {combine_expr(body_)}
 {
   body->tco();
 }
@@ -165,7 +163,7 @@ Define::Define(Cons *obj):
 
   if (is_symbol(cadr)) {  
     variable = as_symbol(cadr);
-    value = ExprPtr(classify(obj->at("caddr")));
+    value = classify(obj->at("caddr"));
   }
 
   else if (is_pair(cadr)) {
@@ -175,7 +173,7 @@ Define::Define(Cons *obj):
       throw std::runtime_error("procedure name must be a symbol");
     }
     variable = as_symbol(obj->at("caadr"));
-    value = ExprPtr(new Lambda(parameters, body));
+    value = new Lambda(parameters, body);
   }
 
   else {
@@ -183,9 +181,9 @@ Define::Define(Cons *obj):
   }
 }
 
-std::unordered_map<Symbol, ExprPtr>
+std::unordered_map<Symbol, Expression*>
 Let::get_bindings(Obj li) {
-  std::unordered_map<Symbol, ExprPtr> ret {};
+  std::unordered_map<Symbol, Expression*> ret {};
   while (is_pair(li)) {
     const auto as_cons = as_pair(li);
     if (!is_pair(as_cons->car)) {
@@ -198,7 +196,7 @@ Let::get_bindings(Obj li) {
     
     ret.insert({
       as_symbol(car->at("car")),
-      ExprPtr(classify(car->at("cadr")))
+      classify(car->at("cadr"))
     });
     li = as_cons->cdr;
   }
@@ -208,7 +206,7 @@ Let::get_bindings(Obj li) {
 Let::Let(Cons *obj):
   Expression("let"s, obj, 3, MAXARGS),
   bindings {get_bindings(obj->at("cadr"))},
-  body {ExprPtr(combine_expr(obj->at("cddr")))}
+  body {combine_expr(obj->at("cddr"))}
 {}
 
 
@@ -222,13 +220,13 @@ Clause::is_else_clause(Obj obj) const {
 Clause::Clause(Cons *obj) {
   if (is_else_clause(obj->car)) {
     is_else = 1;
-    predicate = ExprPtr(new Literal(true));
+    predicate = new Literal(true);
   } 
   else {
     is_else = 0;
-    predicate = ExprPtr(classify(obj->car));
+    predicate = classify(obj->car);
   }
-  actions = ExprPtr(combine_expr(obj->cdr));
+  actions = combine_expr(obj->cdr);
 }
 
 Cond::Cond(Obj obj):
@@ -255,7 +253,7 @@ Cond::Cond(Obj obj):
 
 Application::Application(Cons *obj):
   Expression("application"s),
-  op {ExprPtr(classify(obj->car))},
+  op {classify(obj->car)},
   params {cons2exprs(obj->cdr)}
 {}
 
@@ -272,7 +270,7 @@ Or::Or(Cons *obj):
 Cxr::Cxr(Symbol tag, Cons *obj): 
   Expression(tag.get_name(), obj, 2, 2),
   word {tag}, 
-  expr {ExprPtr(classify(obj->at("cadr")))} 
+  expr {classify(obj->at("cadr"))} 
 {}
 
 Expression*

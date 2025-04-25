@@ -32,7 +32,6 @@ using Obj = std::variant<
 
 using ParamList = std::vector<Symbol>;
 using ArgList = std::vector<Obj>;
-using LambdaBody = std::shared_ptr<Expression>;
 
 class Symbol {
   friend struct std::hash<Symbol>;
@@ -75,9 +74,9 @@ public:
 class Procedure {
 public:
   const ParamList parameters;
-  const LambdaBody body;
+  Expression *body;
   Environment *const env;
-  Procedure(ParamList p, LambdaBody b, Environment* e):
+  Procedure(ParamList p, Expression *b, Environment* e):
     parameters {std::move(p)},
     body {b},
     env {e}

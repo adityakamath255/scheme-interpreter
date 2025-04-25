@@ -4,8 +4,6 @@
 
 namespace Scheme {
 
-using LambdaBody = std::shared_ptr<Expression>;
-
 Cons*
 Allocator::make_cons(Obj car, Obj cdr) {
   auto ret = new Cons(std::move(car), std::move(cdr));
@@ -14,7 +12,7 @@ Allocator::make_cons(Obj car, Obj cdr) {
 }
 
 Procedure*
-Allocator::make_procedure(ParamList p, LambdaBody b, Environment* e) {
+Allocator::make_procedure(ParamList p, Expression *b, Environment* e) {
   auto ret = new Procedure(std::move(p), b, e);
   //live_memory.push_back(ret);
   return ret;

@@ -5,8 +5,6 @@
 
 namespace Scheme {
 
-using LambdaBody = std::shared_ptr<Expression>;
-
 class HeapEntity {
 private:
   bool marked;
@@ -27,7 +25,7 @@ public:
   Allocator(): live_memory {} {};
   Cons* make_cons(Obj car, Obj cdr); 
   Symbol make_symbol(const std::string& str); 
-  Procedure* make_procedure(ParamList p, LambdaBody b, Environment* e);
+  Procedure* make_procedure(ParamList p, Expression *b, Environment* e);
   Environment* make_environment(); 
   Environment* make_environment(Environment *super);
   void mark_obj(Obj& obj); 

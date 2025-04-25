@@ -24,9 +24,7 @@ using EvalResult = std::variant<
   TailCall
 >;
 
-using ExprPtr = std::unique_ptr<Expression>;
-using LambdaBody = std::shared_ptr<Expression>;
-using ExprList = std::vector<ExprPtr>;
+using ExprList = std::vector<Expression*>;
 
 bool is_obj(const EvalResult&);
 bool is_tailcall(const EvalResult&);
@@ -74,13 +72,13 @@ struct Quoted : public Expression {
 
 struct Set : public Expression {
   Symbol variable;
-  ExprPtr value;
+  Expression *value;
   Set(Cons*);
   EvalResult eval(Environment*, Interpreter&) override;
 };
 
 struct If : public Expression {
-  ExprPtr predicate, consequent, alternative;
+  Expression *predicate, *consequent, *alternative;
   If(Cons*);
   If(Expression*, Expression*, Expression*);
   If();
@@ -106,7 +104,7 @@ Expression *combine_expr(Obj);
 
 struct Lambda : public Expression {
   ParamList parameters;
-  LambdaBody body;
+  Expression *body;
   Lambda(Cons*);
   Lambda(Obj, Obj);
   EvalResult eval(Environment*, Interpreter&) override;
@@ -114,14 +112,14 @@ struct Lambda : public Expression {
 
 struct Define : public Expression {
   Symbol variable;
-  ExprPtr value;
+  Expression *value;
   Define(Cons*);
   EvalResult eval(Environment*, Interpreter&) override;
 };
 
 struct Let : public Expression {
-  std::unordered_map<Symbol, ExprPtr> bindings;
-  ExprPtr body;
+  std::unordered_map<Symbol, Expression*> bindings;
+  Expression *body;
   decltype(bindings) get_bindings(Obj);
   Let(Cons*);
   EvalResult eval(Environment*, Interpreter&) override;
@@ -132,8 +130,8 @@ private:
   bool is_else_clause(Obj) const;
 public:
   bool is_else;
-  ExprPtr predicate;
-  ExprPtr actions;
+  Expression *predicate;
+  Expression *actions;
   Clause (Cons*);
 };
 
@@ -151,7 +149,7 @@ public:
 };
 
 struct Application : public Expression {
-  ExprPtr op;
+  Expression *op;
   ExprList params;
   bool at_tail = false;
   Application(Cons*);
@@ -175,7 +173,7 @@ struct Or : public Expression {
 
 struct Cxr : public Expression {
   Symbol word;
-  ExprPtr expr;
+  Expression *expr;
   Cxr(Symbol, Cons*);
   EvalResult eval(Environment*, Interpreter&) override;
 };
