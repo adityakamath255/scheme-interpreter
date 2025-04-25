@@ -4,11 +4,9 @@ CXXFLAGS := -std=c++23 -O2
 SRC := \
 	types.cpp \
 	environment.cpp \
-	stringify.cpp \
 	primitives.cpp \
 	expressions.cpp \
 	evaluation.cpp \
-	tco.cpp \
 	lexer.cpp \
 	parser.cpp \
 	memory.cpp \
@@ -18,15 +16,13 @@ SRC := \
 HDR := \
 	types.hpp \
 	environment.hpp \
-	stringify.hpp \
 	primitives.hpp \
 	expressions.hpp \
 	evaluation.hpp \
-	tco.hpp \
 	lexer.hpp \
+	parser.hpp \
 	memory.hpp \
-	interpreter.hpp \
-	parser.hpp
+	interpreter.hpp 
 
 OBJ := $(SRC:.cpp=.o)
 

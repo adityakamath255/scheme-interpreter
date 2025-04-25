@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <memory>
 
-namespace Scheme {
+namespace Scheme { 
 
 class Symbol;
 class Cons;
@@ -34,74 +34,42 @@ using ParamList = std::vector<Symbol>;
 using ArgList = std::vector<Obj>;
 using LambdaBody = std::shared_ptr<Expression>;
 
-bool is_bool(const Obj&);
-bool is_true(const Obj&);
-bool is_false(const Obj&);
-bool is_number(const Obj&);
-bool is_symbol(const Obj&);
-bool is_string(const Obj&);
-bool is_pair(const Obj&);
-bool is_primitive(const Obj&);
-bool is_procedure(const Obj&);
-bool is_callable(const Obj&);
-bool is_null(const Obj&);
-bool is_void(const Obj&);
-
-bool& as_bool(Obj&);
-const bool& as_bool(const Obj&);
-
-double& as_number(Obj&);
-const double& as_number(const Obj&);
-
-Symbol& as_symbol(Obj&);
-const Symbol& as_symbol(const Obj&);
-
-std::string& as_string(Obj&);
-const std::string& as_string(const Obj&);
-
-Cons*& as_pair(Obj&);
-Cons* const& as_pair(const Obj&);
-
-Primitive*& as_primitive(Obj&);
-Primitive* const& as_primitive(const Obj&);
-
-Procedure*& as_procedure(Obj&);
-Procedure* const& as_procedure(const Obj&);
-
-std::nullptr_t& as_null(Obj&);
-const std::nullptr_t& as_null(const Obj&);
-
-Void& as_void(Obj&);
-const Void& as_void(const Obj&);
-
-struct Symbol {
+class Symbol {
   friend struct std::hash<Symbol>;
 
 private:
   const std::string *id;
 
 public:
-  Symbol();
-  Symbol(const std::string*);
-  const std::string& get_name() const;
-  bool operator ==(const Symbol& other) const;
+  Symbol(): id {nullptr} {}
+  Symbol(const std::string* id): id {id} {};
+  const std::string& get_name() const {
+    return *id; 
+  }
+  bool operator ==(const Symbol& other) const {
+    return id == other.id; 
+  }
 };
 
 class Cons {
 public:
   Obj car;
   Obj cdr;
-  Cons(Obj, Obj);
+  Cons(Obj car, Obj cdr):
+    car {std::move(car)},
+    cdr {std::move(cdr)}
+  {} 
   Obj at(const std::string&);
 };
 
-// this is a class because I might want to augment this later on with separate type-checking and arg-count-checking objects
 class Primitive {
 private:
   Obj(*func)(const ArgList&, Interpreter&);
 public:
-  Primitive(decltype(func) f);
-  Obj operator()(const ArgList&, Interpreter&) const;
+  Primitive(decltype(func) f): func {f} {};
+  Obj operator()(const ArgList& args, Interpreter& interp) const {
+    return func(args, interp);
+  }
 };
 
 class Procedure {
@@ -109,11 +77,57 @@ public:
   const ParamList parameters;
   const LambdaBody body;
   Environment *const env;
-  Procedure(ParamList, LambdaBody, Environment*);
+  Procedure(ParamList p, LambdaBody b, Environment* e):
+    parameters {std::move(p)},
+    body {b},
+    env {e}
+  {}
 };
 
-bool 
-operator ==(const Void& v0, const Void& v1);
+inline bool is_bool(const Obj& obj) {return std::holds_alternative<bool>(obj); }
+inline bool is_number(const Obj& obj) {return std::holds_alternative<double>(obj); }
+inline bool is_symbol(const Obj& obj){return std::holds_alternative<Symbol>(obj); }
+inline bool is_string(const Obj& obj) {return std::holds_alternative<std::string>(obj); }
+inline bool is_pair(const Obj& obj) {return std::holds_alternative<Cons*>(obj); }
+inline bool is_primitive(const Obj& obj) {return std::holds_alternative<Primitive*>(obj); }
+inline bool is_procedure(const Obj& obj) {return std::holds_alternative<Procedure*>(obj); }
+inline bool is_callable(const Obj& obj) {return is_primitive(obj) || is_procedure(obj); }
+inline bool is_null(const Obj& obj) {return std::holds_alternative<nullptr_t>(obj); }
+inline bool is_void(const Obj& obj) {return std::holds_alternative<Void>(obj); }
+
+inline bool& as_bool(Obj& obj) { return std::get<bool>(obj); }
+inline const bool& as_bool(const Obj& obj) { return std::get<bool>(obj); }
+
+inline double& as_number(Obj& obj) { return std::get<double>(obj); }
+inline const double& as_number(const Obj& obj) { return std::get<double>(obj); }
+
+inline Symbol& as_symbol(Obj& obj) { return std::get<Symbol>(obj); }
+inline const Symbol& as_symbol(const Obj& obj) { return std::get<Symbol>(obj); }
+
+inline std::string& as_string(Obj& obj) { return std::get<std::string>(obj); }
+inline const std::string& as_string(const Obj& obj) { return std::get<std::string>(obj); }
+
+inline Cons*& as_pair(Obj& obj) { return std::get<Cons*>(obj); }
+inline Cons* const& as_pair(const Obj& obj) { return std::get<Cons*>(obj); }
+
+inline Primitive*& as_primitive(Obj& obj) { return std::get<Primitive*>(obj); }
+inline Primitive* const& as_primitive(const Obj& obj) { return std::get<Primitive*>(obj); }
+
+inline Procedure*& as_procedure(Obj& obj) { return std::get<Procedure*>(obj); }
+inline Procedure* const& as_procedure(const Obj& obj) { return std::get<Procedure*>(obj); }
+
+inline std::nullptr_t& as_null(Obj& obj) { return std::get<std::nullptr_t>(obj); }
+inline const std::nullptr_t& as_null(const Obj& obj) { return std::get<std::nullptr_t>(obj); }
+
+inline Void& as_void(Obj& obj) { return std::get<Void>(obj); }
+inline const Void& as_void(const Obj& obj) { return std::get<Void>(obj); }
+
+inline bool is_true(const Obj& obj) {return (!is_bool(obj) || as_bool(obj) == true); }
+inline bool is_false(const Obj& obj) {return !is_true(obj); }
+
+inline bool operator ==(const Void& v0, const Void& v1) {return true; }
+
+std::string stringify(const Obj&);
 
 }
 

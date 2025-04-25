@@ -15,8 +15,8 @@ private:
 
 public:
   Environment *const super;
-  Environment();
-  Environment(Environment*);
+  Environment(): frame {}, super {nullptr} {};
+  Environment(Environment *super): frame {}, super {super} {};
   Obj& get(const Symbol&);
   std::pair<Obj&, int> get_with_depth(const Symbol&);
   void set(const Symbol&, const Obj);

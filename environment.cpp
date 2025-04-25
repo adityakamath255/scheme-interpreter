@@ -5,12 +5,6 @@
 
 namespace Scheme {
 
-Environment::Environment():
-  super {nullptr} {}
-  
-Environment::Environment(Environment *super_): 
-  super {super_} {}
-
 std::pair<Obj&, int>
 Environment::get_impl(const Symbol& s, const int depth) {
   const auto found = frame.find(s);
