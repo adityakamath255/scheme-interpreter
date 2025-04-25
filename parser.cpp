@@ -102,7 +102,10 @@ Parser::parse_impl(bool recursive) {
 
 Obj
 Parser::parse() {
-  return parse_impl(true);
+  if (tokens.empty()) {
+    return Void {};
+  }
+  return parse_impl(false);
 }
 
 }

@@ -39,9 +39,6 @@ Lexer::skip_whitespace() {
 
 std::vector<std::string_view>
 Lexer::tokenize() {
-  tokens.push_back("(");
-  tokens.push_back("begin");
-
   bool is_string = false;
 
   while (curr < input.size()) {
@@ -71,7 +68,6 @@ Lexer::tokenize() {
   }
 
   insert(false);
-  tokens.push_back(")");
   return tokens;
 }
 

@@ -1,7 +1,7 @@
 #pragma once
 #include "types.hpp"
 #include "environment.hpp"
-#include "tco.hpp"
+
 #include <memory>
 #include <unordered_map>
 #include <variant>
@@ -9,6 +9,15 @@
 namespace Scheme {
 
 class Interpreter;
+
+struct TailCall {
+  Obj proc;
+  ArgList args;
+  TailCall(Obj p, ArgList ls):
+    proc {std::move(p)},
+    args {std::move(ls)}
+  {}
+};
 
 using EvalResult = std::variant<
   Obj,
@@ -76,14 +85,21 @@ struct If : public Expression {
   If(Expression*, Expression*, Expression*);
   If();
   EvalResult eval(Environment*, Interpreter&) override;
-  void tco() override;
+  void tco() override {
+    consequent->tco();
+    alternative->tco();
+  }
 };
 
 struct Begin : public Expression {
   ExprList actions;
   Begin(ExprList);
   EvalResult eval(Environment*, Interpreter&) override;
-  void tco() override;
+  void tco() override {
+    if (!actions.empty()) {
+      actions.back()->tco();
+    }
+  }
 };
 
 Expression *combine_expr(Obj);
@@ -127,7 +143,11 @@ private:
 public:
   Cond (Obj);
   EvalResult eval(Environment*, Interpreter&) override;
-  void tco() override;
+  void tco() override {
+    for (auto& clause : clauses) {
+      clause.actions->tco();
+    }
+  }
 };
 
 struct Application : public Expression {
@@ -136,7 +156,9 @@ struct Application : public Expression {
   bool at_tail = false;
   Application(Cons*);
   EvalResult eval(Environment*, Interpreter&) override;
-  void tco() override;
+  void tco() override {
+    at_tail = true;
+  }
 };
 
 struct And : public Expression {
