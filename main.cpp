@@ -86,6 +86,11 @@ run_file(Interpreter& interp, const char *filename, bool enter_driver_loop) {
     }
   }
   std::cout << "\n";
+  if (interp.is_profiled()) {
+    std::cout << "\n";
+    interp.print_timings();
+    std::cout << "\n";
+  }
   if (enter_driver_loop) {
     driver_loop(interp);
   }
@@ -93,7 +98,7 @@ run_file(Interpreter& interp, const char *filename, bool enter_driver_loop) {
 
 int 
 main(const int argc, const char **argv) {
-  Interpreter interp;
+  Interpreter interp(true);
   if (argc == 1) {
     driver_loop(interp);
   }

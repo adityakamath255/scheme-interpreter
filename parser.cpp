@@ -13,7 +13,7 @@ Parser::make_num_obj(const std::string_view str) {
 
 Obj
 Parser::make_sym_obj(const std::string_view str) {
-  return Obj(interp.make_symbol(std::string(str)));
+  return Obj(interp.intern_symbol(std::string(str)));
 }
 
 Obj
