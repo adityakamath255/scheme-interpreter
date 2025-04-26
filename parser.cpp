@@ -8,12 +8,17 @@ namespace Scheme {
 
 Obj
 Parser::make_num_obj(const std::string_view str) {
-  return Obj(stod(std::string(str)));
+  double val;
+  auto [ptr, ec] = std::from_chars(str.data(), str.data() + str.size(), val);
+  if (ec != std::errc()) {
+    throw std::runtime_error("failed to parse number");
+  }
+  return Obj(val);
 }
 
 Obj
 Parser::make_sym_obj(const std::string_view str) {
-  return Obj(interp.intern_symbol(std::string(str)));
+  return Obj(interp.intern_symbol(str));
 }
 
 Obj
@@ -28,7 +33,7 @@ Parser::make_bool_obj(const std::string_view str) {
 
 Obj
 Parser::make_str_obj(const std::string_view str) {
-  return Obj(std::string(str.substr(1, str.size() - 2)));
+  return Obj(std::string(str.data() + 1, str.size() - 2));
 }
 
 Obj

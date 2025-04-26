@@ -274,7 +274,7 @@ is_cxr(const std::string& s) {
   if (s.front() != 'c' || s.back() != 'r') {
     return false;
   }
-  for (int i = 1; i < s.size() - 1; i++) {
+  for (size_t i = 1; i < s.size() - 1; i++) {
     if (s[i] != 'a' && s[i] != 'd') {
       return false;
     }

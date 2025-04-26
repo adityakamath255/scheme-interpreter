@@ -23,7 +23,7 @@ assert_obj_type(const Obj& obj, const std::string& type) {
 template<typename T>
 static void
 assert_vec_type(const ArgList& args, const std::string& type) {
-  for (int i = 0; i < args.size(); i++) {
+  for (size_t i = 0; i < args.size(); i++) {
     assert_obj_type<T>(args[i], type);
   }
 }
@@ -76,7 +76,7 @@ sub(const ArgList& args, Interpreter& interp) {
   }
   else {
     double ret = as_number(args[0]);
-    for (int i = 1; i < args.size(); i++) {
+    for (size_t i = 1; i < args.size(); i++) {
       ret -= as_number(args[i]);
     }
     return ret;
@@ -102,7 +102,7 @@ div(const ArgList& args, Interpreter& interp) {
   }
   else {
     double ret = as_number(args[0]);
-    for (int i = 1; i < args.size(); i++) {
+    for (size_t i = 1; i < args.size(); i++) {
       ret /= as_number(args[i]);
     }
     return ret;
@@ -138,7 +138,7 @@ static bool
 check_comp(const ArgList& args, Comp comp) {
   assert_arg_count(args, 1, MAX_ARGS);
   assert_vec_type<double>(args, "number");
-  for (int i = 1; i < args.size(); i++) {
+  for (size_t i = 1; i < args.size(); i++) {
     if (!comp(as_number(args[i - 1]), as_number(args[i]))) {
       return false;
     }
@@ -429,7 +429,7 @@ append(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, MAX_ARGS);
   assert_vec_type<Cons*>(args, "list");
   Obj ret = nullptr;
-  for (int i = args.size() - 1; i >= 0; i--) {
+  for (size_t i = args.size() - 1; i >= 0; i--) {
     ret = append_rec(args[i], ret, interp);
   }
   return ret;
