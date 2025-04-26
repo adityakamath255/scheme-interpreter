@@ -14,7 +14,7 @@ Cons::at(const std::string& s) {
     throw std::runtime_error("invalid cons operation: " + s);
   }
 
-  for (int i = s.size() - 2; i > 0; i--) {
+  for (size_t i = s.size() - 2; i > 0; i--) {
     switch (s[i]) {
       case 'a':
         curr = as_pair(curr)->car;

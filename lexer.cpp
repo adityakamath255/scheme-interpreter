@@ -5,11 +5,32 @@
 
 namespace Scheme {
 
-static const char SPECIAL_CHARS[] = {'(', ')', '\'', '`', ',', '\"', ';'};
+static bool
+is_space(const char c) {
+  switch (c) {
+    case ' ':
+    case '\t':
+    case '\n':
+    case '\r':
+      return true;
+    default:
+      return false;
+  }
+}
 
 static bool
 is_special(const char c) {
-  return std::find(std::begin(SPECIAL_CHARS), std::end(SPECIAL_CHARS), c) != std::end(SPECIAL_CHARS);
+  switch (c) {
+    case '(':
+    case ')':
+    case '\'':
+    case '`':
+    case ',':
+    case ';':
+      return true;
+    default:
+      return false;
+  }
 }
 
 Lexer::Lexer(const std::string_view input): 
@@ -33,7 +54,7 @@ void
 Lexer::skip_whitespace() {
   do {
     curr++;
-  } while (curr < input.size() && isspace(input[curr]));
+  } while (curr < input.size() && is_space(input[curr]));
   start = curr;
 }
 
@@ -53,7 +74,7 @@ Lexer::tokenize() {
       is_string = !is_string;
     }
     else if (!is_string) {
-      if (isspace(c)) {
+      if (is_space(c)) {
         insert(false);
         skip_whitespace();
         continue;

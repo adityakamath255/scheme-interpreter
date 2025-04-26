@@ -46,7 +46,7 @@ Literal::eval(Environment *env, Interpreter& interp) {
 EvalResult
 Variable::eval(Environment *env, Interpreter& interp) {
   if (resolved) {
-    for (int i = 0; i < depth; i++) {
+    for (size_t i = 0; i < depth; i++) {
       env = env->super;
     }
     return env->get(sym);
@@ -83,7 +83,7 @@ If::eval(Environment *env, Interpreter& interp) {
 
 EvalResult
 Begin::eval(Environment *env, Interpreter& interp) {
-  for (int i = 0; i < actions.size() - 1; i++) {
+  for (size_t i = 0; i < actions.size() - 1; i++) {
     actions[i]->eval(env, interp);
   }
   if (!actions.empty()) {

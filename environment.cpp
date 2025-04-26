@@ -50,7 +50,7 @@ Environment::extend(const ParamList& parameters, const ArgList& arguments, Inter
     throw std::runtime_error("env extend size mismatch");
   }
   auto ret = extend(interp);
-  for (int i = 0; i < parameters.size(); i++) {
+  for (size_t i = 0; i < parameters.size(); i++) {
     ret->define(parameters[i], arguments[i]);
   }
   return ret;
