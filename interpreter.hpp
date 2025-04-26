@@ -31,6 +31,7 @@ public:
   ~Interpreter();
 
   bool is_profiled() {return profiling;}
+  Environment *get_global_env() {return &global_env;}
   Symbol intern_symbol(const std::string_view);
   Obj interpret(const std::string&);
   void print_timings() const;
