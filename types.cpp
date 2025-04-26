@@ -58,10 +58,10 @@ stringify(const Obj& obj) {
       return "#<void>";
     },
     [](const Procedure* p) -> std::string {
-      return std::format("procedure at {}", static_cast<const void*>(p));
+      return std::format("<procedure at {}>", static_cast<const void*>(p));
     },
     [](const Primitive* p) -> std::string {
-      return std::format("procedure at {}", static_cast<const void*>(p));
+      return std::format("<procedure at {}>", static_cast<const void*>(p));
     },
     [](Cons* const ls) -> std::string {
       if (!ls) return "()"; // Safety check

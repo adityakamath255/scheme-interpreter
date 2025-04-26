@@ -50,6 +50,19 @@ assert_arg_count(const ArgList& args, const int lb, const int rb) {
   }
 }
 
+static void
+assert_numbers(const ArgList& args, int lb, int rb) {
+  assert_arg_count(args, lb, rb);
+  assert_vec_type<double>(args, "number");
+}
+
+static double
+get_single_number(const ArgList& args) {
+  assert_arg_count(args, 1, 1);
+  assert_obj_type<double>(args[0], "number");
+  return as_number(args[0]);
+}
+
 static Obj
 display(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, 1);
@@ -59,7 +72,7 @@ display(const ArgList& args, Interpreter& interp) {
 
 static Obj
 add(const ArgList& args, Interpreter& interp) {
-  assert_vec_type<double>(args, "number");
+  assert_numbers(args, 0, MAX_ARGS);
   double ret = 0.0;
   for (const auto& arg : args) {
     ret += as_number(arg);
@@ -69,8 +82,7 @@ add(const ArgList& args, Interpreter& interp) {
 
 static Obj
 sub(const ArgList& args, Interpreter& interp) {
-  assert_arg_count(args, 1, MAX_ARGS);
-  assert_vec_type<double>(args, "number");
+  assert_numbers(args, 1, MAX_ARGS);
   if (args.size() == 1) {
     return -as_number(args[0]);
   }
@@ -85,7 +97,7 @@ sub(const ArgList& args, Interpreter& interp) {
 
 static Obj
 mul(const ArgList& args, Interpreter& interp) {
-  assert_vec_type<double>(args, "number");
+  assert_numbers(args, 0, MAX_ARGS);
   double ret = 1.0;
   for (const auto& arg : args) {
     ret *= as_number(arg);
@@ -95,8 +107,7 @@ mul(const ArgList& args, Interpreter& interp) {
 
 static Obj
 div(const ArgList& args, Interpreter& interp) {
-  assert_arg_count(args, 1, MAX_ARGS);
-  assert_vec_type<double>(args, "number");
+  assert_numbers(args, 1, MAX_ARGS);
   if (args.size() == 1) {
     return 1.0 / as_number(args[0]);
   }
@@ -111,8 +122,7 @@ div(const ArgList& args, Interpreter& interp) {
 
 static Obj
 quotient(const ArgList& args, Interpreter& interp) {
-  assert_arg_count(args, 2, 2);
-  assert_vec_type<double>(args, "number");
+  assert_numbers(args, 2, 2);
   return static_cast<double>(
     static_cast<int>(
       as_number(args[0]) / 
@@ -121,23 +131,20 @@ quotient(const ArgList& args, Interpreter& interp) {
 
 static Obj 
 remainder(const ArgList& args, Interpreter& interp) {
-  assert_arg_count(args, 2, 2);
-  assert_vec_type<double>(args, "number");
+  assert_numbers(args, 2, 2);
   return fmod(as_number(args[0]), as_number(args[1]));
 }
 
 static Obj
 expt(const ArgList& args, Interpreter& interp) {
-  assert_arg_count(args, 2, 2);
-  assert_vec_type<double>(args, "number");
+  assert_numbers(args, 2, 2);
   return std::pow(as_number(args[0]), as_number(args[1]));
 }
 
 template<class Comp>
 static bool
 check_comp(const ArgList& args, Comp comp) {
-  assert_arg_count(args, 1, MAX_ARGS);
-  assert_vec_type<double>(args, "number");
+  assert_numbers(args, 1, MAX_ARGS);
   for (size_t i = 1; i < args.size(); i++) {
     if (!comp(as_number(args[i - 1]), as_number(args[i]))) {
       return false;
@@ -173,43 +180,32 @@ ge(const ArgList& args, Interpreter& interp) {
 
 static Obj
 abs_fn(const ArgList& args, Interpreter& interp) {
-  assert_arg_count(args, 1, 1);
-  assert_obj_type<double>(args[0], "number");
-  return std::abs(as_number(args[0]));
+  return std::abs(get_single_number(args));
 }
 
 static Obj
 sqrt_fn(const ArgList& args, Interpreter& interp) {
-  assert_arg_count(args, 1, 1);
-  assert_obj_type<double>(args[0], "number");
-  return std::sqrt(as_number(args[0]));
+  return std::sqrt(get_single_number(args));
 }
 
 static Obj
 sin_fn(const ArgList& args, Interpreter& interp) {
-  assert_arg_count(args, 1, 1);
-  assert_obj_type<double>(args[0], "number");
-  return sin(as_number(args[0]));
+  return std::sin(get_single_number(args));
 }
 
 static Obj
 cos_fn(const ArgList& args, Interpreter& interp) {
-  assert_arg_count(args, 1, 1);
-  assert_obj_type<double>(args[0], "number");
-  return cos(as_number(args[0]));
+  return std::cos(get_single_number(args));
 }
 
 static Obj
 log_fn(const ArgList& args, Interpreter& interp) {
-  assert_arg_count(args, 1, 1);
-  assert_obj_type<double>(args[0], "number");
-  return log(as_number(args[0]));
+  return std::log(get_single_number(args));
 }
 
 static Obj
 max_fn(const ArgList& args, Interpreter& interp) {
-  assert_arg_count(args, 1, MAX_ARGS);
-  assert_vec_type<double>(args, "number");
+  assert_numbers(args, 1, MAX_ARGS);
   double ret = -INFINITY;
   for (const auto& arg : args)
     ret = std::max(ret, as_number(arg));
@@ -218,8 +214,7 @@ max_fn(const ArgList& args, Interpreter& interp) {
 
 static Obj
 min_fn(const ArgList& args, Interpreter& interp) {
-  assert_arg_count(args, 1, MAX_ARGS);
-  assert_vec_type<double>(args, "number");
+  assert_numbers(args, 1, MAX_ARGS);
   double ret = INFINITY;
   for (const auto& arg : args)
     ret = std::min(ret, as_number(arg));
@@ -228,37 +223,27 @@ min_fn(const ArgList& args, Interpreter& interp) {
 
 static Obj
 is_even(const ArgList& args, Interpreter& interp) {
-  assert_arg_count(args, 1, 1);
-  assert_obj_type<double>(args[0], "number");
-  return (bool) !(1 & static_cast<int>(as_number(args[0])));
+  return (bool) !(1 & static_cast<int>(get_single_number(args)));
 }
 
 static Obj
 is_odd(const ArgList& args, Interpreter& interp) {
-  assert_arg_count(args, 1, 1);
-  assert_obj_type<double>(args[0], "number");
-  return (bool) (1 & static_cast<int>(as_number(args[0])));
+  return (bool) (1 & static_cast<int>(get_single_number(args)));
 }
 
 static Obj
 ceil_fn(const ArgList& args, Interpreter& interp) {
-  assert_arg_count(args, 1, 1);
-  assert_obj_type<double>(args[0], "number");
-  return std::ceil(as_number(args[0]));
+  return std::ceil(get_single_number(args));
 }
 
 static Obj
 floor_fn(const ArgList& args, Interpreter& interp) {
-  assert_arg_count(args, 1, 1);
-  assert_obj_type<double>(args[0], "number");
-  return std::floor(as_number(args[0]));
+  return std::floor(get_single_number(args));
 }
 
 static Obj
 round_fn(const ArgList& args, Interpreter& interp) {
-  assert_arg_count(args, 1, 1);
-  assert_obj_type<double>(args[0], "number");
-  return std::round(as_number(args[0]));
+  return std::round(get_single_number(args));
 }
 
 static Obj
@@ -488,13 +473,22 @@ filter_fn(const ArgList& args, Interpreter& interp) {
 }
 
 static Obj
+eval_fn(const ArgList& args, Interpreter& interp) {
+  assert_arg_count(args, 1, 1);
+  auto ast = classify(args[0]);
+  auto result = ast->eval(interp.get_global_env(), interp);
+  return as_obj(result);
+}
+
+static Obj
 error_fn(const ArgList& args, Interpreter& interp) {
-  std::cerr << "ERROR: ";
+  std::ostringstream message;
+  message << "ERROR: ";
   for (auto obj : args) {
-    std::cerr << stringify(obj);
-    std::cerr << " ";
+    message << stringify(obj);
+    message << " ";
   }
-  return Void {};
+  throw std::runtime_error(message.str());
 }
 
 std::vector<std::pair<std::string, Obj(*)(const ArgList&, Interpreter&)>> 
@@ -545,6 +539,7 @@ get_primitive_functions() {
     {"append", append},
     {"map", map_fn},
     {"filter", filter_fn},
+    {"eval", eval_fn},
     {"error", error_fn}
   };
 }
