@@ -1,7 +1,6 @@
 #pragma once
 #include "types.hpp"
 #include "environment.hpp"
-
 #include <memory>
 #include <unordered_map>
 #include <variant>
@@ -26,33 +25,26 @@ using EvalResult = std::variant<
 
 using ExprList = std::vector<Expression*>;
 
-bool is_obj(const EvalResult&);
-bool is_tailcall(const EvalResult&);
+inline bool is_obj(const EvalResult& res) {return std::holds_alternative<Obj>(res); }
+inline bool is_tailcall(const EvalResult& res) {return std::holds_alternative<TailCall>(res); }
 
-Obj& as_obj(EvalResult&);
-const Obj& as_obj(const EvalResult&);
+inline Obj& as_obj(EvalResult& res) { return std::get<Obj>(res); }
+inline const Obj& as_obj(const EvalResult& res) { return std::get<Obj>(res); }
 
-TailCall& as_tailcall(EvalResult&);
-const TailCall& as_tailcall(const EvalResult&);
+inline TailCall& as_tailcall(EvalResult& res) { return std::get<TailCall>(res); }
+inline const TailCall& as_tailcall(const EvalResult& res) { return std::get<TailCall>(res); }
 
 class Expression {
-private:
-  int get_size(Cons*) const;
-  void assert_size(Cons*, const int, const int) const;
-protected:
-  std::string name;
 public:
-  Expression(const std::string&, Cons* = nullptr, const int = -1, const int = -1);
-  std::string get_name() const;
+  Expression() = default;
+  virtual ~Expression() = default;
   virtual EvalResult eval(Environment*, Interpreter&) = 0;
   virtual void tco() {}
 };
 
-Expression *classify(const Obj&);
-
 struct Literal : public Expression {
   Obj obj;
-  Literal(Obj);
+  explicit Literal(Obj o): obj(std::move(o)) {}
   EvalResult eval(Environment*, Interpreter&) override;
 };
 
@@ -60,122 +52,104 @@ struct Variable : public Expression {
   Symbol sym;
   int depth;
   bool resolved;
-  Variable(Symbol obj);
+  explicit Variable(Symbol s, int d = 0, bool r = false): sym(std::move(s)), depth(d), resolved(r) {}
   EvalResult eval(Environment*, Interpreter&) override;
 };
 
 struct Quoted : public Expression {
   Obj text_of_quotation;
-  Quoted(Cons*);
+  explicit Quoted(Obj text): text_of_quotation {std::move(text)} {}
   EvalResult eval(Environment*, Interpreter&) override;
 };
 
 struct Set : public Expression {
   Symbol variable;
   Expression *value;
-  Set(Cons*);
+  Set(Symbol var, Expression *val): variable {std::move(var)}, value {val} {}
   EvalResult eval(Environment*, Interpreter&) override;
 };
 
 struct If : public Expression {
-  Expression *predicate, *consequent, *alternative;
-  If(Cons*);
-  If(Expression*, Expression*, Expression*);
-  If();
+  Expression *predicate;
+  Expression *consequent;
+  Expression *alternative;
+  If(Expression *p, Expression *c, Expression *a): predicate {p}, consequent {c}, alternative {a} {}
   EvalResult eval(Environment*, Interpreter&) override;
-  void tco() override {
-    consequent->tco();
-    alternative->tco();
-  }
+  void tco() override {consequent->tco(); alternative->tco();}
 };
 
 struct Begin : public Expression {
   ExprList actions;
-  Begin(ExprList);
+  Begin(ExprList a): actions {std::move(a)} {}
   EvalResult eval(Environment*, Interpreter&) override;
-  void tco() override {
-    if (!actions.empty()) {
-      actions.back()->tco();
-    }
-  }
+  void tco() override {if (!actions.empty()) {actions.back()->tco();}}
 };
-
-Expression *combine_expr(Obj);
 
 struct Lambda : public Expression {
   ParamList parameters;
   Expression *body;
-  Lambda(Cons*);
-  Lambda(Obj, Obj);
+  Lambda(ParamList p, Expression *b): parameters {std::move(p)}, body {b} {
+    body->tco();
+  }
   EvalResult eval(Environment*, Interpreter&) override;
 };
 
 struct Define : public Expression {
   Symbol variable;
   Expression *value;
-  Define(Cons*);
+  Define(Symbol var, Expression *val): variable {std::move(var)}, value {val} {}
   EvalResult eval(Environment*, Interpreter&) override;
 };
 
 struct Let : public Expression {
   std::unordered_map<Symbol, Expression*> bindings;
   Expression *body;
-  decltype(bindings) get_bindings(Obj);
-  Let(Cons*);
+  Let(decltype(bindings) bn, Expression *bd): bindings {std::move(bn)}, body {bd} {}
   EvalResult eval(Environment*, Interpreter&) override;
 };
 
 struct Clause {
-private:
-  bool is_else_clause(Obj) const;
-public:
   bool is_else;
   Expression *predicate;
   Expression *actions;
-  Clause (Cons*);
 };
 
 struct Cond : public Expression {
-private:
   std::vector<Clause> clauses;
-public:
-  Cond (Obj);
+  Cond(decltype(clauses) c): clauses {std::move(c)} {}
   EvalResult eval(Environment*, Interpreter&) override;
-  void tco() override {
-    for (auto& clause : clauses) {
-      clause.actions->tco();
-    }
-  }
+  void tco() override {for (auto& clause : clauses) {clause.actions->tco();}}
 };
 
 struct Application : public Expression {
   Expression *op;
   ExprList params;
   bool at_tail = false;
-  Application(Cons*);
+  Application(Expression *o, ExprList p): op {o}, params {std::move(p)} {}
   EvalResult eval(Environment*, Interpreter&) override;
-  void tco() override {
-    at_tail = true;
-  }
+  void tco() override {at_tail = true;}
 };
 
 struct And : public Expression {
   ExprList exprs;
-  And(Cons*);
+  And(ExprList e): exprs {std::move(e)} {}
   EvalResult eval(Environment*, Interpreter&) override;
 };
 
 struct Or : public Expression {
   ExprList exprs;
-  Or(Cons*);
+  Or(ExprList e): exprs {std::move(e)} {}
   EvalResult eval(Environment*, Interpreter&) override;
 };
 
 struct Cxr : public Expression {
   Symbol word;
   Expression *expr;
-  Cxr(Symbol, Cons*);
+  Cxr(Symbol w, Expression *e): word {std::move(w)}, expr {e} {}
   EvalResult eval(Environment*, Interpreter&) override;
 };
+
+Expression *combine_expr(const Obj&);
+Expression *classify(const Obj&);
 
 }
