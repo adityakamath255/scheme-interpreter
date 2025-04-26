@@ -24,7 +24,7 @@ private:
 public:
   Allocator(): live_memory {} {};
   Cons* make_cons(Obj car, Obj cdr); 
-  Symbol make_symbol(const std::string& str); 
+  Symbol intern_symbol(const std::string& str); 
   Procedure* make_procedure(ParamList p, Expression *b, Environment* e);
   Environment* make_environment(); 
   Environment* make_environment(Environment *super);
