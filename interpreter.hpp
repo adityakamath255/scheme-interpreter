@@ -21,9 +21,11 @@ public:
   Allocator alloc;
 
   Interpreter();
+  ~Interpreter();
+
   Symbol make_symbol(const std::string_view);
   Obj interpret(const std::string&);
-  ~Interpreter();
+
 };
 
 }

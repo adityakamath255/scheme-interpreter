@@ -1,7 +1,6 @@
 #include "types.hpp"
 #include "environment.hpp"
 #include "expressions.hpp"
-
 #include "interpreter.hpp"
 
 namespace Scheme {

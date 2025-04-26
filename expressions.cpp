@@ -1,179 +1,134 @@
 #include "types.hpp"
 #include "environment.hpp"
 #include "expressions.hpp"
-
 #include <unordered_map>
-
 #include <iostream>
+#include <format>
 
 namespace Scheme {
 
 using namespace std::string_literals;
 static constexpr int MAXARGS = 256;
 
-bool is_obj(const EvalResult& res) {return std::holds_alternative<Obj>(res); }
-bool is_tailcall(const EvalResult& res) {return std::holds_alternative<TailCall>(res); }
-
-Obj& as_obj(EvalResult& res) { return std::get<Obj>(res); }
-const Obj& as_obj(const EvalResult& res) { return std::get<Obj>(res); }
-
-TailCall& as_tailcall(EvalResult& res) { return std::get<TailCall>(res); }
-const TailCall& as_tailcall(const EvalResult& res) { return std::get<TailCall>(res); }
-
-int
-Expression::get_size(Cons* obj) const {
+static int
+get_size(Cons* cons) {
   int sz = 0;
-  while (obj != nullptr) {
+  while (cons != nullptr) {
     sz++;
-    if (!is_pair(obj->cdr)) {
+    if (!is_pair(cons->cdr)) {
       break;
     }
     else {
-      obj = as_pair(obj->cdr);
+      cons = as_pair(cons->cdr);
     }
   }
   return sz;
 }
 
-void
-Expression::assert_size(Cons *obj, const int lb, const int ub) const {
-  const int sz = get_size(obj);
+static void
+assert_size(Cons *cons, const int lb, const int ub, const std::string& name) {
+  const int sz = get_size(cons);
   if (sz < lb || sz > ub) {
-    throw std::runtime_error(
-      name + 
-      " expression is of wrong size [" + 
-      std::to_string(sz) + 
-      "]"
-    );
+    throw std::runtime_error(std::format("{} expression is of wrong size [{}]", name, sz));
   }
-}
-
-Expression::Expression(const std::string& n, Cons *obj, const int lb, const int ub):
-  name {n} 
-{
-  if (lb != -1) {
-    assert_size(obj, lb, ub);
-  }
-}
-
-std::string
-Expression::get_name() const {
-  return name;
 }
 
 template<typename T, typename F>
 static std::vector<T>
-cons2vec(Obj ls, F fn) {
+cons2vec(const Obj& ls, F fn) {
   std::vector<T> ret {};
-  while (is_pair(ls)) {
-    const auto as_cons = as_pair(ls);
+  Obj current = ls;
+  while (is_pair(current)) {
+    const auto as_cons = as_pair(current);
     ret.push_back(fn(as_cons->car));
-    ls = as_cons->cdr;
+    current = as_cons->cdr;
   }
   return ret;
 }
 
 static ParamList 
-cons2symbols(Obj ls) {
-  return cons2vec<Symbol>(ls, [](const Obj& obj) -> Symbol {return as_symbol(obj); });
+cons2symbols(const Obj& ls) {
+  return cons2vec<Symbol>(ls, [](const Obj& obj) -> Symbol { return as_symbol(obj); });
 }
 
 static ExprList
-cons2exprs(Obj ls) {
+cons2exprs(const Obj& ls) {
   return cons2vec<Expression*>(ls, classify);
 }
 
-Literal::Literal(Obj obj):
-  Expression("literal"s),
-  obj {std::move(obj)}
-{}
+static Expression*
+make_quoted(Cons *cons) {
+  assert_size(cons, 2, 2, "quoted");
+  return new Quoted(cons->at("cadr"));
+}
 
-Variable::Variable(Symbol obj):
-  Expression("variable"s),
-  sym {std::move(obj)},
-  resolved {false}
-{}
-
-Quoted::Quoted(Cons *obj):
-  Expression("quoted"s, obj, 2, 2),
-  text_of_quotation {obj->at("cadr")}
-{}
-
-Set::Set(Cons *obj):
-  Expression("set!"s, obj, 3, 3)
-{
-  if (!is_symbol(obj->at("cadr"))) {
+static Expression*
+make_set(Cons *cons) {
+  assert_size(cons, 3, 3, "set!");
+  if (!is_symbol(cons->at("cadr"))) {
     throw std::runtime_error("tried to assign something to a non-variable");
   }
-  variable = as_symbol(obj->at("cadr"));
-  const auto cddr = obj->at("cddr");
-  value = classify(obj->at("caddr"));
+  const auto variable = as_symbol(cons->at("cadr"));
+  const auto cddr = cons->at("cddr");
+  auto value = classify(cons->at("caddr"));
+  return new Set(variable, value);
 }
 
-If::If(Cons *obj):
-  Expression("if"s, obj, 3, 4),
-  predicate {classify(obj->at("cadr"))},
-  consequent {classify(obj->at("caddr"))},
-  alternative {
-    !is_null(obj->at("cdddr"))
-  ? classify(obj->at("cadddr"))
-  : new Literal(false)
-  }
-{}
-
-If::If(Expression *p, Expression *c, Expression *a):
-  Expression("if"s),
-  predicate {p},
-  consequent {c},
-  alternative {a} 
-{}
-
-If::If():
-  Expression("if"s),
-  predicate {new Literal(Void {})},
-  consequent {new Literal(Void {})},
-  alternative {new Literal(Void {})}
-{}
-
-Begin::Begin(ExprList seq):
-  Expression("begin"s),
-  actions {std::move(seq)}
-{}
-
-Lambda::Lambda(Cons *obj):
-  Expression("lambda"s, obj, 3, MAXARGS),
-  parameters {cons2symbols(obj->at("cadr"))},
-  body {combine_expr(obj->at("cddr"))}
-{
-  body->tco();
+static Expression*
+make_if(Cons *cons) {
+  assert_size(cons, 3, 4, "if");
+  return new If(
+    classify(cons->at("cadr")),
+    classify(cons->at("caddr")),
+      !is_null(cons->at("cdddr"))
+    ? classify(cons->at("cadddr"))
+    : new Literal (false)
+  );
 }
 
-Lambda::Lambda(Obj parameters_, Obj body_):
-  Expression("lambda"s),
-  parameters {cons2symbols(parameters_)},
-  body {combine_expr(body_)}
-{
-  body->tco();
+static Expression*
+make_lambda(Cons *cons) {
+  assert_size(cons, 3, MAXARGS, "lambda");
+  auto ret = new Lambda(
+    std::move(cons2symbols(cons->at("cadr"))),
+    std::move(combine_expr(cons->at("cddr")))
+  );
+  ret->body->tco();
+  return ret;
 }
 
-Define::Define(Cons *obj):
-  Expression("define"s, obj, 3, MAXARGS)
-{
-  const auto cadr = obj->at("cadr");
+static Expression*
+make_lambda(Obj parameters, Obj body) {
+  auto ret = new Lambda(
+    std::move(cons2symbols(parameters)),
+    std::move(combine_expr(body))
+  );
+  ret->body->tco();
+  return ret;
+}
 
-  if (is_symbol(cadr)) {  
-    variable = as_symbol(cadr);
-    value = classify(obj->at("caddr"));
+static Expression*
+make_define(Cons *cons) {
+  assert_size(cons, 3, MAXARGS, "define");
+  const auto cadr = cons->at("cadr");
+
+  if (is_symbol(cadr)) {
+    return new Define(
+      as_symbol(cadr), 
+      classify(cons->at("caddr"))
+    );
   }
 
   else if (is_pair(cadr)) {
-    const auto parameters = obj->at("cdadr");
-    const auto body = obj->at("cddr");
-    if (!is_symbol(obj->at("caadr"))) {
+    const auto parameters = cons->at("cdadr");
+    const auto body = cons->at("cddr");
+    if (!is_symbol(cons->at("caadr"))) {
       throw std::runtime_error("procedure name must be a symbol");
     }
-    variable = as_symbol(obj->at("caadr"));
-    value = new Lambda(parameters, body);
+    return new Define(
+      as_symbol(cons->at("caadr")),
+      make_lambda(parameters, body)
+    );
   }
 
   else {
@@ -181,64 +136,75 @@ Define::Define(Cons *obj):
   }
 }
 
-std::unordered_map<Symbol, Expression*>
-Let::get_bindings(Obj li) {
+static std::unordered_map<Symbol, Expression*>
+get_bindings(Obj li) {
   std::unordered_map<Symbol, Expression*> ret {};
   while (is_pair(li)) {
     const auto as_cons = as_pair(li);
     if (!is_pair(as_cons->car)) {
-      throw std::runtime_error("Let::get_bindings: type error");
+      throw std::runtime_error("let bindings must be represented as pairs");
     }
     const auto car = as_pair(as_cons->car);
     if (!is_symbol(car->car)) {
-      throw std::runtime_error("Let::get_bindings: type error");
+      throw std::runtime_error("let bindings must be to variables");
     }
     
     ret.insert({
       as_symbol(car->at("car")),
       classify(car->at("cadr"))
     });
+
     li = as_cons->cdr;
   }
   return ret;
 }
 
-Let::Let(Cons *obj):
-  Expression("let"s, obj, 3, MAXARGS),
-  bindings {get_bindings(obj->at("cadr"))},
-  body {combine_expr(obj->at("cddr"))}
-{}
+static Expression*
+make_let(Cons *cons) {
+  assert_size(cons, 3, MAXARGS, "let");
+  return new Let(
+    std::move(get_bindings(cons->at("cadr"))),
+    combine_expr(cons->at("cddr"))
+  );
+}
 
+static Expression*
+make_begin(Cons *cons) {
+  return new Begin(cons2exprs(cons));
+}
 
-bool
-Clause::is_else_clause(Obj obj) const {
+static bool
+is_else_clause(const Obj& obj) {
   return
     is_symbol(obj) &&
     as_symbol(obj).get_name() == "else";
 }
 
-Clause::Clause(Cons *obj) {
-  if (is_else_clause(obj->car)) {
-    is_else = 1;
-    predicate = new Literal(true);
+static Clause
+make_clause(Cons *cons) {
+  Clause ret {};
+  if (is_else_clause(cons->car)) {
+    ret.is_else = true;
+    ret.predicate = new Literal(true);
   } 
   else {
-    is_else = 0;
-    predicate = classify(obj->car);
+    ret.is_else = false;
+    ret.predicate = classify(cons->car);
   }
-  actions = combine_expr(obj->cdr);
+  ret.actions = combine_expr(cons->cdr);
+  return ret;
 }
 
-Cond::Cond(Obj obj):
-  Expression("cond"s) 
-{
-  obj = as_pair(obj)->cdr;
+static Expression*
+make_cond(Cons *cons) {
+  std::vector<Clause> clauses {};
+  Obj obj = cons->cdr;
   while (is_pair(obj)) {
     const auto as_cons = as_pair(obj);
     if (!is_pair(as_cons->car)) {
       throw std::runtime_error("bad form for cond expression\n");
     }
-    clauses.push_back(Clause(as_pair(as_cons->car)));
+    clauses.push_back(make_clause(as_pair(as_cons->car)));
     if (clauses.back().is_else) {
       if (!is_null(as_cons->cdr)) {
         throw std::runtime_error("no clauses allowed after else clause\n");
@@ -249,32 +215,35 @@ Cond::Cond(Obj obj):
     }
     obj = as_cons->cdr;
   }
+  return new Cond(std::move(clauses));
 }
 
-Application::Application(Cons *obj):
-  Expression("application"s),
-  op {classify(obj->car)},
-  params {cons2exprs(obj->cdr)}
-{}
+static Expression*
+make_application(Cons *cons) {
+  return new Application(
+    classify(cons->car),
+    std::move(cons2exprs(cons->cdr))
+  );
+}
 
-And::And(Cons *obj):
-  Expression("and"s, obj, 2, MAXARGS),
-  exprs {cons2exprs(obj->cdr)}
-{}
+static Expression*
+make_and(Cons *cons) {
+  return new And(std::move(cons2exprs(cons->cdr)));
+}
 
-Or::Or(Cons *obj):
-  Expression("or"s, obj, 2, MAXARGS),
-  exprs {cons2exprs(obj->cdr)}
-{}
+static Expression*
+make_or(Cons *cons) {
+  return new Or(std::move(cons2exprs(cons->cdr)));
+}
 
-Cxr::Cxr(Symbol tag, Cons *obj): 
-  Expression(tag.get_name(), obj, 2, 2),
-  word {tag}, 
-  expr {classify(obj->at("cadr"))} 
-{}
+static Expression*
+make_cxr(Symbol tag, Cons *cons) {
+  assert_size(cons, 2, 2, tag.get_name());
+  return new Cxr(tag, classify(cons->at("cadr")));
+}
 
 Expression*
-combine_expr(Obj seq) {
+combine_expr(const Obj& seq) {
   if (is_null(seq)) {
     return new Literal(Void {});
   }
@@ -285,18 +254,6 @@ combine_expr(Obj seq) {
     return new Begin(cons2exprs(seq));
   }
 }
-
-static Expression* make_quoted(Cons *obj) { return new Quoted(obj); }
-static Expression* make_set(Cons *obj) { return new Set(obj); }
-static Expression* make_define(Cons *obj) { return new Define(obj); }
-static Expression* make_if(Cons *obj) { return new If(obj); }
-static Expression* make_lambda(Cons *obj) { return new Lambda(obj); }
-static Expression* make_let(Cons *obj) { return new Let(obj); }
-static Expression* make_begin(Cons *obj) { return combine_expr(obj->cdr); }
-static Expression* make_cond(Cons *obj) { return new Cond(obj); }
-static Expression* make_application(Cons *obj) { return new Application(obj); }
-static Expression* make_and(Cons *obj) { return new And(obj); }
-static Expression* make_or(Cons *obj) { return new Or(obj); }
 
 static std::unordered_map<std::string, Expression*(*)(Cons*)> 
 special_forms = {
@@ -337,10 +294,10 @@ classify(const Obj& obj) {
         return func(p);
       }
       else if (is_cxr(tag.get_name())) {
-        return new Cxr(tag, p);
+        return make_cxr(tag, p);
       }
     }
-    return new Application(p);
+    return make_application(p);
   }
   else if (is_symbol(obj))
     return new Variable(as_symbol(obj));
