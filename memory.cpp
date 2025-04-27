@@ -1,5 +1,6 @@
 #include "types.hpp"
 #include "environment.hpp"
+#include "expressions.hpp"
 #include "memory.hpp"
 
 namespace Scheme {
@@ -7,14 +8,10 @@ namespace Scheme {
 void
 Cons::push_children(std::stack<HeapEntity*>& worklist) {
   if (auto car_ent = try_get_heap_entity(car)) {
-    if (!car_ent->marked) {
-      worklist.push(car_ent);
-    }
+    worklist.push(car_ent);
   }
   if (auto cdr_ent = try_get_heap_entity(cdr)) {
-    if (!cdr_ent->marked) {
-      worklist.push(cdr_ent);
-    }
+    worklist.push(cdr_ent);
   }
 }
 
@@ -23,58 +20,105 @@ Primitive::push_children(std::stack<HeapEntity*>& worklist) {}
 
 void 
 Procedure::push_children(std::stack<HeapEntity*>& worklist) {
-  if (env && !env->marked) {
-    worklist.push(env);
-  }
+  worklist.push(body);
+  worklist.push(env);
 }
 
 void
 Environment::push_children(std::stack<HeapEntity*>& worklist) {
   for (auto& [key, value] : frame) {
     if (auto ent = try_get_heap_entity(value)) {
-      if (!ent->marked) {
-        worklist.push(ent);
-      }
+      worklist.push(ent);
     }
   }
-  if (super && !super->marked) {
+  if (super) {
     worklist.push(super);
   }
 }
 
-Cons*
-Allocator::make_cons(Obj car, Obj cdr) {
-  auto ret = new Cons(std::move(car), std::move(cdr));
-  live_memory.push_back(ret);
-  return ret;
+void
+Literal::push_children(std::stack<HeapEntity*>& worklist) {}
+
+void  
+Variable::push_children(std::stack<HeapEntity*>& worklist) {}
+
+void 
+Quoted::push_children(std::stack<HeapEntity*>& worklist) {
+  if (auto ent = try_get_heap_entity(text_of_quotation)) {
+    worklist.push(ent);
+  }
 }
 
-Primitive*
-Allocator::make_primitive(Obj(*func)(const ArgList&, Interpreter&)) {
-  auto ret = new Primitive(func);
-  live_memory.push_back(ret);
-  return ret;
+void
+Set::push_children(std::stack<HeapEntity*>& worklist) {
+  worklist.push(value);
 }
 
-Procedure*
-Allocator::make_procedure(ParamList p, Expression *b, Environment* e) {
-  auto ret = new Procedure(std::move(p), b, e);
-  live_memory.push_back(ret);
-  return ret;
+void
+If::push_children(std::stack<HeapEntity*>& worklist) {
+  worklist.push(predicate);
+  worklist.push(consequent);
+  worklist.push(alternative);
 }
 
-Environment*
-Allocator::make_environment() {
-  auto ret = new Environment;
-  live_memory.push_back(ret);
-  return ret;
+void 
+Begin::push_children(std::stack<HeapEntity*>& worklist) {
+  for (auto& action : actions) {
+    worklist.push(action);
+  }
 }
 
-Environment*
-Allocator::make_environment(Environment *super) {
-  auto ret = new Environment(super);
-  live_memory.push_back(ret);
-  return ret;
+void
+Lambda::push_children(std::stack<HeapEntity*>& worklist) {
+  worklist.push(body);
+}
+
+void
+Define::push_children(std::stack<HeapEntity*>& worklist) {
+  worklist.push(value);
+}
+
+void 
+Let::push_children(std::stack<HeapEntity*>& worklist) {
+  for (auto& [key, value] : bindings) {
+    worklist.push(value);
+  }
+  worklist.push(body);
+}
+
+void
+Cond::push_children(std::stack<HeapEntity*>& worklist) {
+  for (auto& clause : clauses) {
+    worklist.push(clause.predicate);
+    worklist.push(clause.actions);
+  }
+}
+
+void 
+Application::push_children(std::stack<HeapEntity*>& worklist) {
+  worklist.push(op);
+  for (auto& param : params) {
+    worklist.push(param);
+  }
+}
+
+void
+And::push_children(std::stack<HeapEntity*>& worklist) {
+  for (auto& expr : exprs) {
+    worklist.push(expr);
+  }
+}
+
+void
+Or::push_children(std::stack<HeapEntity*>& worklist) {
+  for (auto& expr : exprs) {
+    worklist.push(expr);
+  }
+}
+
+void
+Cxr::push_children(std::stack<HeapEntity*>& worklist) {
+  worklist.push(expr);
 }
 
 void 

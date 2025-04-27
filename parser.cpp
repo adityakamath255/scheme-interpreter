@@ -87,8 +87,8 @@ Parser::parse_impl(bool recursive) {
   }
   else if (token == "'") {
     auto quoted = parse_impl(false);
-    head = Obj(interp.alloc.make_cons(
-      make_sym_obj("quote"), interp.alloc.make_cons(
+    head = Obj(interp.alloc.make<Cons>(
+      make_sym_obj("quote"), interp.alloc.make<Cons>(
       quoted, 
       nullptr)));
   }
@@ -101,7 +101,7 @@ Parser::parse_impl(bool recursive) {
   }
   else {
     auto tail = parse_impl(true);
-    return Obj(interp.alloc.make_cons(head, tail));
+    return Obj(interp.alloc.make<Cons>(head, tail));
   }
 }
 

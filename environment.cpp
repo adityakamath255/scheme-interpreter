@@ -41,7 +41,7 @@ Environment::define(const Symbol& s, Obj obj) {
 
 Environment*
 Environment::extend(Interpreter& interp) {
-  return interp.alloc.make_environment(this);
+  return interp.alloc.make<Environment>(this);
 }
 
 Environment*

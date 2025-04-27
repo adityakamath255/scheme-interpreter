@@ -1,6 +1,7 @@
 #pragma once
 #include "types.hpp"
 #include "environment.hpp"
+#include "interpreter.hpp"
 #include <memory>
 #include <unordered_map>
 #include <variant>
@@ -34,7 +35,7 @@ inline const Obj& as_obj(const EvalResult& res) { return std::get<Obj>(res); }
 inline TailCall& as_tailcall(EvalResult& res) { return std::get<TailCall>(res); }
 inline const TailCall& as_tailcall(const EvalResult& res) { return std::get<TailCall>(res); }
 
-class Expression {
+class Expression : public HeapEntity {
 public:
   Expression() = default;
   virtual ~Expression() = default;
@@ -46,6 +47,7 @@ struct Literal : public Expression {
   Obj obj;
   explicit Literal(Obj o): obj(std::move(o)) {}
   EvalResult eval(Environment*, Interpreter&) override;
+  void push_children(std::stack<HeapEntity*>&) override;
 };
 
 struct Variable : public Expression {
@@ -54,12 +56,14 @@ struct Variable : public Expression {
   bool resolved;
   explicit Variable(Symbol s, int d = 0, bool r = false): sym(std::move(s)), depth(d), resolved(r) {}
   EvalResult eval(Environment*, Interpreter&) override;
+  void push_children(std::stack<HeapEntity*>&) override;
 };
 
 struct Quoted : public Expression {
   Obj text_of_quotation;
   explicit Quoted(Obj text): text_of_quotation {std::move(text)} {}
   EvalResult eval(Environment*, Interpreter&) override;
+  void push_children(std::stack<HeapEntity*>&) override;
 };
 
 struct Set : public Expression {
@@ -67,6 +71,7 @@ struct Set : public Expression {
   Expression *value;
   Set(Symbol var, Expression *val): variable {std::move(var)}, value {val} {}
   EvalResult eval(Environment*, Interpreter&) override;
+  void push_children(std::stack<HeapEntity*>&) override;
 };
 
 struct If : public Expression {
@@ -75,14 +80,16 @@ struct If : public Expression {
   Expression *alternative;
   If(Expression *p, Expression *c, Expression *a): predicate {p}, consequent {c}, alternative {a} {}
   EvalResult eval(Environment*, Interpreter&) override;
-  void tco() override {consequent->tco(); alternative->tco();}
+  void tco() override;
+  void push_children(std::stack<HeapEntity*>&) override;
 };
 
 struct Begin : public Expression {
   ExprList actions;
   Begin(ExprList a): actions {std::move(a)} {}
   EvalResult eval(Environment*, Interpreter&) override;
-  void tco() override {if (!actions.empty()) {actions.back()->tco();}}
+  void tco() override;
+  void push_children(std::stack<HeapEntity*>&) override;
 };
 
 struct Lambda : public Expression {
@@ -92,6 +99,7 @@ struct Lambda : public Expression {
     body->tco();
   }
   EvalResult eval(Environment*, Interpreter&) override;
+  void push_children(std::stack<HeapEntity*>&) override;
 };
 
 struct Define : public Expression {
@@ -99,6 +107,7 @@ struct Define : public Expression {
   Expression *value;
   Define(Symbol var, Expression *val): variable {std::move(var)}, value {val} {}
   EvalResult eval(Environment*, Interpreter&) override;
+  void push_children(std::stack<HeapEntity*>&) override;
 };
 
 struct Let : public Expression {
@@ -106,6 +115,7 @@ struct Let : public Expression {
   Expression *body;
   Let(decltype(bindings) bn, Expression *bd): bindings {std::move(bn)}, body {bd} {}
   EvalResult eval(Environment*, Interpreter&) override;
+  void push_children(std::stack<HeapEntity*>&) override;
 };
 
 struct Clause {
@@ -118,7 +128,8 @@ struct Cond : public Expression {
   std::vector<Clause> clauses;
   Cond(decltype(clauses) c): clauses {std::move(c)} {}
   EvalResult eval(Environment*, Interpreter&) override;
-  void tco() override {for (auto& clause : clauses) {clause.actions->tco();}}
+  void tco() override;
+  void push_children(std::stack<HeapEntity*>&) override;
 };
 
 struct Application : public Expression {
@@ -127,19 +138,22 @@ struct Application : public Expression {
   bool at_tail = false;
   Application(Expression *o, ExprList p): op {o}, params {std::move(p)} {}
   EvalResult eval(Environment*, Interpreter&) override;
-  void tco() override {at_tail = true;}
+  void tco() override;
+  void push_children(std::stack<HeapEntity*>&) override;
 };
 
 struct And : public Expression {
   ExprList exprs;
   And(ExprList e): exprs {std::move(e)} {}
   EvalResult eval(Environment*, Interpreter&) override;
+  void push_children(std::stack<HeapEntity*>&) override;
 };
 
 struct Or : public Expression {
   ExprList exprs;
   Or(ExprList e): exprs {std::move(e)} {}
   EvalResult eval(Environment*, Interpreter&) override;
+  void push_children(std::stack<HeapEntity*>&) override;
 };
 
 struct Cxr : public Expression {
@@ -147,9 +161,10 @@ struct Cxr : public Expression {
   Expression *expr;
   Cxr(Symbol w, Expression *e): word {std::move(w)}, expr {e} {}
   EvalResult eval(Environment*, Interpreter&) override;
+  void push_children(std::stack<HeapEntity*>&) override;
 };
 
-Expression *combine_expr(const Obj&);
-Expression *build_ast(const Obj&);
+Expression *combine_expr(const Obj&, Interpreter&);
+Expression *build_ast(const Obj&, Interpreter&);
 
 }
