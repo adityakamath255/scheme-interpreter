@@ -32,14 +32,13 @@ public:
 
 void
 Interpreter::install_global_environment() {
-  global_env = new Environment;
+  global_env = alloc.make<Environment>();
   for (const auto& p : get_primitive_functions()) {
-    global_env->define(intern_symbol(p.first), alloc.make_primitive(p.second));
+    global_env->define(intern_symbol(p.first), alloc.make<Primitive>(p.second));
   }
   for (const auto& p : get_consts()) {
     global_env->define(intern_symbol(p.first), p.second);
   }
-  alloc.register_entity(global_env);
 }
 
 Interpreter::Interpreter(bool profiling): 
@@ -86,7 +85,7 @@ Interpreter::interpret(const std::string& code) {
 
     auto ast = [&](){ 
       Timer timer(ast_building_time);
-      return build_ast(s_expr);
+      return build_ast(s_expr, *this);
     }();
 
     auto result = [&](){
@@ -109,7 +108,7 @@ Interpreter::interpret(const std::string& code) {
   else {
     auto tokens = Lexer(code).tokenize();
     auto s_expr = Parser(tokens, *this).parse();
-    auto ast = build_ast(s_expr); 
+    auto ast = build_ast(s_expr, *this); 
     auto result = as_obj(ast->eval(global_env, *this));
     std::vector<HeapEntity*> roots {global_env};
     if (auto ent = try_get_heap_entity(result)) {

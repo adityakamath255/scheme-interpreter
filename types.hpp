@@ -34,8 +34,6 @@ using Obj = std::variant<
 using ParamList = std::vector<Symbol>;
 using ArgList = std::vector<Obj>;
 
-class HeapEntity; 
-
 class HeapEntity {
 public:
   bool marked;

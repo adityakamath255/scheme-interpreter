@@ -286,14 +286,14 @@ is_equal(const ArgList& args, Interpreter& interp) {
 static Obj
 cons_fn(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 2, 2);
-  return interp.alloc.make_cons(args[0], args[1]);
+  return interp.alloc.make<Cons>(args[0], args[1]);
 }
 
 static Obj
 list_fn(const ArgList& args, Interpreter& interp) {
   Obj ret = nullptr;
   for (auto curr = args.rbegin(); curr != args.rend(); curr++) {
-    ret = interp.alloc.make_cons(*curr, ret);
+    ret = interp.alloc.make<Cons>(*curr, ret);
   }
   return ret;
 }
@@ -399,7 +399,7 @@ list_ref(const ArgList& args, Interpreter& interp) {
 static Obj
 append_rec(const Obj& list1, const Obj& list2, Interpreter& interp) {
   if (is_pair(list1)) {
-    return interp.alloc.make_cons(
+    return interp.alloc.make<Cons>(
       as_pair(list1)->car,
       append_rec(as_pair(list1)->cdr, list2, interp)
     );
@@ -427,7 +427,7 @@ map_rec(Obj& fn, Obj& obj, Interpreter& interp) {
   }
   else {
     auto ls = as_pair(obj);
-    return interp.alloc.make_cons(
+    return interp.alloc.make<Cons>(
       as_obj(apply(fn, ArgList({ls->car}), interp)), 
       map_rec(fn, ls->cdr, interp)
     );
@@ -454,7 +454,7 @@ filter_rec(Obj& fn, Obj& obj, Interpreter& interp) {
     auto ls = as_pair(obj);
     auto rest = filter_rec(fn, ls->cdr, interp);
     if (is_true(as_obj(apply(fn, ArgList({ls->car}), interp)))) {
-      return interp.alloc.make_cons(ls->car, rest);
+      return interp.alloc.make<Cons>(ls->car, rest);
     }
     else {
       return rest;

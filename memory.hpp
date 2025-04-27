@@ -25,14 +25,19 @@ private:
   std::list<HeapEntity*> live_memory;
   void mark(const std::vector<HeapEntity*>&);
   void sweep(); 
+
 public:
   Allocator(): live_memory {} {};
+
+  template<typename T, typename... Args>
+  T* make(Args&&... args) {
+    static_assert(std::is_base_of_v<HeapEntity, T>, "Allocator can only allocate HeapEntity-derived types");
+    T* obj = new T(std::forward<Args>(args)...);
+    live_memory.push_back(obj);
+    return obj;
+  }
+
   void register_entity(HeapEntity *ent) {live_memory.push_back(ent);}
-  Cons *make_cons(Obj car, Obj cdr); 
-  Procedure *make_procedure(ParamList p, Expression *b, Environment* e);
-  Primitive *make_primitive(Obj(*func)(const ArgList&, Interpreter&));
-  Environment *make_environment(); 
-  Environment *make_environment(Environment *super);
   void cleanup();
   void cleanup(const std::vector<HeapEntity*>&);
 };
