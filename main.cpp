@@ -33,7 +33,7 @@ read(INPUT& in) {
       }
     }
 
-    result << line << '\n';
+    result << line << std::endl;
 
     if (open_parens == 0) 
       break;
@@ -56,15 +56,14 @@ driver_loop(Interpreter& interp) {
         return;
       auto result = interp.interpret(input_expr);
       if (!is_void(result)) {
-        std::cout << stringify(result);
-        std::cout << "\n";
+        std::cout << stringify(result) << std::endl;
       }
     } 
     catch (std::runtime_error& e) {
-      std::cerr << "ERROR: " << e.what() << "\n";
+      std::cerr << "ERROR: " << e.what() << std::endl;
     }
     catch (std::bad_variant_access e) {
-      std::cerr << "ERROR: incorrect type\n";
+      std::cerr << "ERROR: incorrect type" << std::endl;
     }
   }
 }
@@ -82,15 +81,15 @@ run_file(Interpreter& interp, const char *filename, bool enter_driver_loop) {
       interp.interpret(input_expr);
     } 
     catch (std::runtime_error& e) {
-      std::cerr << "\nERROR: " << e.what() << "\n";
+      std::cerr << std::endl << "ERROR: " << e.what() << std::endl;
       return; 
     }
   }
-  std::cout << "\n";
+  std::cout << std::endl;
   if (interp.is_profiled()) {
-    std::cout << "\n";
+    std::cout << std::endl;
     interp.print_timings();
-    std::cout << "\n";
+    std::cout << std::endl;
   }
   if (enter_driver_loop) {
     driver_loop(interp);

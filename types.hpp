@@ -5,8 +5,7 @@
 #include <variant>
 #include <unordered_set>
 #include <memory>
-
-#include <iostream>
+#include <stack>
 
 namespace Scheme { 
 
@@ -35,25 +34,14 @@ using Obj = std::variant<
 using ParamList = std::vector<Symbol>;
 using ArgList = std::vector<Obj>;
 
-class HeapEntity; using HeapEntitySet = std::unordered_set<HeapEntity*>;
+class HeapEntity; 
+using HeapEntityStack = std::stack<HeapEntity*>;
 
 class HeapEntity {
-protected:
-  bool marked;
-  virtual void mark_impl(HeapEntitySet& marked_set) {}
-  
 public:
-  ~HeapEntity() = default;
-  bool is_marked() const {return marked;}
-  void mark() {marked = true;}
-  void unmark() {marked = false;}
-  void mark_recursive(HeapEntitySet& marked_set) {
-    if (!marked) {
-      marked = true;
-      marked_set.insert(this);
-      mark_impl(marked_set);
-    }
-  }
+  bool marked;
+  virtual void push_children(HeapEntityStack&) {};
+  virtual ~HeapEntity() = default;
 };
 
 class Symbol { 
@@ -75,7 +63,7 @@ public:
 
 class Cons : public HeapEntity {
 private:
-  void mark_impl(HeapEntitySet&) override;
+  void push_children(HeapEntityStack&) override;
 public:
   Obj car;
   Obj cdr;
@@ -89,7 +77,7 @@ public:
 class Primitive : public HeapEntity {
 private:
   Obj(*func)(const ArgList&, Interpreter&);
-  void mark_impl(HeapEntitySet&) override;
+  void push_children(HeapEntityStack&) override;
 public:
   Primitive(decltype(func) f): func {f} {};
   Obj operator()(const ArgList& args, Interpreter& interp) const {
@@ -99,7 +87,7 @@ public:
 
 class Procedure : public HeapEntity {
 private:
-  void mark_impl(HeapEntitySet&) override;
+  void push_children(HeapEntityStack&) override;
 public:
   const ParamList parameters;
   Expression *body;
