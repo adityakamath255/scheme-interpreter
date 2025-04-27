@@ -1,7 +1,6 @@
 #include "types.hpp"
 #include "lexer.hpp"
 #include <string_view>
-#include <algorithm>
 
 namespace Scheme {
 

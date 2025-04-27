@@ -1,8 +1,6 @@
 #pragma once
 #include "types.hpp"
 #include "environment.hpp"
-#include "expressions.hpp"
-#include "primitives.hpp"
 #include "memory.hpp"
 #include <unordered_map>
 #include <string>

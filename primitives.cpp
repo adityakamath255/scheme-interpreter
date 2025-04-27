@@ -1,6 +1,7 @@
 #include "types.hpp"
 #include "environment.hpp"
 #include "primitives.hpp"
+#include "expressions.hpp"
 #include "evaluation.hpp"
 #include "interpreter.hpp"
 #include <iostream>

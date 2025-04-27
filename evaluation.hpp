@@ -1,7 +1,5 @@
 #pragma once
 #include "types.hpp"
-#include "expressions.hpp"
-#include "environment.hpp"
 
 namespace Scheme {
 

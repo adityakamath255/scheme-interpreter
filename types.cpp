@@ -2,7 +2,6 @@
 #include <string>
 #include <sstream>
 #include <format>
-#include <memory>
 
 namespace Scheme {
 

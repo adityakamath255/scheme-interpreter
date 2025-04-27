@@ -2,7 +2,6 @@
 #include "types.hpp"
 #include "environment.hpp"
 #include "interpreter.hpp"
-#include <memory>
 #include <unordered_map>
 #include <variant>
 
