@@ -2,7 +2,6 @@
 #include "environment.hpp"
 #include "expressions.hpp"
 #include <unordered_map>
-#include <iostream>
 #include <format>
 
 namespace Scheme {

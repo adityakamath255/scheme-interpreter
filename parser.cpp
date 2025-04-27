@@ -1,7 +1,6 @@
 #include "types.hpp"
 #include "parser.hpp"
 #include "interpreter.hpp"
-#include <cmath>
 #include <string_view>
 
 namespace Scheme {

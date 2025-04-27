@@ -3,8 +3,6 @@
 #include <string>
 #include <stdexcept>
 #include <variant>
-#include <unordered_set>
-#include <memory>
 #include <stack>
 
 namespace Scheme { 
