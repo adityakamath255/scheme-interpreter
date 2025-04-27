@@ -7,32 +7,40 @@
 namespace Scheme {
 
 void
-Cons::mark_impl(HeapEntitySet& marked_set) {
+Cons::push_children(HeapEntityStack& worklist) {
   if (auto car_ent = try_get_heap_entity(car)) {
-    car_ent->mark_recursive(marked_set);
+    if (!car_ent->marked) {
+      worklist.push(car_ent);
+    }
   }
   if (auto cdr_ent = try_get_heap_entity(cdr)) {
-    cdr_ent->mark_recursive(marked_set);
+    if (!cdr_ent->marked) {
+      worklist.push(cdr_ent);
+    }
   }
 }
 
 void 
-Primitive::mark_impl(HeapEntitySet& marked_set) {}
+Primitive::push_children(HeapEntityStack& worklist) {}
 
 void 
-Procedure::mark_impl(HeapEntitySet& marked_set) {
-  env->mark_recursive(marked_set);
+Procedure::push_children(HeapEntityStack& worklist) {
+  if (env && !env->marked) {
+    worklist.push(env);
+  }
 }
 
 void
-Environment::mark_impl(HeapEntitySet& marked_set) {
+Environment::push_children(HeapEntityStack& worklist) {
   for (auto& [key, value] : frame) {
     if (auto ent = try_get_heap_entity(value)) {
-      ent->mark_recursive(marked_set);
+      if (!ent->marked) {
+        worklist.push(ent);
+      }
     }
   }
-  if (super) {
-    super->mark_recursive(marked_set);
+  if (super && !super->marked) {
+    worklist.push(super);
   }
 }
 
@@ -73,15 +81,29 @@ Allocator::make_environment(Environment *super) {
 
 void 
 Allocator::mark(const HeapEntityVec& roots) {
+  HeapEntityStack worklist;
   for (auto& root : roots) {
-    root->mark_recursive(marked_set);
+    if (root && !root->marked) {
+      worklist.push(root);
+    }
+  }
+
+  while (!worklist.empty()) {
+    auto curr = worklist.top();
+    worklist.pop();
+
+    if (!curr->marked) {
+      curr->marked = true;
+      marked_set.insert(curr);
+      curr->push_children(worklist);
+    }
   }
 }
 
 void 
 Allocator::unmark() {
   for (auto ptr : marked_set) {
-    ptr->unmark();
+    ptr->marked = false;
   }
   marked_set.clear();
 }
@@ -91,7 +113,7 @@ Allocator::sweep() {
   std::vector<HeapEntity*> new_memory;
   for (HeapEntity *ptr : live_memory) {
     if (marked_set.erase(ptr)) {
-      ptr->unmark();
+      ptr->marked = false;
       new_memory.push_back(ptr);
     }
     else {

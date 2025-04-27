@@ -6,6 +6,8 @@
 namespace Scheme {
 
 using HeapEntityVec = std::vector<HeapEntity*>;
+using HeapEntityStack = std::stack<HeapEntity*>;
+using HeapEntitySet = std::unordered_set<HeapEntity*>;
 
 inline HeapEntity*
 try_get_heap_entity(const Obj& obj) {
