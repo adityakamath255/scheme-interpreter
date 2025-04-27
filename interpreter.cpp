@@ -30,24 +30,26 @@ public:
   }
 };
 
-Environment
+void
 Interpreter::install_global_environment() {
-  Environment env;
+  global_env = new Environment;
   for (const auto& p : get_primitive_functions()) {
-    env.define(intern_symbol(p.first), alloc.make_primitive(p.second));
+    global_env->define(intern_symbol(p.first), alloc.make_primitive(p.second));
   }
   for (const auto& p : get_consts()) {
-    env.define(intern_symbol(p.first), p.second);
+    global_env->define(intern_symbol(p.first), p.second);
   }
-  alloc.register_entity(&env);
-  return env;
+  alloc.register_entity(global_env);
 }
 
 Interpreter::Interpreter(bool profiling): 
   intern_table {},
-  global_env {install_global_environment()}, 
+  alloc {},
+  global_env {},
   profiling {profiling}
-{}
+{
+  install_global_environment();
+}
 
 Interpreter::~Interpreter() {
   for (auto& [key, value] : intern_table) {
@@ -71,8 +73,6 @@ Interpreter::intern_symbol(const std::string_view str) {
 
 Obj
 Interpreter::interpret(const std::string& code) {
-  Obj result;
-  HeapEntityVec roots {&global_env};
   if (profiling) {
     auto tokens = [&](){
       Timer timer(lexing_time);
@@ -85,36 +85,50 @@ Interpreter::interpret(const std::string& code) {
     }();
 
     auto ast = [&](){ 
-      Timer timer(classifying_time);
-      return classify(s_expr);
+      Timer timer(ast_building_time);
+      return build_ast(s_expr);
     }();
 
-    result = [&](){
+    auto result = [&](){
       Timer timer(evaluating_time);
-      return as_obj(ast->eval(&global_env, *this));
+      return as_obj(ast->eval(global_env, *this));
     }();
+
+    {
+      Timer timer(garbage_collecting_time);
+      std::vector<HeapEntity*> roots {global_env};
+      if (auto ent = try_get_heap_entity(result)) {
+        roots.push_back(ent);
+      }
+      alloc.cleanup(roots);
+    }
+    
+    return result;
+
   } 
   else {
     auto tokens = Lexer(code).tokenize();
     auto s_expr = Parser(tokens, *this).parse();
-    auto ast = classify(s_expr); 
-    result = as_obj(ast->eval(&global_env, *this));
+    auto ast = build_ast(s_expr); 
+    auto result = as_obj(ast->eval(global_env, *this));
+    std::vector<HeapEntity*> roots {global_env};
+    if (auto ent = try_get_heap_entity(result)) {
+      roots.push_back(ent);
+    }
+    alloc.cleanup(roots);
+    return result;
   }
-  if (auto ent = try_get_heap_entity(result)) {
-    roots.push_back(ent);
-  }
-  alloc.cleanup(roots);
-  return result;
 }
 
 void
 Interpreter::print_timings() const {
   using namespace std::chrono;
   std::cout << "Profile:\n"
-    << "Lexing:      " << duration_cast<microseconds>(lexing_time).count()      << " μs\n"
-    << "Parsing:     " << duration_cast<microseconds>(parsing_time).count()     << " μs\n"
-    << "Classifying: " << duration_cast<microseconds>(classifying_time).count() << " μs\n"
-    << "Evaluating:  " << duration_cast<microseconds>(evaluating_time).count()  << " μs\n";
+    << "Lexing:             " << duration_cast<microseconds>(lexing_time).count()             << " μs\n"
+    << "Parsing:            " << duration_cast<microseconds>(parsing_time).count()            << " μs\n"
+    << "AST Building:       " << duration_cast<microseconds>(ast_building_time).count()        << " μs\n"
+    << "Evaluating:         " << duration_cast<microseconds>(evaluating_time).count()         << " μs\n"
+    << "Garbage Collecting: " << duration_cast<microseconds>(garbage_collecting_time).count() << " μs\n";
 }
 
 }

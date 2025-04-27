@@ -2,12 +2,10 @@
 #include "environment.hpp"
 #include "memory.hpp"
 
-#include <iostream>
-
 namespace Scheme {
 
 void
-Cons::push_children(HeapEntityStack& worklist) {
+Cons::push_children(std::stack<HeapEntity*>& worklist) {
   if (auto car_ent = try_get_heap_entity(car)) {
     if (!car_ent->marked) {
       worklist.push(car_ent);
@@ -21,17 +19,17 @@ Cons::push_children(HeapEntityStack& worklist) {
 }
 
 void 
-Primitive::push_children(HeapEntityStack& worklist) {}
+Primitive::push_children(std::stack<HeapEntity*>& worklist) {}
 
 void 
-Procedure::push_children(HeapEntityStack& worklist) {
+Procedure::push_children(std::stack<HeapEntity*>& worklist) {
   if (env && !env->marked) {
     worklist.push(env);
   }
 }
 
 void
-Environment::push_children(HeapEntityStack& worklist) {
+Environment::push_children(std::stack<HeapEntity*>& worklist) {
   for (auto& [key, value] : frame) {
     if (auto ent = try_get_heap_entity(value)) {
       if (!ent->marked) {
@@ -80,9 +78,9 @@ Allocator::make_environment(Environment *super) {
 }
 
 void 
-Allocator::mark(const HeapEntityVec& roots) {
-  HeapEntityStack worklist;
-  for (auto& root : roots) {
+Allocator::mark(const std::vector<HeapEntity*>& roots) {
+  std::stack<HeapEntity*> worklist;
+  for (auto root : roots) {
     if (root && !root->marked) {
       worklist.push(root);
     }
@@ -94,33 +92,25 @@ Allocator::mark(const HeapEntityVec& roots) {
 
     if (!curr->marked) {
       curr->marked = true;
-      marked_set.insert(curr);
       curr->push_children(worklist);
     }
   }
 }
 
-void 
-Allocator::unmark() {
-  for (auto ptr : marked_set) {
-    ptr->marked = false;
-  }
-  marked_set.clear();
-}
-
 void
 Allocator::sweep() {
-  std::vector<HeapEntity*> new_memory;
-  for (HeapEntity *ptr : live_memory) {
-    if (marked_set.erase(ptr)) {
+  auto itr = live_memory.begin();
+  while (itr != live_memory.end()) {
+    auto ptr = *itr;
+    if (ptr->marked) {
       ptr->marked = false;
-      new_memory.push_back(ptr);
+      itr++;
     }
     else {
       delete ptr;
+      itr = live_memory.erase(itr);
     }
   }
-  live_memory = std::move(new_memory);
 }
 
 void
@@ -129,10 +119,9 @@ Allocator::cleanup() {
 }
 
 void
-Allocator::cleanup(const HeapEntityVec& roots) {
+Allocator::cleanup(const std::vector<HeapEntity*>& roots) {
   mark(roots);
   sweep();
-  unmark();
 }
 
 }

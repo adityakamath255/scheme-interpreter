@@ -35,12 +35,12 @@ using ParamList = std::vector<Symbol>;
 using ArgList = std::vector<Obj>;
 
 class HeapEntity; 
-using HeapEntityStack = std::stack<HeapEntity*>;
 
 class HeapEntity {
 public:
   bool marked;
-  virtual void push_children(HeapEntityStack&) {};
+  HeapEntity(): marked {false} {}
+  virtual void push_children(std::stack<HeapEntity*>&) {};
   virtual ~HeapEntity() = default;
 };
 
@@ -63,7 +63,7 @@ public:
 
 class Cons : public HeapEntity {
 private:
-  void push_children(HeapEntityStack&) override;
+  void push_children(std::stack<HeapEntity*>&) override;
 public:
   Obj car;
   Obj cdr;
@@ -77,7 +77,7 @@ public:
 class Primitive : public HeapEntity {
 private:
   Obj(*func)(const ArgList&, Interpreter&);
-  void push_children(HeapEntityStack&) override;
+  void push_children(std::stack<HeapEntity*>&) override;
 public:
   Primitive(decltype(func) f): func {f} {};
   Obj operator()(const ArgList& args, Interpreter& interp) const {
@@ -87,7 +87,7 @@ public:
 
 class Procedure : public HeapEntity {
 private:
-  void push_children(HeapEntityStack&) override;
+  void push_children(std::stack<HeapEntity*>&) override;
 public:
   const ParamList parameters;
   Expression *body;

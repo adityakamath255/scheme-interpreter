@@ -150,6 +150,6 @@ struct Cxr : public Expression {
 };
 
 Expression *combine_expr(const Obj&);
-Expression *classify(const Obj&);
+Expression *build_ast(const Obj&);
 
 }

@@ -473,14 +473,6 @@ filter_fn(const ArgList& args, Interpreter& interp) {
 }
 
 static Obj
-eval_fn(const ArgList& args, Interpreter& interp) {
-  assert_arg_count(args, 1, 1);
-  auto ast = classify(args[0]);
-  auto result = ast->eval(interp.get_global_env(), interp);
-  return as_obj(result);
-}
-
-static Obj
 error_fn(const ArgList& args, Interpreter& interp) {
   std::ostringstream message;
   message << "ERROR: ";
@@ -539,7 +531,6 @@ get_primitive_functions() {
     {"append", append},
     {"map", map_fn},
     {"filter", filter_fn},
-    {"eval", eval_fn},
     {"error", error_fn}
   };
 }
