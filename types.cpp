@@ -42,7 +42,6 @@ stringify(const Obj& obj) {
       return b ? "#t" : "#f";
     },
     [](const double n) -> std::string {
-      // Using std::format for better numeric formatting
       return std::format("{}", n);
     },
     [](const Symbol& s) -> std::string {
@@ -64,12 +63,13 @@ stringify(const Obj& obj) {
       return std::format("<procedure at {}>", static_cast<const void*>(p));
     },
     [](Cons* const ls) -> std::string {
-      if (!ls) return "()"; // Safety check
+      if (!ls) {
+        return "()";
+      }
       
       std::ostringstream ret;
       ret << "(" << stringify(ls->car);
       
-      // Create a copy rather than using a reference
       Obj curr = ls->cdr;
       while (is_pair(curr)) {
         ret << " " << stringify(as_pair(curr)->car);
