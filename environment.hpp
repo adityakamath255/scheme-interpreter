@@ -6,12 +6,13 @@ namespace Scheme {
 
 class Allocator;
 
-class Environment {
+class Environment : public HeapEntity {
   friend Allocator;
 
 private:
   std::unordered_map<Symbol, Obj> frame {};
   std::pair<Obj&, int> get_impl(const Symbol&, const int);
+  void mark_impl(HeapEntitySet&) override;
 
 public:
   Environment *const super;

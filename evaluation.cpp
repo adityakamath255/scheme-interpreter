@@ -20,7 +20,7 @@ apply(Obj p, ArgList args, Interpreter& interp) {
     else if (is_procedure(p)) {
       auto func = as_procedure(p);
       if (func->parameters.size() != args.size()) {
-        throw std::runtime_error(" wrong number of arguments: expected " + std::to_string(func->parameters.size()));
+        throw std::runtime_error("wrong number of arguments: expected " + std::to_string(func->parameters.size()));
       }
       auto new_env = func->env->extend(func->parameters, args, interp);
       auto res = func->body->eval(new_env, interp);

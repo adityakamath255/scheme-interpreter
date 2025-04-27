@@ -2,96 +2,115 @@
 #include "environment.hpp"
 #include "memory.hpp"
 
+#include <iostream>
+
 namespace Scheme {
+
+void
+Cons::mark_impl(HeapEntitySet& marked_set) {
+  if (auto car_ent = try_get_heap_entity(car)) {
+    car_ent->mark_recursive(marked_set);
+  }
+  if (auto cdr_ent = try_get_heap_entity(cdr)) {
+    cdr_ent->mark_recursive(marked_set);
+  }
+}
+
+void 
+Primitive::mark_impl(HeapEntitySet& marked_set) {}
+
+void 
+Procedure::mark_impl(HeapEntitySet& marked_set) {
+  env->mark_recursive(marked_set);
+}
+
+void
+Environment::mark_impl(HeapEntitySet& marked_set) {
+  for (auto& [key, value] : frame) {
+    if (auto ent = try_get_heap_entity(value)) {
+      ent->mark_recursive(marked_set);
+    }
+  }
+  if (super) {
+    super->mark_recursive(marked_set);
+  }
+}
 
 Cons*
 Allocator::make_cons(Obj car, Obj cdr) {
   auto ret = new Cons(std::move(car), std::move(cdr));
-  //live_memory.push_back(ret);
+  live_memory.push_back(ret);
+  return ret;
+}
+
+Primitive*
+Allocator::make_primitive(Obj(*func)(const ArgList&, Interpreter&)) {
+  auto ret = new Primitive(func);
+  live_memory.push_back(ret);
   return ret;
 }
 
 Procedure*
 Allocator::make_procedure(ParamList p, Expression *b, Environment* e) {
   auto ret = new Procedure(std::move(p), b, e);
-  //live_memory.push_back(ret);
+  live_memory.push_back(ret);
   return ret;
 }
 
 Environment*
 Allocator::make_environment() {
   auto ret = new Environment;
-  //live_memory.push_back(ret);
+  live_memory.push_back(ret);
   return ret;
 }
 
 Environment*
 Allocator::make_environment(Environment *super) {
   auto ret = new Environment(super);
-  //live_memory.push_back(ret);
+  live_memory.push_back(ret);
   return ret;
 }
 
-/*
-void
-Allocator::mark_obj(Obj& obj) {
-  if (is_pair(obj)) {
-    mark_pair(as_pair(obj));
-  else if (is_procedure(obj)) {
-    mark_procedure(as_procedure(obj));
-  }
-}
-
-void
-Allocator::mark_cons(Cons& cons) {
-  if (!cons.is_marked()) {
-    cons.mark();    
-    marked.insert(cons);
-    mark_obj(cons.car);
-    mark_obj(cons.cdr);
+void 
+Allocator::mark(const HeapEntityVec& roots) {
+  for (auto& root : roots) {
+    root->mark_recursive(marked_set);
   }
 }
 
 void 
-Allocator::mark_procedure(Procedure& proc) {
-  if (!proc.is_marked()) {
-    proc.mark();
-    marked.insert(proc);
-    mark_environment(proc.env);
+Allocator::unmark() {
+  for (auto ptr : marked_set) {
+    ptr->unmark();
   }
-}
-
-void 
-Allocator::mark_environment(Environment& env) {
-  if (!env.is_marked()) {
-    env.mark();
-    marked.insert(env);
-    for (auto& [key, value] : env->frame) {
-      mark_obj(value);
-    }
-  }
+  marked_set.clear();
 }
 
 void
-Allocator::sweep_all() {
-  for (void *ptr : live_memory) {
-    auto itr = marked.find(ptr);
-    if (itr == marked.end()) {
-      delete itr;
+Allocator::sweep() {
+  std::vector<HeapEntity*> new_memory;
+  for (HeapEntity *ptr : live_memory) {
+    if (marked_set.erase(ptr)) {
+      ptr->unmark();
+      new_memory.push_back(ptr);
     }
     else {
-      marked.erase(itr);
+      delete ptr;
     }
   }
+  live_memory = std::move(new_memory);
 }
 
 void
-Allocator::clean_up(Environment& global) {
-  marked.clear();
-  mark_environment(global);
+Allocator::cleanup() {
   sweep();
 }
 
-*/
+void
+Allocator::cleanup(const HeapEntityVec& roots) {
+  mark(roots);
+  sweep();
+  unmark();
+}
 
 }

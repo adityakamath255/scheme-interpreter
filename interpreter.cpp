@@ -34,17 +34,18 @@ Environment
 Interpreter::install_global_environment() {
   Environment env;
   for (const auto& p : get_primitive_functions()) {
-    env.define(intern_symbol(p.first), new Primitive(p.second));
+    env.define(intern_symbol(p.first), alloc.make_primitive(p.second));
   }
   for (const auto& p : get_consts()) {
     env.define(intern_symbol(p.first), p.second);
   }
+  alloc.register_entity(&env);
   return env;
 }
 
 Interpreter::Interpreter(bool profiling): 
-  global_env {install_global_environment()}, 
   intern_table {},
+  global_env {install_global_environment()}, 
   profiling {profiling}
 {}
 
@@ -52,6 +53,7 @@ Interpreter::~Interpreter() {
   for (auto& [key, value] : intern_table) {
     delete value;
   }
+  alloc.cleanup();
 }
 
 Symbol
@@ -69,6 +71,8 @@ Interpreter::intern_symbol(const std::string_view str) {
 
 Obj
 Interpreter::interpret(const std::string& code) {
+  Obj result;
+  HeapEntityVec roots {&global_env};
   if (profiling) {
     auto tokens = [&](){
       Timer timer(lexing_time);
@@ -85,20 +89,22 @@ Interpreter::interpret(const std::string& code) {
       return classify(s_expr);
     }();
 
-    auto result = [&](){
+    result = [&](){
       Timer timer(evaluating_time);
-      return ast->eval(&global_env, *this);
+      return as_obj(ast->eval(&global_env, *this));
     }();
-
-    return as_obj(result);
   } 
   else {
     auto tokens = Lexer(code).tokenize();
     auto s_expr = Parser(tokens, *this).parse();
     auto ast = classify(s_expr); 
-    auto result = ast->eval(&global_env, *this);
-    return as_obj(result);
+    result = as_obj(ast->eval(&global_env, *this));
   }
+  if (auto ent = try_get_heap_entity(result)) {
+    roots.push_back(ent);
+  }
+  alloc.cleanup(roots);
+  return result;
 }
 
 void
