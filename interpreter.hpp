@@ -14,15 +14,16 @@ namespace Scheme {
 class Interpreter {
 private:
   std::unordered_map<std::string_view, std::string*> intern_table;
-  Environment global_env;
+  Environment *global_env; 
   bool profiling;
 
   std::chrono::microseconds lexing_time {0};
   std::chrono::microseconds parsing_time {0};
-  std::chrono::microseconds classifying_time {0};
+  std::chrono::microseconds ast_building_time {0};
   std::chrono::microseconds evaluating_time {0};
+  std::chrono::microseconds garbage_collecting_time {0};
 
-  Environment install_global_environment();
+  void install_global_environment();
 
 public:
   Allocator alloc;
@@ -31,7 +32,6 @@ public:
   ~Interpreter();
 
   bool is_profiled() {return profiling;}
-  Environment *get_global_env() {return &global_env;}
   Symbol intern_symbol(const std::string_view);
   Obj interpret(const std::string&);
   void print_timings() const;

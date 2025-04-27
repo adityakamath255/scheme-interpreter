@@ -1,13 +1,8 @@
 #pragma once
 #include "types.hpp"
-#include <string>
-#include <unordered_set>
+#include <list>
 
 namespace Scheme {
-
-using HeapEntityVec = std::vector<HeapEntity*>;
-using HeapEntityStack = std::stack<HeapEntity*>;
-using HeapEntitySet = std::unordered_set<HeapEntity*>;
 
 inline HeapEntity*
 try_get_heap_entity(const Obj& obj) {
@@ -27,21 +22,19 @@ try_get_heap_entity(const Obj& obj) {
 
 class Allocator {
 private:
-  HeapEntityVec live_memory;
-  HeapEntitySet marked_set;
-  void mark(const HeapEntityVec&);
-  void unmark();
+  std::list<HeapEntity*> live_memory;
+  void mark(const std::vector<HeapEntity*>&);
   void sweep(); 
 public:
   Allocator(): live_memory {} {};
   void register_entity(HeapEntity *ent) {live_memory.push_back(ent);}
-  Cons* make_cons(Obj car, Obj cdr); 
-  Procedure* make_procedure(ParamList p, Expression *b, Environment* e);
-  Primitive* make_primitive(Obj(*func)(const ArgList&, Interpreter&));
-  Environment* make_environment(); 
-  Environment* make_environment(Environment *super);
+  Cons *make_cons(Obj car, Obj cdr); 
+  Procedure *make_procedure(ParamList p, Expression *b, Environment* e);
+  Primitive *make_primitive(Obj(*func)(const ArgList&, Interpreter&));
+  Environment *make_environment(); 
+  Environment *make_environment(Environment *super);
   void cleanup();
-  void cleanup(const HeapEntityVec&);
+  void cleanup(const std::vector<HeapEntity*>&);
 };
 
 }

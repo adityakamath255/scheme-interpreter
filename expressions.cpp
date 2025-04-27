@@ -53,7 +53,7 @@ cons2symbols(const Obj& ls) {
 
 static ExprList
 cons2exprs(const Obj& ls) {
-  return cons2vec<Expression*>(ls, classify);
+  return cons2vec<Expression*>(ls, build_ast);
 }
 
 static Expression*
@@ -70,7 +70,7 @@ make_set(Cons *cons) {
   }
   const auto variable = as_symbol(cons->at("cadr"));
   const auto cddr = cons->at("cddr");
-  auto value = classify(cons->at("caddr"));
+  auto value = build_ast(cons->at("caddr"));
   return new Set(variable, value);
 }
 
@@ -78,10 +78,10 @@ static Expression*
 make_if(Cons *cons) {
   assert_size(cons, 3, 4, "if");
   return new If(
-    classify(cons->at("cadr")),
-    classify(cons->at("caddr")),
+    build_ast(cons->at("cadr")),
+    build_ast(cons->at("caddr")),
       !is_null(cons->at("cdddr"))
-    ? classify(cons->at("cadddr"))
+    ? build_ast(cons->at("cadddr"))
     : new Literal (false)
   );
 }
@@ -115,7 +115,7 @@ make_define(Cons *cons) {
   if (is_symbol(cadr)) {
     return new Define(
       as_symbol(cadr), 
-      classify(cons->at("caddr"))
+      build_ast(cons->at("caddr"))
     );
   }
 
@@ -151,7 +151,7 @@ get_bindings(Obj li) {
     
     ret.insert({
       as_symbol(car->at("car")),
-      classify(car->at("cadr"))
+      build_ast(car->at("cadr"))
     });
 
     li = as_cons->cdr;
@@ -189,7 +189,7 @@ make_clause(Cons *cons) {
   } 
   else {
     ret.is_else = false;
-    ret.predicate = classify(cons->car);
+    ret.predicate = build_ast(cons->car);
   }
   ret.actions = combine_expr(cons->cdr);
   return ret;
@@ -221,7 +221,7 @@ make_cond(Cons *cons) {
 static Expression*
 make_application(Cons *cons) {
   return new Application(
-    classify(cons->car),
+    build_ast(cons->car),
     std::move(cons2exprs(cons->cdr))
   );
 }
@@ -239,7 +239,7 @@ make_or(Cons *cons) {
 static Expression*
 make_cxr(Symbol tag, Cons *cons) {
   assert_size(cons, 2, 2, tag.get_name());
-  return new Cxr(tag, classify(cons->at("cadr")));
+  return new Cxr(tag, build_ast(cons->at("cadr")));
 }
 
 Expression*
@@ -248,7 +248,7 @@ combine_expr(const Obj& seq) {
     return new Literal(Void {});
   }
   else if (is_null(as_pair(seq)->cdr)) {
-    return classify(as_pair(seq)->car);
+    return build_ast(as_pair(seq)->car);
   }
   else {
     return new Begin(cons2exprs(seq));
@@ -283,7 +283,7 @@ is_cxr(const std::string& s) {
 }
 
 Expression*
-classify(const Obj& obj) {
+build_ast(const Obj& obj) {
   if (is_pair(obj)) {
     const auto p = as_pair(obj);
     if (is_symbol(p->car)) {

@@ -52,7 +52,7 @@ driver_loop(Interpreter& interp) {
     try {
       std::cout << ">>> ";
       std::string input_expr = read(std::cin);
-      if (input_expr == "exit\n") 
+      if (input_expr == "#q\n") 
         return;
       auto result = interp.interpret(input_expr);
       if (!is_void(result)) {
