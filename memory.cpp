@@ -16,6 +16,15 @@ Cons::push_children(std::stack<HeapEntity*>& worklist) {
 }
 
 void 
+Vector::push_children(std::stack<HeapEntity*>& worklist) {
+  for (Obj& obj : data) {
+    if (auto ent = try_get_heap_entity(obj)) {
+      worklist.push(ent);
+    }
+  }
+}
+
+void 
 Primitive::push_children(std::stack<HeapEntity*>& worklist) {}
 
 void 

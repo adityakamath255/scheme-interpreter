@@ -57,6 +57,22 @@ Parser::from_str(const std::string_view str) {
   }
 } 
 
+Vector
+parse_vec() {
+  std::vector<Obj> ret {};
+  while (index < tokens.size() && tokens[index] != ")") {
+    ret.push_back(parse_impl(false));
+    index++;
+  }
+  if (index == tokens.size()) {
+    throw std::runtime_error("unterminated vector");
+  }
+  else {
+    index++;
+    return Vector(std::move(ret));
+  }
+}
+
 Parser::Parser(const std::vector<std::string_view>& tokens, Interpreter& interp):
   tokens {tokens},
   index {0},
@@ -75,6 +91,9 @@ Parser::parse_impl(bool recursive) {
   }
   else if (token == "(") {
     head = parse_impl(true);
+  }
+  else if (token == "#(") {
+    head = parse_vec();
   }
   else if (token == ".") {
     head = parse_impl(false);

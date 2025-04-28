@@ -61,6 +61,18 @@ stringify(const Obj& obj) {
     [](const Primitive* p) -> std::string {
       return std::format("<procedure at {}>", static_cast<const void*>(p));
     },
+    [](Vector* const v) -> std::string {
+      if (v->data.empty()) {
+        return "#()";
+      }
+      std::ostringstream ret;
+      ret << "#(" << stringify(v->data[0]);
+      for (size_t i = 1; i < v->data.size(); i++) {
+        ret << " " << stringify(v->data[i]);
+      }
+      ret << ")";
+      return ret.str();
+    },
     [](Cons* const ls) -> std::string {
       if (!ls) {
         return "()";
