@@ -57,19 +57,18 @@ Parser::from_str(const std::string_view str) {
   }
 } 
 
-Vector
-parse_vec() {
+Obj
+Parser::parse_vec() {
   std::vector<Obj> ret {};
   while (index < tokens.size() && tokens[index] != ")") {
     ret.push_back(parse_impl(false));
-    index++;
   }
   if (index == tokens.size()) {
     throw std::runtime_error("unterminated vector");
   }
   else {
     index++;
-    return Vector(std::move(ret));
+    return interp.alloc.make<Vector>(std::move(ret));
   }
 }
 
@@ -87,7 +86,7 @@ Parser::parse_impl(bool recursive) {
   index++;
 
   if (token == ")") {
-    return Obj(nullptr);
+    return nullptr;
   }
   else if (token == "(") {
     head = parse_impl(true);

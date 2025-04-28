@@ -16,6 +16,7 @@ private:
   Obj make_bool_obj(const std::string_view);
   Obj make_str_obj(const std::string_view);
   Obj from_str(const std::string_view);
+  Obj parse_vec();
   Obj parse_impl(bool);
 
 public:

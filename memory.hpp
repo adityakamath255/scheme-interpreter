@@ -15,6 +15,9 @@ try_get_heap_entity(const Obj& obj) {
   else if (is_procedure(obj)) {
     return as_procedure(obj);
   }
+  else if (is_vector(obj)) {
+    return as_vector(obj);
+  }
   else {
     return nullptr;
   }
