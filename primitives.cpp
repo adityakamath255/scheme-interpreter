@@ -477,7 +477,7 @@ static Obj
 make_vector(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, 2);
   assert_obj_type<double>(args[0], "number");
-  const size_t sz = is_number(args[1]);
+  const size_t sz = as_number(args[0]);
   if (sz < 0) {
     throw std::runtime_error("vector size cannot be negative");
   }
@@ -498,11 +498,11 @@ vector_ref(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 2, 2);
   assert_obj_type<Vector*>(args[0], "vector");
   assert_obj_type<double>(args[1], "number");
-  const size_t index = is_number(args[1]);
+  const size_t index = as_number(args[1]);
   if (index < 0) {
     throw std::runtime_error("vector index cannot be negative");
   }
-  std::vector<Obj> data = as_vector(args[0])->data;
+  std::vector<Obj>& data = as_vector(args[0])->data;
   if (index > data.size()) {
     throw std::runtime_error("vector index out of range");
   }
@@ -514,11 +514,11 @@ vector_set(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 3, 3);
   assert_obj_type<Vector*>(args[0], "vector");
   assert_obj_type<double>(args[1], "number");
-  const size_t index = is_number(args[1]);
+  const size_t index = as_number(args[1]);
   if (index < 0) {
     throw std::runtime_error("vector index cannot be negative");
   }
-  std::vector<Obj> data = as_vector(args[0])->data;
+  std::vector<Obj>& data = as_vector(args[0])->data;
   if (index > data.size()) {
     throw std::runtime_error("vector index out of range");
   }
