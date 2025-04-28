@@ -9,6 +9,7 @@ namespace Scheme {
 
 class Symbol;
 class Cons;
+class Vector;
 class Primitive;
 class Procedure;
 class Void {};
@@ -23,6 +24,7 @@ using Obj = std::variant<
   Symbol,
   std::string,
   Cons*,
+  Vector*,
   Primitive*,
   Procedure*,
   nullptr_t,
@@ -70,6 +72,14 @@ public:
   Obj at(const std::string&);
 };
 
+class Vector : public HeapEntity {
+private:
+  void push_children(std::stack<HeapEntity*>&) override;
+public:
+  std::vector<Obj> data;
+  Vector(std::vector<Obj> data): data {std::move(data)} {}
+};
+
 class Primitive : public HeapEntity {
 private:
   Obj(*func)(const ArgList&, Interpreter&);
@@ -100,6 +110,7 @@ inline bool is_number(const Obj& obj) {return std::holds_alternative<double>(obj
 inline bool is_symbol(const Obj& obj){return std::holds_alternative<Symbol>(obj);}
 inline bool is_string(const Obj& obj) {return std::holds_alternative<std::string>(obj);}
 inline bool is_pair(const Obj& obj) {return std::holds_alternative<Cons*>(obj);}
+inline bool is_vector(const Obj& obj) {return std::holds_alternative<Vector*>(obj);}
 inline bool is_primitive(const Obj& obj) {return std::holds_alternative<Primitive*>(obj);}
 inline bool is_procedure(const Obj& obj) {return std::holds_alternative<Procedure*>(obj);}
 inline bool is_callable(const Obj& obj) {return is_primitive(obj) || is_procedure(obj);}
@@ -120,6 +131,9 @@ inline const std::string& as_string(const Obj& obj) {return std::get<std::string
 
 inline Cons*& as_pair(Obj& obj) {return std::get<Cons*>(obj);}
 inline Cons* const& as_pair(const Obj& obj) {return std::get<Cons*>(obj);}
+
+inline Vector*& as_vector(Obj& obj) {return std::get<Vector*>(obj);}
+inline Vector* const& as_vector(const Obj& obj) {return std::get<Vector*>(obj);}
 
 inline Primitive*& as_primitive(Obj& obj) {return std::get<Primitive*>(obj);}
 inline Primitive* const& as_primitive(const Obj& obj) {return std::get<Primitive*>(obj);}

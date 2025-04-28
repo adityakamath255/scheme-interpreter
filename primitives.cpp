@@ -474,6 +474,59 @@ filter_fn(const ArgList& args, Interpreter& interp) {
 }
 
 static Obj
+make_vector(const ArgList& args, Interpreter& interp) {
+  assert_arg_count(args, 1, 2);
+  assert_obj_type<double>(args[0], "number");
+  const size_t sz = is_number(args[1]);
+  if (sz < 0) {
+    throw std::runtime_error("vector size cannot be negative");
+  }
+  if (args.size() == 2) {
+    return interp.alloc.make<Vector>(
+      std::vector<Obj>(sz, args[1])
+    );
+  }
+  else {
+    return interp.alloc.make<Vector>(
+      std::vector<Obj>(sz, Obj {(double) 0})
+    );
+  }
+}
+
+static Obj
+vector_ref(const ArgList& args, Interpreter& interp) {
+  assert_arg_count(args, 2, 2);
+  assert_obj_type<Vector*>(args[0], "vector");
+  assert_obj_type<double>(args[1], "number");
+  const size_t index = is_number(args[1]);
+  if (index < 0) {
+    throw std::runtime_error("vector index cannot be negative");
+  }
+  std::vector<Obj> data = as_vector(args[0])->data;
+  if (index > data.size()) {
+    throw std::runtime_error("vector index out of range");
+  }
+  return data[index]; 
+}
+
+static Obj
+vector_set(const ArgList& args, Interpreter& interp) {
+  assert_arg_count(args, 3, 3);
+  assert_obj_type<Vector*>(args[0], "vector");
+  assert_obj_type<double>(args[1], "number");
+  const size_t index = is_number(args[1]);
+  if (index < 0) {
+    throw std::runtime_error("vector index cannot be negative");
+  }
+  std::vector<Obj> data = as_vector(args[0])->data;
+  if (index > data.size()) {
+    throw std::runtime_error("vector index out of range");
+  }
+  data[index] = args[2];
+  return Void {};
+}
+
+static Obj
 error_fn(const ArgList& args, Interpreter& interp) {
   std::ostringstream message;
   message << "ERROR: ";
@@ -531,6 +584,9 @@ get_primitive_functions() {
     {"list-ref", list_ref},
     {"append", append},
     {"map", map_fn},
+    {"make-vector", make_vector},
+    {"vector-set!", vector_set},
+    {"vector-ref", vector_ref},
     {"filter", filter_fn},
     {"error", error_fn}
   };

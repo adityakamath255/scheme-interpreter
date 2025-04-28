@@ -62,8 +62,7 @@ Lexer::tokenize() {
   bool is_string = false;
 
   while (curr < input.size()) {
-    const char c = input[curr];
-    if (c == '"') {
+    if (input[curr] == '"') {
       if (is_string) {
         insert(true);
       }
@@ -73,15 +72,20 @@ Lexer::tokenize() {
       is_string = !is_string;
     }
     else if (!is_string) {
-      if (is_space(c)) {
+      if (is_space(input[curr])) {
         insert(false);
         skip_whitespace();
         continue;
       }
 
-      else if (is_special(c)) {
-        insert(false);
-        insert(true);
+      else if (is_special(input[curr])) {
+        if (start == curr - 1 && input[start] == '#' && input[curr] == '(') {
+          insert(true);
+        }
+        else {
+          insert(false);
+          insert(true);
+        }
       }
     } 
     curr++;
