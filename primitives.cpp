@@ -180,32 +180,32 @@ ge(const ArgList& args, Interpreter& interp) {
 }
 
 static Obj
-abs_fn(const ArgList& args, Interpreter& interp) {
+abs_prim(const ArgList& args, Interpreter& interp) {
   return std::abs(get_single_number(args));
 }
 
 static Obj
-sqrt_fn(const ArgList& args, Interpreter& interp) {
+sqrt_prim(const ArgList& args, Interpreter& interp) {
   return std::sqrt(get_single_number(args));
 }
 
 static Obj
-sin_fn(const ArgList& args, Interpreter& interp) {
+sin_prim(const ArgList& args, Interpreter& interp) {
   return std::sin(get_single_number(args));
 }
 
 static Obj
-cos_fn(const ArgList& args, Interpreter& interp) {
+cos_prim(const ArgList& args, Interpreter& interp) {
   return std::cos(get_single_number(args));
 }
 
 static Obj
-log_fn(const ArgList& args, Interpreter& interp) {
+log_prim(const ArgList& args, Interpreter& interp) {
   return std::log(get_single_number(args));
 }
 
 static Obj
-max_fn(const ArgList& args, Interpreter& interp) {
+max_prim(const ArgList& args, Interpreter& interp) {
   assert_numbers(args, 1, MAX_ARGS);
   double ret = -INFINITY;
   for (const auto& arg : args)
@@ -214,7 +214,7 @@ max_fn(const ArgList& args, Interpreter& interp) {
 }
 
 static Obj
-min_fn(const ArgList& args, Interpreter& interp) {
+min_prim(const ArgList& args, Interpreter& interp) {
   assert_numbers(args, 1, MAX_ARGS);
   double ret = INFINITY;
   for (const auto& arg : args)
@@ -233,22 +233,22 @@ is_odd(const ArgList& args, Interpreter& interp) {
 }
 
 static Obj
-ceil_fn(const ArgList& args, Interpreter& interp) {
+ceil_prim(const ArgList& args, Interpreter& interp) {
   return std::ceil(get_single_number(args));
 }
 
 static Obj
-floor_fn(const ArgList& args, Interpreter& interp) {
+floor_prim(const ArgList& args, Interpreter& interp) {
   return std::floor(get_single_number(args));
 }
 
 static Obj
-round_fn(const ArgList& args, Interpreter& interp) {
+round_prim(const ArgList& args, Interpreter& interp) {
   return std::round(get_single_number(args));
 }
 
 static Obj
-not_fn(const ArgList& args, Interpreter& interp) {
+not_prim(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, 1);
   return is_false(args[0]);
 }
@@ -279,19 +279,22 @@ is_equal(const ArgList& args, Interpreter& interp) {
   if (is_pair(args[0])) {
     return eq_list(args);
   }
+  else if (is_vector(args[0])) {
+    return as_vector(args[0])->data == as_vector(args[1])->data;
+  }
   else {
     return is_eq(args, interp);
   }
 }
 
 static Obj
-cons_fn(const ArgList& args, Interpreter& interp) {
+cons_prim(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 2, 2);
   return interp.alloc.make<Cons>(args[0], args[1]);
 }
 
 static Obj
-list_fn(const ArgList& args, Interpreter& interp) {
+list_prim(const ArgList& args, Interpreter& interp) {
   Obj ret = nullptr;
   for (auto curr = args.rbegin(); curr != args.rend(); curr++) {
     ret = interp.alloc.make<Cons>(*curr, ret);
@@ -300,43 +303,49 @@ list_fn(const ArgList& args, Interpreter& interp) {
 }
 
 static Obj
-is_null(const ArgList& args, Interpreter& interp) {
+is_null_prim(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, 1);
   return is_null(args[0]);
 }
 
 static Obj
-is_boolean(const ArgList& args, Interpreter& interp) {
+is_boolean_prim(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, 1);
   return is_bool(args[0]);
 }
 
 static Obj
-is_number(const ArgList& args, Interpreter& interp) {
+is_number_prim(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, 1);
   return is_number(args[0]);
 }
 
 static Obj
-is_pair(const ArgList& args, Interpreter& interp) {
+is_pair_prim(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, 1);
   return is_pair(args[0]);
 }
 
 static Obj
-is_symbol(const ArgList& args, Interpreter& interp) {
+is_vector_prim(const ArgList& args, Interpreter& interp) {
+  assert_arg_count(args, 1, 1);
+  return is_vector(args[0]);
+}
+
+static Obj
+is_symbol_prim(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, 1);
   return is_symbol(args[0]);
 }
 
 static Obj
-is_string(const ArgList& args, Interpreter& interp) {
+is_string_prim(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, 1);
   return is_string(args[0]);
 }
 
 static Obj
-is_procedure(const ArgList& args, Interpreter& interp) {
+is_procedure_prim(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, 1);
   return is_procedure(args[0]) || is_primitive(args[0]);
 }
@@ -382,6 +391,9 @@ list_ref(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 2, 2);
   assert_obj_type<Cons*>(args[0], "list");
   assert_obj_type<double>(args[1], "number");
+  if (as_number(args[1]) < 0) {
+    throw std::runtime_error("list index cannot be negative");
+  }
   Obj ls = args[0];
   int i = 0;
   const auto n = as_number(args[1]);
@@ -436,7 +448,7 @@ map_rec(Obj& fn, Obj& obj, Interpreter& interp) {
 }
 
 static Obj
-map_fn(const ArgList& args, Interpreter& interp) {
+map_prim(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 2, 2);
   assert_callable(args[0]);
   assert_obj_type<Cons*>(args[1], "list");
@@ -464,7 +476,7 @@ filter_rec(Obj& fn, Obj& obj, Interpreter& interp) {
 }
 
 static Obj
-filter_fn(const ArgList& args, Interpreter& interp) {
+filter_prim(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 2, 2);
   assert_callable(args[0]);
   assert_obj_type<Cons*>(args[1], "list");
@@ -527,7 +539,14 @@ vector_set(const ArgList& args, Interpreter& interp) {
 }
 
 static Obj
-error_fn(const ArgList& args, Interpreter& interp) {
+vector_length(const ArgList& args, Interpreter& interp) {
+  assert_arg_count(args, 1, 1);
+  assert_obj_type<Vector*>(args[0], "vector");
+  return (double) as_vector(args[0])->data.size();
+}
+
+static Obj
+error_prim(const ArgList& args, Interpreter& interp) {
   std::ostringstream message;
   message << "ERROR: ";
   for (auto obj : args) {
@@ -551,28 +570,29 @@ get_primitive_functions() {
     {">=", ge},
     {"eq?", is_eq},
     {"equal?", is_equal},
-    {"not", not_fn},
-    {"cons", cons_fn},
-    {"list", list_fn},
-    {"null?", is_null},
-    {"boolean?", is_boolean},
-    {"number?", is_number},
-    {"symbol?", is_symbol},
-    {"string?", is_string},
-    {"pair?", is_pair},
-    {"procedure?", is_procedure},
-    {"abs", abs_fn},
-    {"sqrt", sqrt_fn},
-    {"sin", sin_fn},
-    {"cos", cos_fn},
-    {"log", log_fn},
-    {"max", max_fn},
-    {"min", min_fn},
+    {"not", not_prim},
+    {"cons", cons_prim},
+    {"list", list_prim},
+    {"null?", is_null_prim},
+    {"boolean?", is_boolean_prim},
+    {"number?", is_number_prim},
+    {"symbol?", is_symbol_prim},
+    {"string?", is_string_prim},
+    {"pair?", is_pair_prim},
+    {"vector?", is_vector_prim},
+    {"procedure?", is_procedure_prim},
+    {"abs", abs_prim},
+    {"sqrt", sqrt_prim},
+    {"sin", sin_prim},
+    {"cos", cos_prim},
+    {"log", log_prim},
+    {"max", max_prim},
+    {"min", min_prim},
     {"even?", is_even},
     {"odd?", is_odd},
-    {"ceil", ceil_fn},
-    {"floor", floor_fn},
-    {"round", round_fn},
+    {"ceil", ceil_prim},
+    {"floor", floor_prim},
+    {"round", round_prim},
     {"expt", expt},
     {"quotient", quotient},
     {"remainder", remainder},
@@ -583,12 +603,13 @@ get_primitive_functions() {
     {"length", list_len},
     {"list-ref", list_ref},
     {"append", append},
-    {"map", map_fn},
     {"make-vector", make_vector},
     {"vector-set!", vector_set},
     {"vector-ref", vector_ref},
-    {"filter", filter_fn},
-    {"error", error_fn}
+    {"vector-length", vector_length},
+    {"map", map_prim},
+    {"filter", filter_prim},
+    {"error", error_prim}
   };
 }
 
