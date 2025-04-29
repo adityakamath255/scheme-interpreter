@@ -130,7 +130,7 @@ quotient(const ArgList& args, Interpreter& interp) {
       as_number(args[1])));
 }
 
-static Obj 
+static Obj
 remainder(const ArgList& args, Interpreter& interp) {
   assert_numbers(args, 2, 2);
   return fmod(as_number(args[0]), as_number(args[1]));
@@ -164,12 +164,12 @@ gt(const ArgList& args, Interpreter& interp) {
   return check_comp(args, std::greater<double>());
 }
 
-static Obj 
+static Obj
 eq(const ArgList& args, Interpreter& interp) {
   return check_comp(args, std::equal_to<double>());
 }
 
-static Obj 
+static Obj
 le(const ArgList& args, Interpreter& interp) {
   return check_comp(args, std::less_equal<double>());
 }
@@ -259,25 +259,29 @@ is_eq(const ArgList& args, Interpreter& interp) {
   return args[0] == args[1];
 }
 
-static bool
-eq_list(const ArgList& args) {
+static Obj is_equal(const ArgList& args, Interpreter& interp);
+
+static Obj
+eq_list(const ArgList& args, Interpreter& interp) {
   Obj l0 = args[0];
   Obj l1 = args[1];
   while (is_pair(l0) && is_pair(l1)) {
-    if (as_pair(l0)->car != as_pair(l1)->car) {
+    ArgList args2 {as_pair(l0)->car, as_pair(l1)->car};
+    if (!as_bool(is_equal(args2, interp))) {
       return false;
     }
     l0 = as_pair(l0)->cdr;
     l1 = as_pair(l1)->cdr;
   }
-  return l0 == l1;
+  ArgList args2 {l0, l1};
+  return is_equal(args2, interp);
 }
 
 static Obj
 is_equal(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 2, 2);
   if (is_pair(args[0])) {
-    return eq_list(args);
+    return eq_list(args, interp);
   }
   else if (is_vector(args[0])) {
     return as_vector(args[0])->data == as_vector(args[1])->data;
@@ -438,7 +442,7 @@ append(const ArgList& args, Interpreter& interp) {
   return ret;
 }
 
-static Obj 
+static Obj
 map_rec(Obj& fn, Obj& obj, Interpreter& interp) {
   if (!is_pair(obj)) {
     return obj;
@@ -463,7 +467,7 @@ map_prim(const ArgList& args, Interpreter& interp) {
   return ret;
 }
 
-static Obj 
+static Obj
 filter_rec(Obj& fn, Obj& obj, Interpreter& interp) {
   if (!is_pair(obj)) {
     return obj;

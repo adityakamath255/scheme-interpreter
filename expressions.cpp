@@ -56,33 +56,20 @@ assert_size(Cons *cons, const int lb, const int ub, const std::string& name) {
   }
 }
 
-template<typename T, typename F>
-static std::vector<T>
-cons2vec(const Obj& ls, F fn) {
-  std::vector<T> ret {};
-  Obj current = ls;
-  while (is_pair(current)) {
-    const auto as_cons = as_pair(current);
-    ret.push_back(fn(as_cons->car));
-    current = as_cons->cdr;
-  }
-  return ret;
-}
-
 static std::pair<ParamList, bool>
 cons2paramlist(const Obj& ls) {
   std::vector<Symbol> ret {};
   Obj curr = ls;
   while (is_pair(curr)) {
-    const auto as_cons = as_pair(curr);
-    const auto car = as_cons->car;
+    const auto cons = as_pair(curr);
+    const auto car = cons->car;
     if (is_symbol(car)) {
       ret.push_back(as_symbol(car));
     }
     else {
       throw std::runtime_error(std::format("all parameters must be symbols: {}", stringify(ls)));
     }
-    curr = as_cons->cdr;
+    curr = cons->cdr;
   }
   if (is_null(curr)) {
     return {ret, false};
@@ -101,9 +88,9 @@ cons2exprs(const Obj& ls, Interpreter& interp) {
   std::vector<Expression*> ret {};
   Obj curr = ls;
   while (is_pair(curr)) {
-    const auto as_cons = as_pair(curr);
-    ret.push_back(build_ast(as_cons->car, interp));
-    curr = as_cons->cdr;
+    const auto cons = as_pair(curr);
+    ret.push_back(build_ast(cons->car, interp));
+    curr = cons->cdr;
   }
   return ret;
 }
@@ -117,23 +104,26 @@ make_quoted(Cons *cons, Interpreter& interp) {
 static Expression*
 make_set(Cons *cons, Interpreter& interp) {
   assert_size(cons, 3, 3, "set!");
-  if (!is_symbol(cons->at("cadr"))) {
+  const auto cdr = as_pair(cons->cdr);
+  const auto cddr = as_pair(cdr->cdr);
+  if (!is_symbol(cdr->car)) {
     throw std::runtime_error("tried to assign something to a non-variable");
   }
-  const auto variable = as_symbol(cons->at("cadr"));
-  const auto cddr = cons->at("cddr");
-  auto value = build_ast(cons->at("caddr"), interp);
+  const auto variable = as_symbol(cdr->car);
+  auto value = build_ast(cddr->car, interp);
   return interp.alloc.make<Set>(variable, value);
 }
 
 static Expression*
 make_if(Cons *cons, Interpreter& interp) {
   assert_size(cons, 3, 4, "if");
+  const auto cdr = as_pair(cons->cdr);
+  const auto cddr = as_pair(cdr->cdr);
   return interp.alloc.make<If>(
-    build_ast(cons->at("cadr"), interp),
-    build_ast(cons->at("caddr"), interp),
-      !is_null(cons->at("cdddr"))
-    ? build_ast(cons->at("cadddr"), interp)
+    build_ast(cdr->car, interp),
+    build_ast(cddr->car, interp),
+      is_pair(cddr->cdr)
+    ? build_ast(as_pair(cddr->cdr)->car, interp)
     : interp.alloc.make<Literal>(false)
   );
 }
@@ -153,30 +143,32 @@ make_lambda(const Obj& params_cons, const Obj& body_cons, Interpreter& interp) {
 static Expression*
 make_lambda(Cons *cons, Interpreter& interp) {
   assert_size(cons, 3, MAXARGS, "lambda");
-  auto cdr = as_pair(cons->cdr);
+  const auto cdr = as_pair(cons->cdr);
   return make_lambda(cdr->car, cdr->cdr, interp);
 }
 
 static Expression*
 make_define(Cons *cons, Interpreter& interp) {
   assert_size(cons, 3, MAXARGS, "define");
-  const auto cadr = cons->at("cadr");
-
-  if (is_symbol(cadr)) {
+  const auto cdr = as_pair(cons->cdr);
+  const auto cddr = as_pair(cdr->cdr);
+  if (is_symbol(cdr->car)) {
     return interp.alloc.make<Define>(
-      as_symbol(cadr), 
-      build_ast(cons->at("caddr"), interp)
+      as_symbol(cdr->car), 
+      build_ast(cddr->car, interp)
     );
   }
 
-  else if (is_pair(cadr)) {
-    const auto parameters = cons->at("cdadr");
-    const auto body = cons->at("cddr");
-    if (!is_symbol(cons->at("caadr"))) {
+  else if (is_pair(cdr->car)) {
+    const auto cadr = as_pair(cdr->car);
+    const auto name = cadr->car;
+    const auto parameters = cadr->cdr;
+    const auto body = cddr;
+    if (!is_symbol(name)) {
       throw std::runtime_error("procedure name must be a symbol");
     }
     return interp.alloc.make<Define>(
-      as_symbol(cons->at("caadr")),
+      as_symbol(name),
       make_lambda(parameters, body, interp)
     );
   }
@@ -187,24 +179,35 @@ make_define(Cons *cons, Interpreter& interp) {
 }
 
 static std::unordered_map<Symbol, Expression*>
-get_bindings(Obj li, Interpreter& interp) {
+get_bindings(const Obj& obj, Interpreter& interp) {
   std::unordered_map<Symbol, Expression*> ret {};
-  while (is_pair(li)) {
-    const auto as_cons = as_pair(li);
-    if (!is_pair(as_cons->car)) {
-      throw std::runtime_error("let bindings must be represented as pairs");
+  auto ls = obj;
+  while (is_pair(ls)) {
+    const auto cons = as_pair(ls);
+    if (!is_pair(cons->car)) {
+      throw std::runtime_error("let bindings must be represented as 2-element lists");
     }
-    const auto car = as_pair(as_cons->car);
+
+    const auto car = as_pair(cons->car);
+    if (!is_pair(car->cdr)) {
+      throw std::runtime_error("let bindings must be represented as 2-element lists");
+    }
+
+    const auto cdar = as_pair(car->cdr);
+    if (!is_null(cdar->cdr)) {
+      throw std::runtime_error("let bindings must be represented as 2-element lists");
+    }
+
     if (!is_symbol(car->car)) {
       throw std::runtime_error("let bindings must be to variables");
     }
     
     ret.emplace(
-      as_symbol(car->at("car")),
-      build_ast(car->at("cadr"), interp)
+      as_symbol(car->car),
+      build_ast(cdar->car, interp)
     );
 
-    li = as_cons->cdr;
+    ls = cons->cdr;
   }
   return ret;
 }
@@ -212,9 +215,10 @@ get_bindings(Obj li, Interpreter& interp) {
 static Expression*
 make_let(Cons *cons, Interpreter& interp) {
   assert_size(cons, 3, MAXARGS, "let");
+  const auto cdr = as_pair(cons->cdr);
   return interp.alloc.make<Let>(
-    std::move(get_bindings(cons->at("cadr"), interp)),
-    combine_expr(cons->at("cddr"), interp)
+    get_bindings(cdr->car, interp),
+    combine_expr(cdr->cdr, interp)
   );
 }
 
@@ -248,22 +252,22 @@ make_clause(Cons *cons, Interpreter& interp) {
 static Expression*
 make_cond(Cons *cons, Interpreter& interp) {
   std::vector<Clause> clauses {};
-  Obj obj = cons->cdr;
+  Obj& obj = cons->cdr;
   while (is_pair(obj)) {
-    const auto as_cons = as_pair(obj);
-    if (!is_pair(as_cons->car)) {
+    const auto cons = as_pair(obj);
+    if (!is_pair(cons->car)) {
       throw std::runtime_error("bad form for cond expression\n");
     }
-    clauses.push_back(make_clause(as_pair(as_cons->car), interp));
+    clauses.push_back(make_clause(as_pair(cons->car), interp));
     if (clauses.back().is_else) {
-      if (!is_null(as_cons->cdr)) {
+      if (!is_null(cons->cdr)) {
         throw std::runtime_error("no clauses allowed after else clause\n");
       }
       else {
         break;
       }
     }
-    obj = as_cons->cdr;
+    obj = cons->cdr;
   }
   return interp.alloc.make<Cond>(std::move(clauses));
 }
@@ -272,18 +276,18 @@ static Expression*
 make_application(Cons *cons, Interpreter& interp) {
   return interp.alloc.make<Application>(
     build_ast(cons->car, interp),
-    std::move(cons2exprs(cons->cdr, interp))
+    cons2exprs(cons->cdr, interp)
   );
 }
 
 static Expression*
 make_and(Cons *cons, Interpreter& interp) {
-  return interp.alloc.make<And>(std::move(cons2exprs(cons->cdr, interp)));
+  return interp.alloc.make<And>(cons2exprs(cons->cdr, interp));
 }
 
 static Expression*
 make_or(Cons *cons, Interpreter& interp) {
-  return interp.alloc.make<Or>(std::move(cons2exprs(cons->cdr, interp)));
+  return interp.alloc.make<Or>(cons2exprs(cons->cdr, interp));
 }
 
 static Expression*
