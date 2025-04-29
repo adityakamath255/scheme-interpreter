@@ -98,10 +98,12 @@ public:
   const ParamList parameters;
   Expression *body;
   Environment *const env;
-  Procedure(ParamList p, Expression *b, Environment* e):
+  bool is_variadic;
+  Procedure(ParamList p, Expression *b, Environment* e, bool v):
     parameters {std::move(p)},
     body {b},
-    env {e}
+    env {e},
+    is_variadic {v}
   {}
 };
 

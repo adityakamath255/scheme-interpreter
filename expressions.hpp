@@ -94,7 +94,12 @@ struct Begin : public Expression {
 struct Lambda : public Expression {
   ParamList parameters;
   Expression *body;
-  Lambda(ParamList p, Expression *b): parameters {std::move(p)}, body {b} {
+  bool is_variadic;
+  Lambda(ParamList p, Expression *b, bool v): 
+    parameters {std::move(p)}, 
+    body {b},
+    is_variadic {v}
+  {
     body->tco();
   }
   EvalResult eval(Environment*, Interpreter&) override;

@@ -69,16 +69,31 @@ cons2vec(const Obj& ls, F fn) {
   return ret;
 }
 
-static ParamList
-cons2symbols(const Obj& ls) {
+static std::pair<ParamList, bool>
+cons2paramlist(const Obj& ls) {
   std::vector<Symbol> ret {};
   Obj curr = ls;
   while (is_pair(curr)) {
     const auto as_cons = as_pair(curr);
-    ret.push_back(as_symbol(as_cons->car));
+    const auto car = as_cons->car;
+    if (is_symbol(car)) {
+      ret.push_back(as_symbol(car));
+    }
+    else {
+      throw std::runtime_error(std::format("all parameters must be symbols: {}", stringify(ls)));
+    }
     curr = as_cons->cdr;
   }
-  return ret;
+  if (is_null(curr)) {
+    return {ret, false};
+  }
+  else if (is_symbol(curr)) {
+    ret.push_back(as_symbol(curr));
+    return {ret, true};
+  }
+  else {
+    throw std::runtime_error(std::format("all parameters must be symbols: {}", stringify(ls)));
+  }
 }
 
 static ExprList
@@ -124,24 +139,22 @@ make_if(Cons *cons, Interpreter& interp) {
 }
 
 static Expression*
-make_lambda(Cons *cons, Interpreter& interp) {
-  assert_size(cons, 3, MAXARGS, "lambda");
+make_lambda(const Obj& params_cons, const Obj& body_cons, Interpreter& interp) {
+  auto [params, is_variadic] = cons2paramlist(params_cons);
+  auto body = combine_expr(body_cons, interp);
   auto ret = interp.alloc.make<Lambda>(
-    std::move(cons2symbols(cons->at("cadr"))),
-    std::move(combine_expr(cons->at("cddr"), interp))
+    std::move(params),
+    body,
+    is_variadic
   );
-  ret->body->tco();
   return ret;
 }
 
 static Expression*
-make_lambda(Obj parameters, Obj body, Interpreter& interp) {
-  auto ret = interp.alloc.make<Lambda>(
-    std::move(cons2symbols(parameters)),
-    std::move(combine_expr(body, interp))
-  );
-  ret->body->tco();
-  return ret;
+make_lambda(Cons *cons, Interpreter& interp) {
+  assert_size(cons, 3, MAXARGS, "lambda");
+  auto cdr = as_pair(cons->cdr);
+  return make_lambda(cdr->car, cdr->cdr, interp);
 }
 
 static Expression*
