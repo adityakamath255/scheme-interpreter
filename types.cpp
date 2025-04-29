@@ -29,10 +29,26 @@ Cons::at(const std::string& s) {
   return curr;
 }
 
-template<class... Ts> 
-struct Overloaded : Ts... { 
-  using Ts::operator()...; 
-};
+std::pair<int, bool>
+list_profile(const Cons *ls) {
+  if (ls == nullptr) {
+    return {0, true};
+  }
+  else {
+    int len = 1;
+    Obj obj = ls->cdr;
+    while (is_pair(obj)) {
+      len++;
+      obj = as_pair(obj)->cdr;
+    } 
+    if (is_null(obj)) {
+      return {len, true};
+    }
+    else {
+      return {len + 1, false};
+    }
+  }
+}
 
 std::string 
 stringify(const Obj& obj) {

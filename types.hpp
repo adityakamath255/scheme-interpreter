@@ -107,6 +107,11 @@ public:
   {}
 };
 
+template<class... Ts> 
+struct Overloaded : Ts... { 
+  using Ts::operator()...; 
+};
+
 inline bool is_bool(const Obj& obj) {return std::holds_alternative<bool>(obj);}
 inline bool is_number(const Obj& obj) {return std::holds_alternative<double>(obj);}
 inline bool is_symbol(const Obj& obj){return std::holds_alternative<Symbol>(obj);}
@@ -154,7 +159,18 @@ inline bool is_false(const Obj& obj) {return !is_true(obj);}
 
 inline bool operator ==(const Void& v0, const Void& v1) {return true;}
 
+std::pair<int, bool> list_profile(const Cons*);
+
+inline int list_length(const Cons* cons) {return list_profile(cons).first;}
+inline bool is_proper_list(const Cons* cons) {return list_profile(cons).second;}
+inline bool is_list(const Obj& obj) {
+  return 
+    is_null(obj) || 
+    (is_pair(obj) && is_proper_list(as_pair(obj)));
+}
+
 std::string stringify(const Obj&);
+std::string stringify_type(const Obj&);
 
 }
 

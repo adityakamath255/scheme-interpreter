@@ -128,6 +128,7 @@ Interpreter::print_timings() const {
     << "AST Building:       " << duration_cast<microseconds>(ast_building_time).count()        << " μs\n"
     << "Evaluating:         " << duration_cast<microseconds>(evaluating_time).count()         << " μs\n"
     << "Garbage Collecting: " << duration_cast<microseconds>(garbage_collecting_time).count() << " μs\n";
+  std::cout.flush();
 }
 
 }

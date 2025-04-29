@@ -98,8 +98,12 @@ Let::push_children(std::stack<HeapEntity*>& worklist) {
 void
 Cond::push_children(std::stack<HeapEntity*>& worklist) {
   for (auto& clause : clauses) {
-    worklist.push(clause.predicate);
-    worklist.push(clause.actions);
+    if (!clause.is_else) {
+      worklist.push(clause.predicate);
+    }
+    if (clause.has_actions) {
+      worklist.push(clause.actions);
+    }
   }
 }
 

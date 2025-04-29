@@ -357,7 +357,7 @@ is_procedure_prim(const ArgList& args, Interpreter& interp) {
 static Obj
 new_line(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 0, 0);
-  std::cout << "\n";
+  std::cout << std::endl;
   return Void {};
 }
 

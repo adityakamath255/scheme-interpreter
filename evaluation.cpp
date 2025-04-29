@@ -157,8 +157,19 @@ Let::eval(Environment *env, Interpreter& interp) {
 EvalResult
 Cond::eval(Environment *env, Interpreter& interp) {
   for (const Clause& clause : clauses) {
-    if (is_true(as_obj(clause.predicate->eval(env, interp))) || clause.is_else) {
+    if (clause.is_else) {
       return clause.actions->eval(env, interp);
+    }
+    else {
+      auto pred_output = as_obj(clause.predicate->eval(env, interp));
+      if (is_true(pred_output)) {
+        if (clause.has_actions) {
+          return clause.actions->eval(env, interp);
+        }
+        else {
+          return pred_output;
+        }
+      }
     }
   }
   return Void {}; 
