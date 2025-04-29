@@ -10,6 +10,18 @@ eval(Expression *expr, Environment *const env, Interpreter& interp) {
   return expr->eval(env, interp);
 }
 
+ArgList
+to_variadic_args(ArgList args, const size_t size, Interpreter& interp) {
+  args.push_back(nullptr);
+  while (args.size() > size) {
+    auto& last = args.back();
+    auto& second_last = args[args.size() - 2]; 
+    second_last = interp.alloc.make<Cons>(second_last, last);
+    args.pop_back();
+  }
+  return args;
+}
+
 EvalResult 
 apply(Obj p, ArgList args, Interpreter& interp) {
   while (true) {
@@ -17,11 +29,29 @@ apply(Obj p, ArgList args, Interpreter& interp) {
       const auto func = *as_primitive(p);
       return func(args, interp);
     }
+
     else if (is_procedure(p)) {
       auto func = as_procedure(p);
-      if (func->parameters.size() != args.size()) {
-        throw std::runtime_error("wrong number of arguments: expected " + std::to_string(func->parameters.size()));
+
+      if (func->is_variadic) {
+        if (args.size() + 1 < func->parameters.size()) {
+          throw std::runtime_error(std::format(
+            "wrong number of arguments: expected {}+",
+            func->parameters.size() - 1
+          ));
+        }
+        args = to_variadic_args(std::move(args), func->parameters.size(), interp);
       }
+
+      else {
+        if (args.size() != func->parameters.size()) {
+          throw std::runtime_error(std::format(
+            "wrong number of arguments: expected {}",
+            func->parameters.size()
+          ));
+        }
+      }
+
       auto new_env = func->env->extend(func->parameters, args, interp);
       auto res = func->body->eval(new_env, interp);
       if (is_obj(res)) {
@@ -96,7 +126,7 @@ Begin::eval(Environment *env, Interpreter& interp) {
 
 EvalResult
 Lambda::eval(Environment *env, Interpreter& interp) {
-  return interp.alloc.make<Procedure>(parameters, body, env);
+  return interp.alloc.make<Procedure>(parameters, body, env, is_variadic);
 }
 
 

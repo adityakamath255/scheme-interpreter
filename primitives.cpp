@@ -376,14 +376,19 @@ set_cdr(const ArgList& args, Interpreter& interp) {
 static Obj
 list_len(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, 1);
-  assert_obj_type<Cons*>(args[0], "list");
-  double ret = 0;
-  auto curr = args[0];
-  while (is_pair(curr)) {
-    ret++;
-    curr = as_pair(curr)->cdr;
+  if (is_null(args[0])) {
+    return 0.0;
   }
-  return ret;
+  else {
+    assert_obj_type<Cons*>(args[0], "list");
+    double ret = 0;
+    auto curr = args[0];
+    while (is_pair(curr)) {
+      ret++;
+      curr = as_pair(curr)->cdr;
+    }
+    return ret;
+  }
 }
 
 static Obj
