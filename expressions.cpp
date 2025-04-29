@@ -33,26 +33,14 @@ Application::tco() {
 
 static constexpr int MAXARGS = 256;
 
-static int
-get_size(Cons* cons) {
-  int sz = 0;
-  while (cons != nullptr) {
-    sz++;
-    if (!is_pair(cons->cdr)) {
-      break;
-    }
-    else {
-      cons = as_pair(cons->cdr);
-    }
-  }
-  return sz;
-}
-
-static void
+void
 assert_size(Cons *cons, const int lb, const int ub, const std::string& name) {
-  const int sz = get_size(cons);
-  if (sz < lb || sz > ub) {
-    throw std::runtime_error(std::format("{} expression is of wrong size [{}]", name, sz));
+  const auto [length, proper] = list_profile(cons);
+  if (!proper) {
+    throw std::runtime_error(std::format("{} expression is an improper list", name));
+  }
+  if (length < lb || length > ub) {
+    throw std::runtime_error(std::format("{} expression is of wrong size [{}]", name, length));
   }
 }
 
@@ -124,7 +112,7 @@ make_if(Cons *cons, Interpreter& interp) {
     build_ast(cddr->car, interp),
       is_pair(cddr->cdr)
     ? build_ast(as_pair(cddr->cdr)->car, interp)
-    : interp.alloc.make<Literal>(false)
+    : interp.alloc.make<Literal>(Void {})
   );
 }
 
@@ -142,39 +130,60 @@ make_lambda(const Obj& params_cons, const Obj& body_cons, Interpreter& interp) {
 
 static Expression*
 make_lambda(Cons *cons, Interpreter& interp) {
-  assert_size(cons, 3, MAXARGS, "lambda");
+  assert_size(cons, 2, MAXARGS, "lambda");
   const auto cdr = as_pair(cons->cdr);
   return make_lambda(cdr->car, cdr->cdr, interp);
 }
 
 static Expression*
-make_define(Cons *cons, Interpreter& interp) {
-  assert_size(cons, 3, MAXARGS, "define");
-  const auto cdr = as_pair(cons->cdr);
-  const auto cddr = as_pair(cdr->cdr);
-  if (is_symbol(cdr->car)) {
-    return interp.alloc.make<Define>(
-      as_symbol(cdr->car), 
-      build_ast(cddr->car, interp)
-    );
+make_var_define(Cons *cons, Cons *cdr, Interpreter& interp) {
+  const auto name = as_symbol(cdr->car);
+  if (is_null(cdr->cdr)) {
+    return interp.alloc.make<Define>(name, interp.alloc.make<Literal>(Void {}));
   }
-
-  else if (is_pair(cdr->car)) {
-    const auto cadr = as_pair(cdr->car);
-    const auto name = cadr->car;
-    const auto parameters = cadr->cdr;
-    const auto body = cddr;
-    if (!is_symbol(name)) {
-      throw std::runtime_error("procedure name must be a symbol");
-    }
-    return interp.alloc.make<Define>(
-      as_symbol(name),
-      make_lambda(parameters, body, interp)
-    );
-  }
-
   else {
-    throw std::runtime_error("bad definition identifier");
+    const auto cddr = as_pair(cdr->cdr);
+    if (is_pair(cddr->cdr)) {
+      throw std::runtime_error(std::format(
+        "define expression {} is of wrong size [{}]",
+        stringify(cons),
+        list_length(cons)
+      ));
+    }
+    return interp.alloc.make<Define>(name, build_ast(cddr->car, interp));
+  }
+}
+
+static Expression*
+make_proc_define(Cons *cons, Cons *cdr, Interpreter& interp) {
+  const auto cadr = as_pair(cdr->car);
+  const auto name = as_symbol(cadr->car);
+  const auto parameters = cadr->cdr;
+  const auto body = cdr->cdr; 
+  if (!is_symbol(name)) {
+    throw std::runtime_error(std::format(
+      "in define expression {}, procedure name must be a symbol",
+      stringify(cons)
+    ));
+  }
+  return interp.alloc.make<Define>(name, make_lambda(parameters, body, interp));
+}
+
+static Expression*
+make_define(Cons *cons, Interpreter& interp) {
+  assert_size(cons, 2, MAXARGS, "define");
+  const auto cdr = as_pair(cons->cdr);
+  if (is_symbol(cdr->car)) {
+    return make_var_define(cons, cdr, interp);
+  }
+  else if (is_pair(cdr->car)) {
+    return make_proc_define(cons, cdr, interp);
+  }
+  else {
+    throw std::runtime_error(std::format(
+      "bad definition identifier: {}",
+      stringify(cdr->car)
+    ));
   }
 }
 
@@ -182,39 +191,46 @@ static std::unordered_map<Symbol, Expression*>
 get_bindings(const Obj& obj, Interpreter& interp) {
   std::unordered_map<Symbol, Expression*> ret {};
   auto ls = obj;
+
   while (is_pair(ls)) {
     const auto cons = as_pair(ls);
+
     if (!is_pair(cons->car)) {
       throw std::runtime_error("let bindings must be represented as 2-element lists");
     }
 
     const auto car = as_pair(cons->car);
+
     if (!is_pair(car->cdr)) {
       throw std::runtime_error("let bindings must be represented as 2-element lists");
     }
 
     const auto cdar = as_pair(car->cdr);
-    if (!is_null(cdar->cdr)) {
-      throw std::runtime_error("let bindings must be represented as 2-element lists");
-    }
 
     if (!is_symbol(car->car)) {
       throw std::runtime_error("let bindings must be to variables");
     }
     
-    ret.emplace(
-      as_symbol(car->car),
-      build_ast(cdar->car, interp)
-    );
+    const auto name = as_symbol(car->car);
 
+    if (!is_null(cdar->cdr)) {
+      throw std::runtime_error("let bindings must be represented as 2-element lists");
+    }
+ 
+    const auto expr = cdar->car;
+
+    ret.emplace(name, build_ast(expr, interp));
     ls = cons->cdr;
+  }
+  if (!is_null(ls)) {
+    throw std::runtime_error("let bindings must be a proper list");
   }
   return ret;
 }
 
 static Expression*
 make_let(Cons *cons, Interpreter& interp) {
-  assert_size(cons, 3, MAXARGS, "let");
+  assert_size(cons, 2, MAXARGS, "let");
   const auto cdr = as_pair(cons->cdr);
   return interp.alloc.make<Let>(
     get_bindings(cdr->car, interp),
@@ -224,56 +240,63 @@ make_let(Cons *cons, Interpreter& interp) {
 
 static Expression*
 make_begin(Cons *cons, Interpreter& interp) {
-  return interp.alloc.make<Begin>(cons2exprs(cons, interp));
-}
-
-static bool
-is_else_clause(const Obj& obj) {
-  return
-    is_symbol(obj) &&
-    as_symbol(obj).get_name() == "else";
+  assert_size(cons, 1, MAXARGS, "begin");
+  return interp.alloc.make<Begin>(cons2exprs(cons->cdr, interp));
 }
 
 static Clause
 make_clause(Cons *cons, Interpreter& interp) {
   Clause ret {};
-  if (is_else_clause(cons->car)) {
-    ret.is_else = true;
-    ret.predicate = interp.alloc.make<Literal>(true);
-  } 
-  else {
-    ret.is_else = false;
+
+  ret.is_else = is_symbol(cons->car) && as_symbol(cons->car).get_name() == "else";
+
+  if (!ret.is_else) {
     ret.predicate = build_ast(cons->car, interp);
   }
-  ret.actions = combine_expr(cons->cdr, interp);
+  
+  ret.has_actions = !is_null(cons->cdr);
+
+  if (ret.is_else && !ret.has_actions) {
+    throw std::runtime_error("else clause must have actions");
+  }
+
+  if (ret.has_actions) {
+    ret.actions = combine_expr(cons->cdr, interp);
+  }
+
   return ret;
 }
 
 static Expression*
 make_cond(Cons *cons, Interpreter& interp) {
+  assert_size(cons, 1, MAXARGS, "cond");
   std::vector<Clause> clauses {};
-  Obj& obj = cons->cdr;
+  Obj obj = cons->cdr;
   while (is_pair(obj)) {
     const auto cons = as_pair(obj);
     if (!is_pair(cons->car)) {
-      throw std::runtime_error("bad form for cond expression\n");
+      throw std::runtime_error("bad form for cond expression");
     }
     clauses.push_back(make_clause(as_pair(cons->car), interp));
     if (clauses.back().is_else) {
       if (!is_null(cons->cdr)) {
-        throw std::runtime_error("no clauses allowed after else clause\n");
+        throw std::runtime_error("no clauses allowed after else clause");
       }
       else {
-        break;
+        return interp.alloc.make<Cond>(std::move(clauses));
       }
     }
     obj = cons->cdr;
+  }
+  if (!is_null(obj)) {
+    throw std::runtime_error("cond expression is an improper list");
   }
   return interp.alloc.make<Cond>(std::move(clauses));
 }
 
 static Expression*
 make_application(Cons *cons, Interpreter& interp) {
+  assert_size(cons, 1, MAXARGS, std::format("{} application", stringify(cons->car)));
   return interp.alloc.make<Application>(
     build_ast(cons->car, interp),
     cons2exprs(cons->cdr, interp)
@@ -282,11 +305,13 @@ make_application(Cons *cons, Interpreter& interp) {
 
 static Expression*
 make_and(Cons *cons, Interpreter& interp) {
+  assert_size(cons, 0, MAXARGS, "and");
   return interp.alloc.make<And>(cons2exprs(cons->cdr, interp));
 }
 
 static Expression*
 make_or(Cons *cons, Interpreter& interp) {
+  assert_size(cons, 0, MAXARGS, "or");
   return interp.alloc.make<Or>(cons2exprs(cons->cdr, interp));
 }
 

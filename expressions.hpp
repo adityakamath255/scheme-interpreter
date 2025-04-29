@@ -124,6 +124,7 @@ struct Let : public Expression {
 
 struct Clause {
   bool is_else;
+  bool has_actions;
   Expression *predicate;
   Expression *actions;
 };
