@@ -136,22 +136,25 @@ Define::eval(Environment *env, Interpreter& interp) {
   return Void {};
 }
 
-static Environment *
-get_frame(const Let& expr, Environment *env, Interpreter& interp) {
-  auto ret = env->extend(interp);
-  for (const auto& p : expr.bindings) {
-    ret->define(
-      p.first,
-      as_obj(p.second->eval(env, interp))
-    );
+static void
+make_let_frame(LetBindings& bindings, Environment *branch, Environment *base, Interpreter& interp) {
+  for (auto& p : bindings) {
+    branch->define(p.first, as_obj(p.second->eval(base, interp)));
   }
-  return ret;
 }
 
 EvalResult
 Let::eval(Environment *env, Interpreter& interp) {
-  const auto env2 = get_frame(*this, env, interp);
-  return body->eval(env2, interp);
+  const auto branch = env->extend(interp);
+  make_let_frame(bindings, branch, env, interp);
+  return body->eval(branch, interp);
+}
+
+EvalResult
+LetSeq::eval(Environment *env, Interpreter& interp) {
+  const auto branch = env->extend(interp);
+  make_let_frame(bindings, branch, branch, interp);
+  return body->eval(branch, interp);
 }
 
 EvalResult

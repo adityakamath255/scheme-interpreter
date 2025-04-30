@@ -114,10 +114,20 @@ struct Define : public Expression {
   void push_children(std::stack<HeapEntity*>&) override;
 };
 
+using LetBindings = std::vector<std::pair<Symbol, Expression*>>;
+
 struct Let : public Expression {
-  std::unordered_map<Symbol, Expression*> bindings;
+  LetBindings bindings;
   Expression *body;
   Let(decltype(bindings) bn, Expression *bd): bindings {std::move(bn)}, body {bd} {}
+  EvalResult eval(Environment*, Interpreter&) override;
+  void push_children(std::stack<HeapEntity*>&) override;
+};
+
+struct LetSeq : public Expression {
+  LetBindings bindings;
+  Expression *body;
+  LetSeq(decltype(bindings) bn, Expression *bd): bindings {std::move(bn)}, body {bd} {}
   EvalResult eval(Environment*, Interpreter&) override;
   void push_children(std::stack<HeapEntity*>&) override;
 };

@@ -187,9 +187,9 @@ make_define(Cons *cons, Interpreter& interp) {
   }
 }
 
-static std::unordered_map<Symbol, Expression*>
+static LetBindings
 get_bindings(const Obj& obj, Interpreter& interp) {
-  std::unordered_map<Symbol, Expression*> ret {};
+  LetBindings ret {};
   auto ls = obj;
 
   while (is_pair(ls)) {
@@ -219,7 +219,7 @@ get_bindings(const Obj& obj, Interpreter& interp) {
  
     const auto expr = cdar->car;
 
-    ret.emplace(name, build_ast(expr, interp));
+    ret.emplace_back(name, build_ast(expr, interp));
     ls = cons->cdr;
   }
   if (!is_null(ls)) {
@@ -233,6 +233,16 @@ make_let(Cons *cons, Interpreter& interp) {
   assert_size(cons, 2, MAXARGS, "let");
   const auto cdr = as_pair(cons->cdr);
   return interp.alloc.make<Let>(
+    get_bindings(cdr->car, interp),
+    combine_expr(cdr->cdr, interp)
+  );
+}
+
+static Expression*
+make_let_seq(Cons *cons, Interpreter& interp) {
+  assert_size(cons, 2, MAXARGS, "let*");
+  const auto cdr = as_pair(cons->cdr);
+  return interp.alloc.make<LetSeq>(
     get_bindings(cdr->car, interp),
     combine_expr(cdr->cdr, interp)
   );
@@ -342,6 +352,9 @@ special_forms = {
   {"if", make_if},
   {"lambda", make_lambda},
   {"let", make_let},
+  {"let*", make_let_seq},
+  {"letrec", make_let}, // they're the same in this implementation
+  {"letrec*", make_let_seq}, 
   {"begin", make_begin},
   {"cond", make_cond},
   {"and", make_and},
