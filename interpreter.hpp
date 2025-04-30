@@ -34,6 +34,10 @@ public:
   Obj interpret(const std::string&);
   void print_timings() const;
 
+  template<typename T, typename... Args>
+  T* spawn(Args&&... args) {
+    return alloc.spawn<T>(std::forward<Args>(args)...);
+  }
 };
 
 }

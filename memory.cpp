@@ -6,7 +6,7 @@
 namespace Scheme {
 
 void
-Cons::push_children(std::stack<HeapEntity*>& worklist) {
+Cons::push_children(MarkStack& worklist) {
   if (auto car_ent = try_get_heap_entity(car)) {
     worklist.push(car_ent);
   }
@@ -16,7 +16,7 @@ Cons::push_children(std::stack<HeapEntity*>& worklist) {
 }
 
 void 
-Vector::push_children(std::stack<HeapEntity*>& worklist) {
+Vector::push_children(MarkStack& worklist) {
   for (Obj& obj : data) {
     if (auto ent = try_get_heap_entity(obj)) {
       worklist.push(ent);
@@ -25,16 +25,16 @@ Vector::push_children(std::stack<HeapEntity*>& worklist) {
 }
 
 void 
-Primitive::push_children(std::stack<HeapEntity*>& worklist) {}
+Primitive::push_children(MarkStack& worklist) {}
 
 void 
-Procedure::push_children(std::stack<HeapEntity*>& worklist) {
+Procedure::push_children(MarkStack& worklist) {
   worklist.push(body);
   worklist.push(env);
 }
 
 void
-Environment::push_children(std::stack<HeapEntity*>& worklist) {
+Environment::push_children(MarkStack& worklist) {
   for (auto& [key, value] : frame) {
     if (auto ent = try_get_heap_entity(value)) {
       worklist.push(ent);
@@ -46,49 +46,49 @@ Environment::push_children(std::stack<HeapEntity*>& worklist) {
 }
 
 void
-Literal::push_children(std::stack<HeapEntity*>& worklist) {}
+Literal::push_children(MarkStack& worklist) {}
 
 void  
-Variable::push_children(std::stack<HeapEntity*>& worklist) {}
+Variable::push_children(MarkStack& worklist) {}
 
 void 
-Quoted::push_children(std::stack<HeapEntity*>& worklist) {
+Quoted::push_children(MarkStack& worklist) {
   if (auto ent = try_get_heap_entity(text_of_quotation)) {
     worklist.push(ent);
   }
 }
 
 void
-Set::push_children(std::stack<HeapEntity*>& worklist) {
+Set::push_children(MarkStack& worklist) {
   worklist.push(value);
 }
 
 void
-If::push_children(std::stack<HeapEntity*>& worklist) {
+If::push_children(MarkStack& worklist) {
   worklist.push(predicate);
   worklist.push(consequent);
   worklist.push(alternative);
 }
 
 void 
-Begin::push_children(std::stack<HeapEntity*>& worklist) {
+Begin::push_children(MarkStack& worklist) {
   for (auto& action : actions) {
     worklist.push(action);
   }
 }
 
 void
-Lambda::push_children(std::stack<HeapEntity*>& worklist) {
+Lambda::push_children(MarkStack& worklist) {
   worklist.push(body);
 }
 
 void
-Define::push_children(std::stack<HeapEntity*>& worklist) {
+Define::push_children(MarkStack& worklist) {
   worklist.push(value);
 }
 
 void 
-Let::push_children(std::stack<HeapEntity*>& worklist) {
+Let::push_children(MarkStack& worklist) {
   for (auto& [key, value] : bindings) {
     worklist.push(value);
   }
@@ -96,7 +96,7 @@ Let::push_children(std::stack<HeapEntity*>& worklist) {
 }
 
 void 
-LetSeq::push_children(std::stack<HeapEntity*>& worklist) {
+LetSeq::push_children(MarkStack& worklist) {
   for (auto& [key, value] : bindings) {
     worklist.push(value);
   }
@@ -104,19 +104,19 @@ LetSeq::push_children(std::stack<HeapEntity*>& worklist) {
 }
 
 void
-Cond::push_children(std::stack<HeapEntity*>& worklist) {
+Cond::push_children(MarkStack& worklist) {
   for (auto& clause : clauses) {
-    if (!clause.is_else) {
+    if (clause.predicate) {
       worklist.push(clause.predicate);
     }
-    if (clause.has_actions) {
+    if (clause.actions) {
       worklist.push(clause.actions);
     }
   }
 }
 
 void 
-Application::push_children(std::stack<HeapEntity*>& worklist) {
+Application::push_children(MarkStack& worklist) {
   worklist.push(op);
   for (auto& param : params) {
     worklist.push(param);
@@ -124,27 +124,27 @@ Application::push_children(std::stack<HeapEntity*>& worklist) {
 }
 
 void
-And::push_children(std::stack<HeapEntity*>& worklist) {
+And::push_children(MarkStack& worklist) {
   for (auto& expr : exprs) {
     worklist.push(expr);
   }
 }
 
 void
-Or::push_children(std::stack<HeapEntity*>& worklist) {
+Or::push_children(MarkStack& worklist) {
   for (auto& expr : exprs) {
     worklist.push(expr);
   }
 }
 
 void
-Cxr::push_children(std::stack<HeapEntity*>& worklist) {
+Cxr::push_children(MarkStack& worklist) {
   worklist.push(expr);
 }
 
 void 
 Allocator::mark(const std::vector<HeapEntity*>& roots) {
-  std::stack<HeapEntity*> worklist;
+  MarkStack worklist;
   for (auto root : roots) {
     if (root && !root->marked) {
       worklist.push(root);
@@ -164,27 +164,27 @@ Allocator::mark(const std::vector<HeapEntity*>& roots) {
 
 void
 Allocator::sweep() {
-  auto itr = live_memory.begin();
-  while (itr != live_memory.end()) {
-    auto ptr = *itr;
+  auto is_dead = [](HeapEntity *ptr) {
     if (ptr->marked) {
       ptr->marked = false;
-      itr++;
+      return false;
     }
     else {
       delete ptr;
-      itr = live_memory.erase(itr);
+      return true;
     }
-  }
+  };
+
+  std::erase_if(live_memory, is_dead);
 }
 
 void
-Allocator::cleanup() {
+Allocator::recycle() {
   sweep();
 }
 
 void
-Allocator::cleanup(const std::vector<HeapEntity*>& roots) {
+Allocator::recycle(const std::vector<HeapEntity*>& roots) {
   mark(roots);
   sweep();
 }

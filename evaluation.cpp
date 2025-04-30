@@ -16,7 +16,7 @@ to_variadic_args(ArgList args, const size_t size, Interpreter& interp) {
   while (args.size() > size) {
     auto& last = args.back();
     auto& second_last = args[args.size() - 2]; 
-    second_last = interp.alloc.make<Cons>(second_last, last);
+    second_last = interp.spawn<Cons>(second_last, last);
     args.pop_back();
   }
   return args;
@@ -126,7 +126,7 @@ Begin::eval(Environment *env, Interpreter& interp) {
 
 EvalResult
 Lambda::eval(Environment *env, Interpreter& interp) {
-  return interp.alloc.make<Procedure>(parameters, body, env, is_variadic);
+  return interp.spawn<Procedure>(parameters, body, env, is_variadic);
 }
 
 
@@ -166,7 +166,7 @@ Cond::eval(Environment *env, Interpreter& interp) {
     else {
       auto pred_output = as_obj(clause.predicate->eval(env, interp));
       if (is_true(pred_output)) {
-        if (clause.has_actions) {
+        if (clause.actions != nullptr) {
           return clause.actions->eval(env, interp);
         }
         else {
@@ -186,10 +186,10 @@ Application::eval(Environment *env, Interpreter& interp) {
     args.push_back(as_obj(param->eval(env, interp)));
   }
   if (at_tail) {
-    return TailCall(proc, move(args));
+    return TailCall(proc, std::move(args));
   }
   else {
-    return apply(proc, args, interp);
+    return apply(proc, std::move(args), interp);
   }
 } 
 
