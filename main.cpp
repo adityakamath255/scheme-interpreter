@@ -35,8 +35,9 @@ read(INPUT& in) {
 
     result << line << std::endl;
 
-    if (open_parens == 0) 
+    if (open_parens == 0) {
       break;
+    }
   }
 
   if (open_parens != 0) {
@@ -52,8 +53,12 @@ driver_loop(Interpreter& interp) {
     try {
       std::cout << ">>> ";
       std::string input_expr = read(std::cin);
-      if (input_expr == "#q\n") 
+      std::string trimmed;
+      std::istringstream s(input_expr);
+      s >> trimmed;
+      if (trimmed == "#q" || trimmed == "(exit)") {
         return;
+      }
       auto result = interp.interpret(input_expr);
       if (!is_void(result)) {
         std::cout << stringify(result) << std::endl;
@@ -98,17 +103,33 @@ run_file(Interpreter& interp, const char *filename, bool enter_driver_loop) {
 
 int 
 main(const int argc, const char **argv) {
-  Interpreter interp(true);
-  if (argc == 1) {
+  bool profiling = false;
+  bool enter_repl = true;
+  const char *filename = nullptr;
+
+  for (int i = 1; i < argc; i++) {
+    std::string arg = argv[i];
+    if (arg == "--profile") {
+      profiling = true;
+    }
+    else if (arg == "--no-repl") {
+      enter_repl = false;
+    }
+    else if (!filename) {
+      filename = argv[i];
+    }
+    else {
+      std::cerr << "Usage: ./scheme [--profile] [--no-repl] [filename]" << std::endl;
+      return 1;
+    }
+  }
+  
+  Interpreter interp(profiling);
+
+  if (!filename) {
     driver_loop(interp);
   }
-  else if (argc == 2) {
-    run_file(interp, argv[1], true);
-  }
-  else if (argc == 3 && std::string(argv[1]) == "--no-repl") {
-    run_file(interp, argv[2], false);
-  }
   else {
-    std::cout << "Usage: ./scheme [--no-repl] [file-to-run]" << std::endl;
+    run_file(interp, filename, enter_repl);
   }
 }

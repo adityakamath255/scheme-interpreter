@@ -86,7 +86,7 @@ cons2exprs(const Obj& ls, Interpreter& interp) {
 static Expression*
 make_quoted(Cons *cons, Interpreter& interp) {
   assert_size(cons, 2, 2, "quoted");
-  return interp.alloc.make<Quoted>(cons->at("cadr"));
+  return interp.spawn<Quoted>(cons->at("cadr"));
 }
 
 static Expression*
@@ -99,7 +99,7 @@ make_set(Cons *cons, Interpreter& interp) {
   }
   const auto variable = as_symbol(cdr->car);
   auto value = build_ast(cddr->car, interp);
-  return interp.alloc.make<Set>(variable, value);
+  return interp.spawn<Set>(variable, value);
 }
 
 static Expression*
@@ -107,12 +107,12 @@ make_if(Cons *cons, Interpreter& interp) {
   assert_size(cons, 3, 4, "if");
   const auto cdr = as_pair(cons->cdr);
   const auto cddr = as_pair(cdr->cdr);
-  return interp.alloc.make<If>(
+  return interp.spawn<If>(
     build_ast(cdr->car, interp),
     build_ast(cddr->car, interp),
       is_pair(cddr->cdr)
     ? build_ast(as_pair(cddr->cdr)->car, interp)
-    : interp.alloc.make<Literal>(Void {})
+    : interp.spawn<Literal>(Void {})
   );
 }
 
@@ -120,7 +120,7 @@ static Expression*
 make_lambda(const Obj& params_cons, const Obj& body_cons, Interpreter& interp) {
   auto [params, is_variadic] = cons2paramlist(params_cons);
   auto body = combine_expr(body_cons, interp);
-  auto ret = interp.alloc.make<Lambda>(
+  auto ret = interp.spawn<Lambda>(
     std::move(params),
     body,
     is_variadic
@@ -139,7 +139,7 @@ static Expression*
 make_var_define(Cons *cons, Cons *cdr, Interpreter& interp) {
   const auto name = as_symbol(cdr->car);
   if (is_null(cdr->cdr)) {
-    return interp.alloc.make<Define>(name, interp.alloc.make<Literal>(Void {}));
+    return interp.spawn<Define>(name, interp.spawn<Literal>(Void {}));
   }
   else {
     const auto cddr = as_pair(cdr->cdr);
@@ -150,7 +150,7 @@ make_var_define(Cons *cons, Cons *cdr, Interpreter& interp) {
         list_length(cons)
       ));
     }
-    return interp.alloc.make<Define>(name, build_ast(cddr->car, interp));
+    return interp.spawn<Define>(name, build_ast(cddr->car, interp));
   }
 }
 
@@ -166,7 +166,7 @@ make_proc_define(Cons *cons, Cons *cdr, Interpreter& interp) {
       stringify(cons)
     ));
   }
-  return interp.alloc.make<Define>(name, make_lambda(parameters, body, interp));
+  return interp.spawn<Define>(name, make_lambda(parameters, body, interp));
 }
 
 static Expression*
@@ -232,7 +232,7 @@ static Expression*
 make_let(Cons *cons, Interpreter& interp) {
   assert_size(cons, 2, MAXARGS, "let");
   const auto cdr = as_pair(cons->cdr);
-  return interp.alloc.make<Let>(
+  return interp.spawn<Let>(
     get_bindings(cdr->car, interp),
     combine_expr(cdr->cdr, interp)
   );
@@ -242,7 +242,7 @@ static Expression*
 make_let_seq(Cons *cons, Interpreter& interp) {
   assert_size(cons, 2, MAXARGS, "let*");
   const auto cdr = as_pair(cons->cdr);
-  return interp.alloc.make<LetSeq>(
+  return interp.spawn<LetSeq>(
     get_bindings(cdr->car, interp),
     combine_expr(cdr->cdr, interp)
   );
@@ -251,7 +251,7 @@ make_let_seq(Cons *cons, Interpreter& interp) {
 static Expression*
 make_begin(Cons *cons, Interpreter& interp) {
   assert_size(cons, 1, MAXARGS, "begin");
-  return interp.alloc.make<Begin>(cons2exprs(cons->cdr, interp));
+  return interp.spawn<Begin>(cons2exprs(cons->cdr, interp));
 }
 
 static Clause
@@ -263,15 +263,21 @@ make_clause(Cons *cons, Interpreter& interp) {
   if (!ret.is_else) {
     ret.predicate = build_ast(cons->car, interp);
   }
+  else {
+    ret.predicate = nullptr;
+  }
   
-  ret.has_actions = !is_null(cons->cdr);
+  bool has_actions = !is_null(cons->cdr);
 
-  if (ret.is_else && !ret.has_actions) {
+  if (ret.is_else && !has_actions) {
     throw std::runtime_error("else clause must have actions");
   }
 
-  if (ret.has_actions) {
+  if (has_actions) {
     ret.actions = combine_expr(cons->cdr, interp);
+  }
+  else {
+    ret.actions = nullptr;
   }
 
   return ret;
@@ -293,7 +299,7 @@ make_cond(Cons *cons, Interpreter& interp) {
         throw std::runtime_error("no clauses allowed after else clause");
       }
       else {
-        return interp.alloc.make<Cond>(std::move(clauses));
+        return interp.spawn<Cond>(std::move(clauses));
       }
     }
     obj = cons->cdr;
@@ -301,13 +307,13 @@ make_cond(Cons *cons, Interpreter& interp) {
   if (!is_null(obj)) {
     throw std::runtime_error("cond expression is an improper list");
   }
-  return interp.alloc.make<Cond>(std::move(clauses));
+  return interp.spawn<Cond>(std::move(clauses));
 }
 
 static Expression*
 make_application(Cons *cons, Interpreter& interp) {
   assert_size(cons, 1, MAXARGS, std::format("{} application", stringify(cons->car)));
-  return interp.alloc.make<Application>(
+  return interp.spawn<Application>(
     build_ast(cons->car, interp),
     cons2exprs(cons->cdr, interp)
   );
@@ -316,31 +322,31 @@ make_application(Cons *cons, Interpreter& interp) {
 static Expression*
 make_and(Cons *cons, Interpreter& interp) {
   assert_size(cons, 0, MAXARGS, "and");
-  return interp.alloc.make<And>(cons2exprs(cons->cdr, interp));
+  return interp.spawn<And>(cons2exprs(cons->cdr, interp));
 }
 
 static Expression*
 make_or(Cons *cons, Interpreter& interp) {
   assert_size(cons, 0, MAXARGS, "or");
-  return interp.alloc.make<Or>(cons2exprs(cons->cdr, interp));
+  return interp.spawn<Or>(cons2exprs(cons->cdr, interp));
 }
 
 static Expression*
 make_cxr(Symbol tag, Cons *cons, Interpreter& interp) {
   assert_size(cons, 2, 2, tag.get_name());
-  return interp.alloc.make<Cxr>(tag, build_ast(cons->at("cadr"), interp));
+  return interp.spawn<Cxr>(tag, build_ast(cons->at("cadr"), interp));
 }
 
 Expression*
 combine_expr(const Obj& seq, Interpreter& interp) {
   if (is_null(seq)) {
-    return interp.alloc.make<Literal>(Void {});
+    return interp.spawn<Literal>(Void {});
   }
   else if (is_null(as_pair(seq)->cdr)) {
     return build_ast(as_pair(seq)->car, interp);
   }
   else {
-    return interp.alloc.make<Begin>(cons2exprs(seq, interp));
+    return interp.spawn<Begin>(cons2exprs(seq, interp));
   }
 }
 
@@ -392,9 +398,9 @@ build_ast(const Obj& obj, Interpreter& interp) {
     return make_application(p, interp);
   }
   else if (is_symbol(obj))
-    return interp.alloc.make<Variable>(as_symbol(obj));
+    return interp.spawn<Variable>(as_symbol(obj));
   else
-    return interp.alloc.make<Literal>(obj);
+    return interp.spawn<Literal>(obj);
 }
 
 }

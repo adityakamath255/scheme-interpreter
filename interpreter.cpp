@@ -32,9 +32,9 @@ public:
 
 void
 Interpreter::install_global_environment() {
-  global_env = alloc.make<Environment>();
+  global_env = alloc.spawn<Environment>();
   for (const auto& p : get_primitive_functions()) {
-    global_env->define(intern_symbol(p.first), alloc.make<Primitive>(p.second));
+    global_env->define(intern_symbol(p.first), alloc.spawn<Primitive>(p.second));
   }
   for (const auto& p : get_consts()) {
     global_env->define(intern_symbol(p.first), p.second);
@@ -54,7 +54,7 @@ Interpreter::~Interpreter() {
   for (auto& [key, value] : intern_table) {
     delete value;
   }
-  alloc.cleanup();
+  alloc.recycle();
 }
 
 Symbol
@@ -99,7 +99,7 @@ Interpreter::interpret(const std::string& code) {
       if (auto ent = try_get_heap_entity(result)) {
         roots.push_back(ent);
       }
-      alloc.cleanup(roots);
+      alloc.recycle(roots);
     }
     
     return result;
@@ -114,7 +114,7 @@ Interpreter::interpret(const std::string& code) {
     if (auto ent = try_get_heap_entity(result)) {
       roots.push_back(ent);
     }
-    alloc.cleanup(roots);
+    alloc.recycle(roots);
     return result;
   }
 }

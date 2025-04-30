@@ -294,14 +294,14 @@ is_equal(const ArgList& args, Interpreter& interp) {
 static Obj
 cons_prim(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 2, 2);
-  return interp.alloc.make<Cons>(args[0], args[1]);
+  return interp.spawn<Cons>(args[0], args[1]);
 }
 
 static Obj
 list_prim(const ArgList& args, Interpreter& interp) {
   Obj ret = nullptr;
   for (auto curr = args.rbegin(); curr != args.rend(); curr++) {
-    ret = interp.alloc.make<Cons>(*curr, ret);
+    ret = interp.spawn<Cons>(*curr, ret);
   }
   return ret;
 }
@@ -421,7 +421,7 @@ list_ref(const ArgList& args, Interpreter& interp) {
 static Obj
 append_rec(const Obj& list1, const Obj& list2, Interpreter& interp) {
   if (is_pair(list1)) {
-    return interp.alloc.make<Cons>(
+    return interp.spawn<Cons>(
       as_pair(list1)->car,
       append_rec(as_pair(list1)->cdr, list2, interp)
     );
@@ -449,7 +449,7 @@ map_rec(Obj& fn, Obj& obj, Interpreter& interp) {
   }
   else {
     auto ls = as_pair(obj);
-    return interp.alloc.make<Cons>(
+    return interp.spawn<Cons>(
       as_obj(apply(fn, ArgList({ls->car}), interp)), 
       map_rec(fn, ls->cdr, interp)
     );
@@ -476,7 +476,7 @@ filter_rec(Obj& fn, Obj& obj, Interpreter& interp) {
     auto ls = as_pair(obj);
     auto rest = filter_rec(fn, ls->cdr, interp);
     if (is_true(as_obj(apply(fn, ArgList({ls->car}), interp)))) {
-      return interp.alloc.make<Cons>(ls->car, rest);
+      return interp.spawn<Cons>(ls->car, rest);
     }
     else {
       return rest;
@@ -503,12 +503,12 @@ make_vector(const ArgList& args, Interpreter& interp) {
     throw std::runtime_error("vector size cannot be negative");
   }
   if (args.size() == 2) {
-    return interp.alloc.make<Vector>(
+    return interp.spawn<Vector>(
       std::vector<Obj>(sz, args[1])
     );
   }
   else {
-    return interp.alloc.make<Vector>(
+    return interp.spawn<Vector>(
       std::vector<Obj>(sz, Obj {(double) 0})
     );
   }
@@ -524,7 +524,7 @@ vector_ref(const ArgList& args, Interpreter& interp) {
     throw std::runtime_error("vector index cannot be negative");
   }
   std::vector<Obj>& data = as_vector(args[0])->data;
-  if (index > data.size()) {
+  if (index >= data.size()) {
     throw std::runtime_error("vector index out of range");
   }
   return data[index]; 
@@ -540,7 +540,7 @@ vector_set(const ArgList& args, Interpreter& interp) {
     throw std::runtime_error("vector index cannot be negative");
   }
   std::vector<Obj>& data = as_vector(args[0])->data;
-  if (index > data.size()) {
+  if (index >= data.size()) {
     throw std::runtime_error("vector index out of range");
   }
   data[index] = args[2];

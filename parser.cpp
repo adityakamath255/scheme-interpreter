@@ -68,7 +68,7 @@ Parser::parse_vec() {
   }
   else {
     index++;
-    return interp.alloc.make<Vector>(std::move(ret));
+    return interp.spawn<Vector>(std::move(ret));
   }
 }
 
@@ -104,8 +104,8 @@ Parser::parse_impl(bool recursive) {
   }
   else if (token == "'") {
     auto quoted = parse_impl(false);
-    head = Obj(interp.alloc.make<Cons>(
-      make_sym_obj("quote"), interp.alloc.make<Cons>(
+    head = Obj(interp.spawn<Cons>(
+      make_sym_obj("quote"), interp.spawn<Cons>(
       quoted, 
       nullptr)));
   }
@@ -118,7 +118,7 @@ Parser::parse_impl(bool recursive) {
   }
   else {
     auto tail = parse_impl(true);
-    return Obj(interp.alloc.make<Cons>(head, tail));
+    return Obj(interp.spawn<Cons>(head, tail));
   }
 }
 

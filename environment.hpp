@@ -8,7 +8,7 @@ class Environment : public HeapEntity {
 private:
   std::unordered_map<Symbol, Obj> frame {};
   std::pair<Obj&, int> get_impl(const Symbol&, const int);
-  void push_children(std::stack<HeapEntity*>&) override;
+  void push_children(MarkStack&) override;
 
 public:
   Environment *const super;
