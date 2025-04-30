@@ -95,6 +95,14 @@ Let::push_children(std::stack<HeapEntity*>& worklist) {
   worklist.push(body);
 }
 
+void 
+LetSeq::push_children(std::stack<HeapEntity*>& worklist) {
+  for (auto& [key, value] : bindings) {
+    worklist.push(value);
+  }
+  worklist.push(body);
+}
+
 void
 Cond::push_children(std::stack<HeapEntity*>& worklist) {
   for (auto& clause : clauses) {
