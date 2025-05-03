@@ -75,7 +75,7 @@ Interpreter::interpret(const std::string& code) {
   if (profiling) {
     auto tokens = [&](){
       Timer timer(lexing_time);
-      return Lexer(code).tokenize();
+      return Lexer(code).all_tokens();
     }();
 
     auto s_expr = [&](){
@@ -106,7 +106,7 @@ Interpreter::interpret(const std::string& code) {
 
   } 
   else {
-    auto tokens = Lexer(code).tokenize();
+    auto tokens = Lexer(code).all_tokens();
     auto s_expr = Parser(tokens, *this).parse();
     auto ast = build_ast(s_expr, *this); 
     auto result = as_obj(ast->eval(global_env, *this));
