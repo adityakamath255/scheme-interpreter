@@ -1,34 +1,48 @@
 #include "types.hpp"
+#include "lexer.hpp"
 #include "parser.hpp"
 #include "interpreter.hpp"
+#include <cmath>
 #include <string_view>
+
+#include <iostream>
 
 namespace Scheme {
 
-Parser::Parser(const std::vector<std::string_view>& tokens, Interpreter& interp):
+Parser::Parser(const std::vector<Token>& tokens, Interpreter& interp):
   tokens {tokens},
   index {0},
   interp {interp}
 {}
 
-std::string_view 
+bool
+Parser::at_end() {
+  return index >= tokens.size();
+}
+
+const Token&
+Parser::advance() {
+  index++;
+  return tokens[index - 1];
+}
+
+const Token&
+Parser::curr_token() {
+  return tokens[index - 1];
+}
+
+const Token&
 Parser::next_token() {
-  if (index >= tokens.size()) {
-    return "\0"; // replace with Token::EOF
-  }
-  else {
-    index++;
-    return tokens[index - 1];
-  }
+  return tokens[index];
 }
 
 bool
-Parser::match(const std::string_view str) {
-  if (index >= tokens.size()) {
+Parser::match(const Token::Type type) {
+  if (at_end()) {
     return false;
   }
-  else if (tokens[index] == str) {
-    index++;
+  else if (next_token().type == type) {
+    advance();
     return true;
   }
   else {
@@ -37,107 +51,99 @@ Parser::match(const std::string_view str) {
 }
 
 Obj
-Parser::make_sym_obj(const std::string_view str) {
-  return interp.intern_symbol(str);
+Parser::symbol() {
+  return interp.intern_symbol(curr_token().lexeme);
 }
 
 Obj
-Parser::make_bool_obj(const std::string_view str) {
-  if (str.size() != 2) {
-    throw std::runtime_error("identifiers cannot start with '#'");
-  }
-  switch (str[1]) {
-    case 't': 
-    case 'T':
-      return true;
-
-    case 'f':
-    case 'F':
-      return false;
-
-    default:
-      throw std::runtime_error("identifiers cannot start with '#'");
-  }
-}
-
-Obj
-Parser::make_num_obj(const std::string_view str) {
+Parser::number() {
   try {
     size_t chars_processed;
-    const double val = std::stod(std::string(str), &chars_processed);
+    const double val = std::stod(std::string(curr_token().lexeme), &chars_processed);
 
-    if (chars_processed == str.size()) {
+    if (chars_processed == curr_token().lexeme.size()) {
       return val;
     }
     else {
-      return make_sym_obj(str);
+      return symbol();
     }
   }
-  catch (const std::exception&) {
-    return make_sym_obj(str);
+  catch (const std::exception& e) {
+    return symbol();
   }
 }
 
 Obj
-Parser::make_str_obj(const std::string_view str) {
-  return std::string(str.data() + 1, str.size() - 2);
+Parser::string() {
+  return std::string(curr_token().lexeme);
 }
-
-Obj
-Parser::from_str(const std::string_view str) {
-  switch (str[0]) {
-    case '#':
-      return make_bool_obj(str);
-    case '"':
-      return make_str_obj(str);
-    case '0': case '1': case '2': case '3': case '4': 
-    case '5': case '6': case '7': case '8': case '9':
-    case '+': case '-':
-      return make_num_obj(str);
-    default:
-      return make_sym_obj(str);
-  }
-} 
 
 Obj 
 Parser::parse_atom() {
-  const auto token = next_token();
+  advance();
+  switch (curr_token().type) {
+    case Token::LPAREN:
+      return parse_list(); 
+      
+    case Token::RPAREN:
+      throw std::runtime_error("unexpected ')'");
 
-  if (token == ")") {
-    return nullptr;
-  }
-  else if (token == "(") {
-    return parse_list();
-  }
-  else if (token == "#(") {
-    return parse_vec();
-  }
-  else if (token == ".") {
-    return parse_dotted_tail();
-  }
-  else if (token == "'") {
-    return parse_quoted("quote");
-  }
-  else if (token == "`") {
-    return parse_quoted("quasiquote");
-  }
-  else if (token == ",") {
-    return parse_quoted("unquote");
-  }
-  else if (token == ",@") {
-    return parse_quoted("unquote-splicing");
-  }
-  else {
-    return from_str(token);
+    case Token::VEC_BEGIN:
+      return parse_vec();
+      
+    case Token::DOT:
+      return parse_dotted_tail();
+      
+    case Token::QUOTE:
+      return parse_quoted("quote");
+      
+    case Token::BACKTICK:
+      return parse_quoted("quasiquote");
+      
+    case Token::COMMA:
+      return parse_quoted("unquote");
+      
+    case Token::SPLICE_COMMA:
+      return parse_quoted("unquote-splicing");
+      
+    case Token::TRUE:
+      return true;
+      
+    case Token::FALSE:
+      return false;
+      
+    case Token::PLUS_INF:
+      return std::numeric_limits<double>::infinity();
+      
+    case Token::MINUS_INF:
+      return -std::numeric_limits<double>::infinity();
+      
+    case Token::PLUS_NAN:
+    case Token::MINUS_NAN:
+      return std::numeric_limits<double>::quiet_NaN();
+      
+    case Token::NUMBER:
+      return number();
+      
+    case Token::STRING:
+      return string();
+      
+    case Token::SYMBOL:
+      return symbol();
+
+    case Token::END: 
+    case Token::ERROR: 
+    default:
+      return Void {};
   }
 }
 
 Obj
 Parser::parse_list() {
-  if (match(")")) {
+  if (match(Token::RPAREN)) {
     return nullptr;
   }
-  if (match(".")) {
+  if (match(Token::DOT)) {
     return parse_dotted_tail();
   }
   else {
@@ -150,7 +156,7 @@ Parser::parse_list() {
 Obj
 Parser::parse_vec() {
   std::vector<Obj> ret {};
-  while (!match(")")) {
+  while (!match(Token::RPAREN)) {
     ret.push_back(parse_atom());
   }
   return interp.spawn<Vector>(std::move(ret));
@@ -158,21 +164,22 @@ Parser::parse_vec() {
 
 Obj 
 Parser::parse_dotted_tail() {
-  if (match(")")) {
+  if (match(Token::RPAREN)) {
     throw std::runtime_error("bad positioning of '.'");
   }
   const auto ret = parse_atom();
-  if (!match(")")) {
+  if (!match(Token::RPAREN)) {
     throw std::runtime_error("bad positioning of '.'");
   }
   return ret;
 }
 
 Obj
-Parser::parse_quoted(const std::string_view quote_type) {
+Parser::parse_quoted(const std::string& quote_type) {
+  const auto sym = interp.intern_symbol(quote_type);
   const auto quoted = parse_atom();
   return Obj(interp.spawn<Cons>(
-    make_sym_obj(quote_type), interp.spawn<Cons>(
+    sym, interp.spawn<Cons>(
     quoted, 
     nullptr)));
 }
