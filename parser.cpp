@@ -5,8 +5,6 @@
 #include <cmath>
 #include <string_view>
 
-#include <iostream>
-
 namespace Scheme {
 
 Parser::Parser(const std::vector<Token>& tokens, Interpreter& interp):
@@ -75,7 +73,7 @@ Parser::number() {
 
 Obj
 Parser::string() {
-  return std::string(curr_token().lexeme);
+  return interp.spawn<String>(std::string(curr_token().lexeme));
 }
 
 Obj 
@@ -141,7 +139,7 @@ Parser::parse_atom() {
 Obj
 Parser::parse_list() {
   if (match(Token::RPAREN)) {
-    return nullptr;
+    return Null {};
   }
   if (match(Token::DOT)) {
     return parse_dotted_tail();
@@ -181,7 +179,7 @@ Parser::parse_quoted(const std::string& quote_type) {
   return Obj(interp.spawn<Cons>(
     sym, interp.spawn<Cons>(
     quoted, 
-    nullptr)));
+    Null {})));
 }
 
 Obj

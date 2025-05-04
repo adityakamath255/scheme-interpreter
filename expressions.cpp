@@ -1,5 +1,4 @@
 #include "types.hpp"
-#include "environment.hpp"
 #include "expressions.hpp"
 #include <unordered_map>
 #include <format>

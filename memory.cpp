@@ -5,6 +5,8 @@
 
 namespace Scheme {
 
+void String::push_children(MarkStack&) {}
+
 void
 Cons::push_children(MarkStack& worklist) {
   if (auto car_ent = try_get_heap_entity(car)) {
@@ -24,8 +26,7 @@ Vector::push_children(MarkStack& worklist) {
   }
 }
 
-void 
-Primitive::push_children(MarkStack& worklist) {}
+void Primitive::push_children(MarkStack&) {}
 
 void 
 Procedure::push_children(MarkStack& worklist) {
@@ -45,11 +46,13 @@ Environment::push_children(MarkStack& worklist) {
   }
 }
 
-void
-Literal::push_children(MarkStack& worklist) {}
+void Literal::push_children(MarkStack& worklist) {
+  if (auto ent = try_get_heap_entity(obj)) {
+    worklist.push(ent);
+  }
+}
 
-void  
-Variable::push_children(MarkStack& worklist) {}
+void Variable::push_children(MarkStack& worklist) {}
 
 void 
 Quoted::push_children(MarkStack& worklist) {

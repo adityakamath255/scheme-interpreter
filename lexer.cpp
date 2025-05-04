@@ -1,10 +1,9 @@
-#include "types.hpp"
 #include "lexer.hpp"
+#include <stdexcept>
+#include <vector>
 #include <string>
 #include <string_view>
 #include <format>
-
-#include <iostream>
 
 namespace Scheme {
 

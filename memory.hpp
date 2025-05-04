@@ -5,22 +5,39 @@
 namespace Scheme {
 
 inline HeapEntity*
-try_get_heap_entity(const Obj& obj) {
-  if (is_pair(obj)) {
-    return as_pair(obj);
-  }
-  else if (is_primitive(obj)) {
-    return as_primitive(obj);
-  }
-  else if (is_procedure(obj)) {
-    return as_procedure(obj);
-  }
-  else if (is_vector(obj)) {
-    return as_vector(obj);
-  }
-  else {
-    return nullptr;
-  }
+try_get_heap_entity(Obj& obj) {
+  return std::visit(Overloaded{
+    [](bool) -> HeapEntity* {
+      return nullptr;
+    },
+    [](double) -> HeapEntity* {
+      return nullptr;
+    },
+    [](Symbol&) -> HeapEntity* {
+      return nullptr;
+    },
+    [](Null) -> HeapEntity* {
+      return nullptr;
+    },
+    [](Void) -> HeapEntity* {
+      return nullptr;
+    },
+    [](String *w) -> HeapEntity* {
+      return w;
+    },
+    [](Cons* ls) -> HeapEntity* {
+      return ls;
+    },
+    [](Vector* v) -> HeapEntity* {
+      return v;
+    },
+    [](Procedure* p) -> HeapEntity* {
+      return p;
+    },
+    [](Primitive* p) -> HeapEntity* {
+      return p;
+    },
+  }, obj);
 }
 
 class Allocator {
