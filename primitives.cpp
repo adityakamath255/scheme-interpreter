@@ -1,5 +1,4 @@
 #include "types.hpp"
-#include "environment.hpp"
 #include "primitives.hpp"
 #include "expressions.hpp"
 #include "evaluation.hpp"
@@ -299,7 +298,7 @@ cons_prim(const ArgList& args, Interpreter& interp) {
 
 static Obj
 list_prim(const ArgList& args, Interpreter& interp) {
-  Obj ret = nullptr;
+  Obj ret = Null {};
   for (auto curr = args.rbegin(); curr != args.rend(); curr++) {
     ret = interp.spawn<Cons>(*curr, ret);
   }
@@ -435,8 +434,8 @@ static Obj
 append(const ArgList& args, Interpreter& interp) {
   assert_arg_count(args, 1, MAX_ARGS);
   assert_vec_type<Cons*>(args, "list");
-  Obj ret = nullptr;
-  for (size_t i = args.size() - 1; i >= 0; i--) {
+  Obj ret = Null {};
+  for (size_t i = args.size(); i-- > 0;) {
     ret = append_rec(args[i], ret, interp);
   }
   return ret;
@@ -629,7 +628,7 @@ get_consts() {
     {"false", false},
     {"#t", true},
     {"#f", false},
-    {"nil", nullptr}
+    {"nil", Null {}}
   };
 }
 

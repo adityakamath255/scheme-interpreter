@@ -30,13 +30,13 @@ Cons::at(const std::string& s) {
 }
 
 std::pair<int, bool>
-list_profile(const Cons *ls) {
-  if (ls == nullptr) {
+list_profile(const Obj ls) {
+  if (is_null(ls)) {
     return {0, true};
   }
   else {
     int len = 1;
-    Obj obj = ls->cdr;
+    Obj obj = as_pair(ls)->cdr;
     while (is_pair(obj)) {
       len++;
       obj = as_pair(obj)->cdr;
@@ -56,39 +56,19 @@ stringify(const Obj& obj) {
     [](const bool b) -> std::string {
       return b ? "#t" : "#f";
     },
+
     [](const double n) -> std::string {
       return std::format("{}", n);
     },
+
     [](const Symbol& s) -> std::string {
       return s.get_name();
     },
-    [](const std::string& w) -> std::string {
-      return w;
+
+    [](const String *w) -> std::string {
+      return w->data;
     },
-    [](const nullptr_t) -> std::string {
-      return "()";
-    },
-    [](const Void) -> std::string {
-      return "#<void>";
-    },
-    [](const Procedure* p) -> std::string {
-      return std::format("<procedure at {}>", static_cast<const void*>(p));
-    },
-    [](const Primitive* p) -> std::string {
-      return std::format("<procedure at {}>", static_cast<const void*>(p));
-    },
-    [](Vector* const v) -> std::string {
-      if (v->data.empty()) {
-        return "#()";
-      }
-      std::ostringstream ret;
-      ret << "#(" << stringify(v->data[0]);
-      for (size_t i = 1; i < v->data.size(); i++) {
-        ret << " " << stringify(v->data[i]);
-      }
-      ret << ")";
-      return ret.str();
-    },
+    
     [](Cons* const ls) -> std::string {
       if (!ls) {
         return "()";
@@ -109,7 +89,37 @@ stringify(const Obj& obj) {
       
       ret << ")";
       return ret.str();
-    }
+    },
+
+    [](Vector* const v) -> std::string {
+      if (v->data.empty()) {
+        return "#()";
+      }
+      std::ostringstream ret;
+      ret << "#(" << stringify(v->data[0]);
+      for (size_t i = 1; i < v->data.size(); i++) {
+        ret << " " << stringify(v->data[i]);
+      }
+      ret << ")";
+      return ret.str();
+    },
+
+    [](const Procedure* p) -> std::string {
+      return std::format("<procedure at {}>", static_cast<const void*>(p));
+    },
+
+    [](const Primitive* p) -> std::string {
+      return std::format("<procedure at {}>", static_cast<const void*>(p));
+    },
+
+    [](const Null) -> std::string {
+      return "()";
+    },
+
+    [](const Void) -> std::string {
+      return "#<void>";
+    },
+
   }, obj);
 }
 

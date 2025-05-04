@@ -12,7 +12,7 @@ eval(Expression *expr, Environment *const env, Interpreter& interp) {
 
 ArgList
 to_variadic_args(ArgList args, const size_t size, Interpreter& interp) {
-  args.push_back(nullptr);
+  args.push_back(Null {});
   while (args.size() > size) {
     auto& last = args.back();
     auto& second_last = args[args.size() - 2]; 
@@ -113,7 +113,7 @@ If::eval(Environment *env, Interpreter& interp) {
 
 EvalResult
 Begin::eval(Environment *env, Interpreter& interp) {
-  for (size_t i = 0; i < actions.size() - 1; i++) {
+  for (size_t i = 0; i + 1 < actions.size(); i++) {
     actions[i]->eval(env, interp);
   }
   if (!actions.empty()) {

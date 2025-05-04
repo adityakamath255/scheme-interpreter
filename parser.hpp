@@ -2,7 +2,6 @@
 #include "types.hpp"
 #include "lexer.hpp"
 #include "interpreter.hpp"
-#include <string_view>
 
 namespace Scheme {
 
