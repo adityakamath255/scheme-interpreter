@@ -52,14 +52,22 @@ struct Variable : public Expression {
   Symbol sym;
   int depth;
   bool resolved;
-  explicit Variable(Symbol s, int d = 0, bool r = false): sym(std::move(s)), depth(d), resolved(r) {}
+  explicit Variable(Symbol s, int d = 0, bool r = false): sym(s), depth(d), resolved(r) {}
   EvalResult eval(Environment*, Interpreter&) override;
   void push_children(MarkStack&) override;
 };
 
 struct Quoted : public Expression {
-  Obj text_of_quotation;
-  explicit Quoted(Obj text): text_of_quotation {std::move(text)} {}
+  Obj text;
+  explicit Quoted(Obj text): text {text} {}
+  EvalResult eval(Environment*, Interpreter&) override;
+  void push_children(MarkStack&) override;
+};
+
+struct Quasiquoted : public Expression {
+  std::variant<std::vector<Expression*>, Obj> text;
+  explicit Quasiquoted(std::vector<Expression*> exprs): text {std::move(exprs)} {}
+  explicit Quasiquoted(Obj obj): text {obj} {}
   EvalResult eval(Environment*, Interpreter&) override;
   void push_children(MarkStack&) override;
 };
