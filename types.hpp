@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <variant>
 #include <stack>
+#include <functional>
 
 namespace Scheme { 
 
@@ -93,7 +94,7 @@ public:
 
 class Primitive : public HeapEntity {
 private:
-  Obj(*func)(const ArgList&, Interpreter&);
+  std::function<Obj(const ArgList&, Interpreter&)> func;
 public:
   Primitive(decltype(func) f): func {f} {};
   Obj operator()(const ArgList& args, Interpreter& interp) const {

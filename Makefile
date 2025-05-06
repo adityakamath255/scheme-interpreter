@@ -4,6 +4,10 @@ CXXFLAGS := -std=c++23 -O2
 SRC := \
 	types.cpp \
 	environment.cpp \
+	builtins/numeric.cpp \
+	builtins/data.cpp \
+	builtins/predicates.cpp \
+	builtins/misc.cpp \
 	primitives.cpp \
 	expressions.cpp \
 	evaluation.cpp \
@@ -16,6 +20,7 @@ SRC := \
 HDR := \
 	types.hpp \
 	environment.hpp \
+	builtins/common.hpp \
 	primitives.hpp \
 	expressions.hpp \
 	evaluation.hpp \
@@ -36,7 +41,7 @@ $(TARGET): $(OBJ)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
 %.o: %.cpp $(HDR)
-	$(CXX) $(CXXFLAGS) -c $<
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
 	rm -f $(OBJ) $(TARGET)
