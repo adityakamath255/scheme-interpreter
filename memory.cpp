@@ -56,8 +56,22 @@ void Variable::push_children(MarkStack& worklist) {}
 
 void 
 Quoted::push_children(MarkStack& worklist) {
-  if (auto ent = try_get_heap_entity(text_of_quotation)) {
+  if (auto ent = try_get_heap_entity(text)) {
     worklist.push(ent);
+  }
+}
+
+void
+Quasiquoted::push_children(MarkStack& worklist) {
+  if (std::holds_alternative<Obj>(text)) {
+    if (auto ent = try_get_heap_entity(get<Obj>(text))) {
+      worklist.push(ent);
+    }
+  }
+  else {
+    for (auto expr : get<std::vector<Expression*>>(text)) {
+      worklist.push(expr);
+    }
   }
 }
 

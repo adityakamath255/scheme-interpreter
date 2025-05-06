@@ -1,6 +1,5 @@
 #include "types.hpp"
 #include "expressions.hpp"
-#include <unordered_map>
 #include <format>
 
 namespace Scheme {
@@ -30,7 +29,7 @@ Application::tco() {
   at_tail = true;
 }
 
-static constexpr int MAXARGS = 256;
+static constexpr int MAXARGS = 1'000'000;
 
 void
 assert_size(Cons *cons, const int lb, const int ub, const std::string& name) {
@@ -86,6 +85,47 @@ static Expression*
 make_quoted(Cons *cons, Interpreter& interp) {
   assert_size(cons, 2, 2, "quoted");
   return interp.spawn<Quoted>(cons->at("cadr"));
+}
+
+static Expression*
+make_quasiquoted_impl(Obj obj, Interpreter& interp) {
+  if (is_pair(obj)) {
+    auto car = as_pair(obj)->car;
+    if (is_symbol(car)) {
+      if (as_symbol(car) == interp.intern_symbol("unquote")) {
+        assert_size(as_pair(obj), 2, 2, "unquoted");
+        return build_ast(as_pair(obj)->at("cadr"), interp);
+      }
+      else if (as_symbol(car) == interp.intern_symbol("quasiquote")) {
+        assert_size(as_pair(obj), 2, 2, "quasiquoted");
+        return interp.spawn<Quasiquoted>(obj);
+      }
+    }
+    std::vector<Expression*> exprs {};
+    while (is_pair(obj)) {
+      auto car = as_pair(obj)->car;
+      exprs.push_back(make_quasiquoted_impl(car, interp));
+      obj = as_pair(obj)->cdr;
+    }
+    if (!is_null(obj)) {
+      throw std::runtime_error("quasiquoted expression is an improper list");
+    }
+    return interp.spawn<Quasiquoted>(std::move(exprs));
+  }
+  else {
+    return interp.spawn<Quasiquoted>(obj);
+  }
+}
+
+static Expression*
+make_quasiquoted(Cons *cons, Interpreter& interp) {
+  assert_size(cons, 2, 2, "quasiquoted");
+  return make_quasiquoted_impl(cons->at("cadr"), interp);
+}
+
+static Expression*
+report_unquote(Cons*, Interpreter&) {
+  throw std::runtime_error("misplaced aux keyword: unquote");
 }
 
 static Expression*
@@ -352,6 +392,8 @@ combine_expr(const Obj& seq, Interpreter& interp) {
 static std::unordered_map<std::string, Expression*(*)(Cons*, Interpreter&)> 
 special_forms = {
   {"quote", make_quoted},
+  {"quasiquote", make_quasiquoted},
+  {"unquote", report_unquote},
   {"set!", make_set},
   {"define", make_define},
   {"if", make_if},

@@ -91,7 +91,23 @@ Variable::eval(Environment *env, Interpreter& interp) {
 
 EvalResult
 Quoted::eval(Environment *env, Interpreter& interp) {
-  return text_of_quotation;
+  return text;
+}
+
+EvalResult
+Quasiquoted::eval(Environment *env, Interpreter& interp) {
+  if (std::holds_alternative<Obj>(text)) {
+    return get<Obj>(text);
+  }
+  else {
+    auto exprs = get<std::vector<Expression*>>(text);
+    Obj ret = Null {};
+    for (auto itr = exprs.rbegin(); itr != exprs.rend(); itr++) {
+      auto res = (*itr)->eval(env, interp);
+      ret = interp.spawn<Cons>(as_obj(res), ret);
+    }
+    return ret;
+  }
 }
 
 EvalResult
