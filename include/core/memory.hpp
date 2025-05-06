@@ -1,5 +1,5 @@
 #pragma once
-#include "types.hpp"
+#include <core/types.hpp>
 #include <vector>
 
 namespace Scheme {
@@ -34,7 +34,7 @@ try_get_heap_entity(Obj& obj) {
     [](Procedure* p) -> HeapEntity* {
       return p;
     },
-    [](Primitive* p) -> HeapEntity* {
+    [](Builtin* p) -> HeapEntity* {
       return p;
     },
   }, obj);

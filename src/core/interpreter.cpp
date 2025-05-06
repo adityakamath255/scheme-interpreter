@@ -1,11 +1,11 @@
-#include "types.hpp"
-#include "environment.hpp"
-#include "primitives.hpp"
-#include "expressions.hpp"
-#include "lexer.hpp"
-#include "parser.hpp"
-#include "interpreter.hpp"
-#include "memory.hpp"
+#include <core/types.hpp>
+#include <core/environment.hpp>
+#include <core/expressions.hpp>
+#include <core/interpreter.hpp>
+#include <core/memory.hpp>
+#include "builtins/installer.hpp"
+#include <parsing/lexer.hpp>
+#include <parsing/parser.hpp>
 #include <unordered_map>
 #include <string>
 #include <string_view>
@@ -20,8 +20,8 @@ private:
 
 public:
   Timer(std::chrono::microseconds& total): 
-    total {total},
-    start {std::chrono::high_resolution_clock::now()}
+    start {std::chrono::high_resolution_clock::now()},
+    total {total}
   {}
 
   ~Timer() {
@@ -33,14 +33,14 @@ public:
 void
 Interpreter::install_global_environment() {
   global_env = alloc.spawn<Environment>();
-  PrimitivePutter(global_env, *this).put_all_functions();
+  BuiltinInstaller(global_env, *this).install_all_functions();
 }
 
 Interpreter::Interpreter(bool profiling): 
   intern_table {},
-  alloc {},
   global_env {},
-  profiling {profiling}
+  profiling {profiling},
+  alloc {}
 {
   install_global_environment();
 }

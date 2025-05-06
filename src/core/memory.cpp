@@ -1,7 +1,7 @@
-#include "types.hpp"
-#include "environment.hpp"
-#include "expressions.hpp"
-#include "memory.hpp"
+#include <core/types.hpp>
+#include <core/environment.hpp>
+#include <core/expressions.hpp>
+#include <core/memory.hpp>
 
 namespace Scheme {
 
@@ -26,7 +26,7 @@ Vector::push_children(MarkStack& worklist) {
   }
 }
 
-void Primitive::push_children(MarkStack&) {}
+void Builtin::push_children(MarkStack&) {}
 
 void 
 Procedure::push_children(MarkStack& worklist) {

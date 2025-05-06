@@ -1,7 +1,7 @@
-#include "types.hpp"
-#include "environment.hpp"
-#include "expressions.hpp"
-#include "interpreter.hpp"
+#include <core/types.hpp>
+#include <core/environment.hpp>
+#include <core/expressions.hpp>
+#include <core/interpreter.hpp>
 
 namespace Scheme {
 
@@ -76,7 +76,7 @@ Literal::eval(Environment *env, Interpreter& interp) {
 EvalResult
 Variable::eval(Environment *env, Interpreter& interp) {
   if (resolved) {
-    for (size_t i = 0; i < depth; i++) {
+    for (int i = 0; i < depth; i++) {
       env = env->super;
     }
     return env->get(sym);
