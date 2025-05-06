@@ -31,7 +31,14 @@ assert_vec_type(const ArgList& args, const std::string& type) {
 static void
 assert_callable(const Obj& obj) {
   if (!is_procedure(obj) && !is_primitive(obj)) {
-    throw std::runtime_error("incorrect type for " + stringify(obj) + ", exprected procedure");
+    throw std::runtime_error("incorrect type for " + stringify(obj) + ", expected procedure");
+  }
+}
+
+static void
+assert_list(const Obj& obj) {
+  if (!is_list(obj)) {
+    throw std::runtime_error(stringify(obj) + " is not a proper list");
   }
 }
 
@@ -553,6 +560,28 @@ vector_length(const ArgList& args, Interpreter& interp) {
   return (double) as_vector(args[0])->data.size();
 }
 
+static Obj 
+eval_prim(const ArgList& args, Interpreter& interp) {
+  assert_arg_count(args, 1, 1);
+  auto ast = build_ast(args[0], interp);
+  return as_obj(ast->eval(interp.get_global_env(), interp));
+}
+
+static Obj
+apply_prim(const ArgList& args, Interpreter& interp) {
+  assert_arg_count(args, 2, 2);
+  assert_callable(args[0]);
+  assert_list(args[1]);
+  ArgList apply_args {};
+  Obj ls = args[1];
+  while (is_pair(ls)) {
+    apply_args.push_back(as_pair(ls)->car);
+    ls = as_pair(ls)->cdr;
+  }
+  return as_obj(apply(args[0], std::move(apply_args), interp));
+}
+
+
 static Obj
 error_prim(const ArgList& args, Interpreter& interp) {
   std::ostringstream message;
@@ -617,6 +646,8 @@ get_primitive_functions() {
     {"vector-length", vector_length},
     {"map", map_prim},
     {"filter", filter_prim},
+    {"eval", eval_prim},
+    {"apply", apply_prim},
     {"error", error_prim}
   };
 }
