@@ -1,4 +1,4 @@
-#include "types.hpp"
+#include <core/types.hpp>
 #include <string>
 #include <sstream>
 #include <format>
@@ -108,7 +108,7 @@ stringify(const Obj& obj) {
       return std::format("<procedure at {}>", static_cast<const void*>(p));
     },
 
-    [](const Primitive* p) -> std::string {
+    [](const Builtin* p) -> std::string {
       return std::format("<procedure at {}>", static_cast<const void*>(p));
     },
 

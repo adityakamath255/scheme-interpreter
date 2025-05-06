@@ -1,11 +1,11 @@
 #pragma once
-#include "../types.hpp"
+#include <core/types.hpp>
 #include <stdexcept>
 #include <string>
 
 namespace Scheme {
 
-constexpr int MAX_ARGS = 1'000'000;
+constexpr size_t MAX_ARGS = 1'000'000;
 
 template<typename T>
 inline void
@@ -30,15 +30,8 @@ assert_callable(const Obj& obj) {
   }
 }
 
-static void
-assert_list(const Obj& obj) {
-  if (!is_list(obj)) {
-    throw std::runtime_error(stringify(obj) + " is not a proper list");
-  }
-}
-
 inline void
-assert_arg_count(const ArgList& args, int lb, int rb) {
+assert_arg_count(const ArgList& args, size_t lb, size_t rb) {
   if (!(lb <= args.size() && args.size() <= rb)) {
     if (rb == MAX_ARGS)
       throw std::runtime_error("incorrect number of arguments: expected at least " + std::to_string(lb));
@@ -49,7 +42,15 @@ assert_arg_count(const ArgList& args, int lb, int rb) {
   }
 }
 
-inline void assert_numbers(const ArgList& args, int lb, int rb) {
+inline void
+assert_list(const Obj& obj) {
+  if (!is_list(obj)) {
+    throw std::runtime_error(stringify(obj) + " is not a proper list");
+  }
+}
+
+inline void 
+assert_numbers(const ArgList& args, size_t lb, size_t rb) {
   assert_arg_count(args, lb, rb);
   for (const auto& arg : args) {
     if (!is_number(arg))
@@ -57,7 +58,8 @@ inline void assert_numbers(const ArgList& args, int lb, int rb) {
   }
 }
 
-inline double get_single_number(const ArgList& args) {
+inline double 
+get_single_number(const ArgList& args) {
   assert_numbers(args, 1, 1);
   return as_number(args[0]);
 }

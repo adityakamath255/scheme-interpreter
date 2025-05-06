@@ -40,14 +40,18 @@ A minimal yet robust Scheme interpreter written from scratch in C++23. This proj
 ### Requirements
 
 - C++23 compatible compiler (e.g., GCC 13+, Clang 16+)
-- GNU Make
+- CMake 3.16+
+- Any CMake-supported build backend (Make, Ninja, or Visual Studio/MSBuild)
 
 ### Build
 
 ```bash
 git clone https://github.com/adityakamath255/scheme-interpreter
 cd scheme-interpreter
-make       # builds the 'scheme' binary
+mkdir build
+cd build
+cmake ..
+cmake --build .
 ```
 
 ### Run
@@ -56,12 +60,13 @@ make       # builds the 'scheme' binary
 ./scheme                 # starts REPL
 ./scheme file.scm       # runs a Scheme script and enters REPL
 ./scheme --no-repl file.scm  # runs a Scheme script without starting REPL
+./scheme --no-repl --profile file.scm  # runs a Scheme script without starting REPL and with profiling information displayed
 ```
 
 ### Clean
 
 ```bash
-make clean
+rm -rf build/
 ```
 
 ## Example

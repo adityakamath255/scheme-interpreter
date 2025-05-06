@@ -1,4 +1,4 @@
-#include "lexer.hpp"
+#include <parsing/lexer.hpp>
 #include <stdexcept>
 #include <vector>
 #include <string>

@@ -12,7 +12,7 @@ class Symbol;
 class String;
 class Cons;
 class Vector;
-class Primitive;
+class Builtin;
 class Procedure;
 class Null {};
 class Void {};
@@ -28,7 +28,7 @@ using Obj = std::variant<
   String*,
   Cons*,
   Vector*,
-  Primitive*,
+  Builtin*,
   Procedure*,
   Null,
   Void
@@ -92,11 +92,11 @@ public:
   void push_children(MarkStack&) override;
 };
 
-class Primitive : public HeapEntity {
+class Builtin : public HeapEntity {
 private:
   std::function<Obj(const ArgList&, Interpreter&)> func;
 public:
-  Primitive(decltype(func) f): func {f} {};
+  Builtin(decltype(func) f): func {f} {};
   Obj operator()(const ArgList& args, Interpreter& interp) const {
     return func(args, interp);
   }
@@ -129,7 +129,7 @@ inline bool is_symbol(const Obj& obj){return std::holds_alternative<Symbol>(obj)
 inline bool is_string(const Obj& obj) {return std::holds_alternative<String*>(obj);}
 inline bool is_pair(const Obj& obj) {return std::holds_alternative<Cons*>(obj);}
 inline bool is_vector(const Obj& obj) {return std::holds_alternative<Vector*>(obj);}
-inline bool is_primitive(const Obj& obj) {return std::holds_alternative<Primitive*>(obj);}
+inline bool is_primitive(const Obj& obj) {return std::holds_alternative<Builtin*>(obj);}
 inline bool is_procedure(const Obj& obj) {return std::holds_alternative<Procedure*>(obj);}
 inline bool is_callable(const Obj& obj) {return is_primitive(obj) || is_procedure(obj);}
 inline bool is_null(const Obj& obj) {return std::holds_alternative<Null>(obj);}
@@ -153,8 +153,8 @@ inline Cons* const& as_pair(const Obj& obj) {return std::get<Cons*>(obj);}
 inline Vector*& as_vector(Obj& obj) {return std::get<Vector*>(obj);}
 inline Vector* const& as_vector(const Obj& obj) {return std::get<Vector*>(obj);}
 
-inline Primitive*& as_primitive(Obj& obj) {return std::get<Primitive*>(obj);}
-inline Primitive* const& as_primitive(const Obj& obj) {return std::get<Primitive*>(obj);}
+inline Builtin*& as_primitive(Obj& obj) {return std::get<Builtin*>(obj);}
+inline Builtin* const& as_primitive(const Obj& obj) {return std::get<Builtin*>(obj);}
 
 inline Procedure*& as_procedure(Obj& obj) {return std::get<Procedure*>(obj);}
 inline Procedure* const& as_procedure(const Obj& obj) {return std::get<Procedure*>(obj);}

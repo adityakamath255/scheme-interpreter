@@ -1,0 +1,8 @@
+- make sure define isn't in weird places
+- add many more primitives
+- improve error reporting
+- optimized recycling
+- more pleasant repl
+- static symbols
+- have more prevention of stack overflow
+- make stringify() use streams

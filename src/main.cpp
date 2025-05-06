@@ -1,5 +1,5 @@
-#include "types.hpp"
-#include "interpreter.hpp"
+#include <core/types.hpp>
+#include <core/interpreter.hpp>
 #include <iostream>
 #include <sstream>
 #include <fstream>
@@ -64,10 +64,10 @@ driver_loop(Interpreter& interp) {
         std::cout << stringify(result) << std::endl;
       }
     } 
-    catch (std::runtime_error& e) {
+    catch (const std::runtime_error& e) {
       std::cerr << "ERROR: " << e.what() << std::endl;
     }
-    catch (std::bad_variant_access e) {
+    catch (const std::bad_variant_access& e) {
       std::cerr << "ERROR: incorrect type" << std::endl;
     }
   }

@@ -1,6 +1,6 @@
-#include "../primitives.hpp"
-#include "../evaluation.hpp"
-#include "common.hpp"
+#include <builtins/common.hpp>
+#include <builtins/installer.hpp>
+#include <core/evaluation.hpp>
 
 namespace Scheme {
 
@@ -49,25 +49,25 @@ filter_rec(Obj& fn, Obj& obj, Interpreter& interp) {
 }
 
 void 
-PrimitivePutter::put_data_functions() {
-  put("eq?", [](const ArgList& args, Interpreter& interp) {
+BuiltinInstaller::install_data_functions() {
+  install("eq?", [](const ArgList& args, Interpreter& interp) {
     assert_arg_count(args, 2, 2);
     return args[0] == args[1];
   });
 
-  // put("equal?", is_equal);
+  // install("equal?", is_equal);
 
-  put("not", [](const ArgList& args, Interpreter& interp) {
+  install("not", [](const ArgList& args, Interpreter& interp) {
     assert_arg_count(args, 1, 1);
     return is_false(args[0]);
   });
 
-  put("cons", [](const ArgList& args, Interpreter& interp) {
+  install("cons", [](const ArgList& args, Interpreter& interp) {
     assert_arg_count(args, 2, 2);
     return interp.spawn<Cons>(args[0], args[1]);
   });
 
-  put("list", [](const ArgList& args, Interpreter& interp) {
+  install("list", [](const ArgList& args, Interpreter& interp) {
     Obj ret = Null {};
     for (auto curr = args.rbegin(); curr != args.rend(); curr++) {
       ret = interp.spawn<Cons>(*curr, ret);
@@ -75,21 +75,21 @@ PrimitivePutter::put_data_functions() {
     return ret;
   });
 
-  put("set-car!", [](const ArgList& args, Interpreter& interp) {
+  install("set-car!", [](const ArgList& args, Interpreter& interp) {
     assert_arg_count(args, 2, 2);
     assert_obj_type<Cons*>(args[0], "list");
     as_pair(args[0])->car = args[1];
     return Void {};
   });
 
-  put("set-cdr!", [](const ArgList& args, Interpreter& interp) {
+  install("set-cdr!", [](const ArgList& args, Interpreter& interp) {
     assert_arg_count(args, 2, 2);
     assert_obj_type<Cons*>(args[0], "list");
     as_pair(args[0])->cdr = args[1];
     return Void {};
   });
 
-  put("length", [](const ArgList& args, Interpreter& interp) {
+  install("length", [](const ArgList& args, Interpreter& interp) {
     assert_arg_count(args, 1, 1);
     if (is_null(args[0])) {
       return 0.0;
@@ -106,7 +106,7 @@ PrimitivePutter::put_data_functions() {
     }
   });
 
-  put("list-ref", [](const ArgList& args, Interpreter& interp) {
+  install("list-ref", [](const ArgList& args, Interpreter& interp) {
     assert_arg_count(args, 2, 2);
     assert_obj_type<Cons*>(args[0], "list");
     assert_obj_type<double>(args[1], "number");
@@ -128,7 +128,7 @@ PrimitivePutter::put_data_functions() {
     }
   });
 
-  put("append", [](const ArgList& args, Interpreter& interp) {
+  install("append", [](const ArgList& args, Interpreter& interp) {
     assert_arg_count(args, 1, MAX_ARGS);
     assert_vec_type<Cons*>(args, "list");
     Obj ret = Null {};
@@ -138,7 +138,7 @@ PrimitivePutter::put_data_functions() {
     return ret;
   });
 
-  put("make-vector", [](const ArgList& args, Interpreter& interp) {
+  install("make-vector", [](const ArgList& args, Interpreter& interp) {
     assert_arg_count(args, 1, 2);
     assert_obj_type<double>(args[0], "number");
     const size_t sz = as_number(args[0]);
@@ -157,7 +157,7 @@ PrimitivePutter::put_data_functions() {
     }
   });
 
-  put("vector-set!", [](const ArgList& args, Interpreter& interp) {
+  install("vector-set!", [](const ArgList& args, Interpreter& interp) {
     assert_arg_count(args, 3, 3);
     assert_obj_type<Vector*>(args[0], "vector");
     assert_obj_type<double>(args[1], "number");
@@ -173,7 +173,7 @@ PrimitivePutter::put_data_functions() {
     return Void {};
   });
 
-  put("vector-ref", [](const ArgList& args, Interpreter& interp) {
+  install("vector-ref", [](const ArgList& args, Interpreter& interp) {
     assert_arg_count(args, 2, 2);
     assert_obj_type<Vector*>(args[0], "vector");
     assert_obj_type<double>(args[1], "number");
@@ -188,13 +188,13 @@ PrimitivePutter::put_data_functions() {
     return data[index]; 
   });
 
-  put("vector-length", [](const ArgList& args, Interpreter& interp) {
+  install("vector-length", [](const ArgList& args, Interpreter& interp) {
     assert_arg_count(args, 1, 1);
     assert_obj_type<Vector*>(args[0], "vector");
     return (double) as_vector(args[0])->data.size();
   });
 
-  put("map", [](const ArgList& args, Interpreter& interp) {
+  install("map", [](const ArgList& args, Interpreter& interp) {
     assert_arg_count(args, 2, 2);
     assert_callable(args[0]);
     assert_obj_type<Cons*>(args[1], "list");
@@ -204,7 +204,7 @@ PrimitivePutter::put_data_functions() {
     return ret;
   });
 
-  put("filter", [](const ArgList& args, Interpreter& interp) {
+  install("filter", [](const ArgList& args, Interpreter& interp) {
     assert_arg_count(args, 2, 2);
     assert_callable(args[0]);
     assert_obj_type<Cons*>(args[1], "list");
