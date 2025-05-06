@@ -33,12 +33,7 @@ public:
 void
 Interpreter::install_global_environment() {
   global_env = alloc.spawn<Environment>();
-  for (const auto& p : get_primitive_functions()) {
-    global_env->define(intern_symbol(p.first), alloc.spawn<Primitive>(p.second));
-  }
-  for (const auto& p : get_consts()) {
-    global_env->define(intern_symbol(p.first), p.second);
-  }
+  PrimitivePutter(global_env, *this).put_all_functions();
 }
 
 Interpreter::Interpreter(bool profiling): 

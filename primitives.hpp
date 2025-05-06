@@ -5,10 +5,21 @@ namespace Scheme {
 
 class Interpreter;
 
-std::vector<std::pair<std::string, Obj(*)(const ArgList&, Interpreter&)>> get_primitive_functions();
-std::vector<std::pair<std::string, Obj>> get_consts();
+class PrimitivePutter {
+private:
+  Environment *env;
+  Interpreter& interp;
 
-void install_primitives(Environment *env, Interpreter& interp);
-void install_consts(Environment *env, Interpreter& interp);
+  void put(const std::string& str, const std::function<Obj(const ArgList&, Interpreter&)> func);
+
+public:
+  PrimitivePutter(Environment *env, Interpreter& interp): env {env}, interp {interp} {}
+  void put_numeric_functions();
+  void put_data_functions();
+  void put_predicates();
+  void put_misc_functions();
+  void put_all_functions();
+
+};
 
 }
