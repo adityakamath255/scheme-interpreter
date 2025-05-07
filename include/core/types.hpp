@@ -24,6 +24,7 @@ class Interpreter;
 using Obj = std::variant<
   bool,
   double,
+  char,
   Symbol,
   String*,
   Cons*,
@@ -49,14 +50,10 @@ public:
 };
 
 class Symbol { 
-  friend struct std::hash<Symbol>;
-
 private:
-  const std::string *id;
-
+  friend struct std::hash<Symbol>;
 public:
-  Symbol(): id {nullptr} {}
-  Symbol(const std::string* id): id {id} {};
+  const std::string *id = nullptr;
   const std::string& get_name() const {
     return *id; 
   }
@@ -125,6 +122,7 @@ struct Overloaded : Ts... {
 
 inline bool is_bool(const Obj& obj) {return std::holds_alternative<bool>(obj);}
 inline bool is_number(const Obj& obj) {return std::holds_alternative<double>(obj);}
+inline bool is_char(const Obj& obj) {return std::holds_alternative<char>(obj);}
 inline bool is_symbol(const Obj& obj){return std::holds_alternative<Symbol>(obj);}
 inline bool is_string(const Obj& obj) {return std::holds_alternative<String*>(obj);}
 inline bool is_pair(const Obj& obj) {return std::holds_alternative<Cons*>(obj);}
@@ -135,11 +133,18 @@ inline bool is_callable(const Obj& obj) {return is_primitive(obj) || is_procedur
 inline bool is_null(const Obj& obj) {return std::holds_alternative<Null>(obj);}
 inline bool is_void(const Obj& obj) {return std::holds_alternative<Void>(obj);}
 
+inline bool same_type(const Obj obj_0, const Obj obj_1) {
+  return obj_0.index() == obj_1.index();
+}
+
 inline bool& as_bool(Obj& obj) {return std::get<bool>(obj);}
 inline const bool& as_bool(const Obj& obj) {return std::get<bool>(obj);}
 
 inline double& as_number(Obj& obj) {return std::get<double>(obj);}
 inline const double& as_number(const Obj& obj) {return std::get<double>(obj);}
+
+inline char& as_char(Obj& obj) {return std::get<char>(obj);}
+inline const char& as_char(const Obj& obj) {return std::get<char>(obj);}
 
 inline Symbol& as_symbol(Obj& obj) {return std::get<Symbol>(obj);}
 inline const Symbol& as_symbol(const Obj& obj) {return std::get<Symbol>(obj);}
@@ -175,8 +180,10 @@ inline bool is_list(const Obj& obj) {
     (is_pair(obj) && is_proper_list(as_pair(obj)));
 }
 
-std::string stringify(const Obj&);
-std::string stringify_type(const Obj&);
+bool equal(const Obj, const Obj);
+
+std::string stringify(const Obj);
+std::string stringify_type(const Obj);
 
 }
 

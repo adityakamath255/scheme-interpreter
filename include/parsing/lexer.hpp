@@ -16,6 +16,7 @@ struct Token {
     VEC_BEGIN,
     TRUE,
     FALSE,
+    CHAR,
     PLUS_INF,
     PLUS_NAN,
     MINUS_INF,
@@ -56,6 +57,7 @@ private:
   void skip_whitespace_and_comments();
   Token make_token(Token::Type);
   Token hash_token();
+  Token char_token();
   Token string_token();
   Token symbol_token();
   Token number_token();

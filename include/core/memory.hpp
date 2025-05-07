@@ -13,6 +13,9 @@ try_get_heap_entity(Obj& obj) {
     [](double) -> HeapEntity* {
       return nullptr;
     },
+    [](char) -> HeapEntity* {
+      return nullptr;
+    },
     [](Symbol&) -> HeapEntity* {
       return nullptr;
     },

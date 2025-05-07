@@ -19,6 +19,7 @@ private:
   Obj number();
   Obj symbol();
   Obj string();
+  Obj character();
   Obj parse_atom();
   Obj parse_list();
   Obj parse_vec();

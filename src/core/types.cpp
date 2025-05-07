@@ -50,8 +50,79 @@ list_profile(const Obj ls) {
   }
 }
 
+bool
+equal(const Obj obj_0, const Obj obj_1) {
+  if (!same_type(obj_0, obj_1)) {
+    return false;
+  }
+  else {
+    return std::visit(Overloaded{
+      [=](bool) -> bool {
+        return obj_0 == obj_1;
+      },
+
+      [=](double) -> bool {
+        return obj_0 == obj_1;
+      },
+
+      [=](char) -> bool {
+        return obj_0 == obj_1;
+      },
+
+      [=](Symbol) -> bool {
+        return obj_0 == obj_1;
+      },
+
+      [=](Procedure*) -> bool {
+        return obj_0 == obj_1;
+      },
+
+      [=](Builtin*) -> bool {
+        return obj_0 == obj_1;
+      },
+
+      [=](Null) -> bool {
+        return true;
+      },
+
+      [=](Void) -> bool {
+        return true;
+      },
+
+      [=](String*) -> bool {
+        return as_string(obj_0)->data == as_string(obj_1)->data;
+      },
+      
+      [=](Cons*) -> bool {
+        return (
+          equal(as_pair(obj_0)->car, as_pair(obj_1)->car) &&
+          equal(as_pair(obj_0)->cdr, as_pair(obj_1)->cdr)
+        );
+      },
+
+      [=](Vector*) -> bool {
+        if (as_vector(obj_0)->data.size() != as_vector(obj_1)->data.size()) {
+          return false;
+        }
+        else {
+          auto itr_0 = as_vector(obj_0)->data.begin();
+          auto itr_1 = as_vector(obj_1)->data.begin();
+          while (itr_0 != as_vector(obj_0)->data.end()) {
+            if (!equal(*itr_0, *itr_1)) {
+              return false;
+            }
+            itr_0++;
+            itr_1++;
+          }
+          return true;
+        }
+      },
+
+    }, obj_0);
+  }
+}
 std::string 
-stringify(const Obj& obj) {
+stringify(const Obj obj) {
   return std::visit(Overloaded{
     [](const bool b) -> std::string {
       return b ? "#t" : "#f";
@@ -61,11 +132,15 @@ stringify(const Obj& obj) {
       return std::format("{}", n);
     },
 
+    [](const char n) -> std::string {
+      return std::format("#\\{}", n);
+    },
+
     [](const Symbol& s) -> std::string {
       return s.get_name();
     },
 
-    [](const String *w) -> std::string {
+[](const String *w) -> std::string {
       return w->data;
     },
     
