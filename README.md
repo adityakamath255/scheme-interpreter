@@ -10,7 +10,7 @@ A minimal yet robust Scheme interpreter written from scratch in C++23. This proj
 - **Efficient symbol interning**
 - **AST-based evaluation** 
 - **Profiling instrumentation** for every evaluation phase
-- **50+ built-in primitives**, including:
+- **50+ built-in builtins**, including:
   - Arithmetic: `+`, `-`, `*`, `/`, `sqrt`, `log`, `expt`, etc.
   - Lists: `cons`, `car`, `cdr`, `append`, `map`, `filter`, `length`, etc.
   - Comparisons: `=`, `<`, `>`, `<=`, `>=`, `eq?`, `equal?`

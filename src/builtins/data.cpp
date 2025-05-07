@@ -50,16 +50,6 @@ filter_rec(Obj& fn, Obj& obj, Interpreter& interp) {
 
 void 
 BuiltinInstaller::install_data_functions() {
-  install("eq?", [](const ArgList& args, Interpreter& interp) {
-    assert_arg_count(args, 2, 2);
-    return args[0] == args[1];
-  });
-
-  install("equal?", [](const ArgList& args, Interpreter& interp) {
-    assert_arg_count(args, 2, 2);
-    return equal(args[0], args[1]);
-  });
-
   install("not", [](const ArgList& args, Interpreter& interp) {
     assert_arg_count(args, 1, 1);
     return is_false(args[0]);
@@ -129,6 +119,27 @@ BuiltinInstaller::install_data_functions() {
     return ret;
   });
 
+  install("symbol->string", [](const ArgList& args, Interpreter& interp) {
+    assert_arg_count(args, 1, 1);
+    assert_obj_type<Symbol>(args[0], "symbol");
+    return interp.spawn<String>(as_symbol(args[0]).get_name());
+  });
+
+  install("string->symbol", [](const ArgList& args, Interpreter& interp) {
+    assert_arg_count(args, 1, 1);
+    assert_obj_type<String*>(args[0], "string");
+    return interp.intern_symbol(as_string(args[0])->data);
+  });
+
+  install("string-append", [](const ArgList& args, Interpreter& interp) {
+    assert_vec_type<String*>(args, "string");
+    std::stringstream ret {};
+    for (auto obj : args) {
+      ret << as_string(obj)->data;
+    }
+    return interp.spawn<String>(ret.str());
+  });
+
   install("make-vector", [](const ArgList& args, Interpreter& interp) {
     assert_arg_count(args, 1, 2);
     assert_obj_type<double>(args[0], "number");
@@ -188,7 +199,7 @@ BuiltinInstaller::install_data_functions() {
   install("map", [](const ArgList& args, Interpreter& interp) {
     assert_arg_count(args, 2, 2);
     assert_callable(args[0]);
-    assert_obj_type<Cons*>(args[1], "list");
+    assert_list(args[1]);
     auto fn = args[0];
     auto ls = args[1];
     auto ret = map_rec(fn, ls, interp);
@@ -198,11 +209,12 @@ BuiltinInstaller::install_data_functions() {
   install("filter", [](const ArgList& args, Interpreter& interp) {
     assert_arg_count(args, 2, 2);
     assert_callable(args[0]);
-    assert_obj_type<Cons*>(args[1], "list");
+    assert_list(args[1]);
     auto fn = args[0];
     auto ls = args[1];
     return filter_rec(fn, ls, interp);
   });
+
 }
 
 }

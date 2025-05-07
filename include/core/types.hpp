@@ -127,9 +127,9 @@ inline bool is_symbol(const Obj& obj){return std::holds_alternative<Symbol>(obj)
 inline bool is_string(const Obj& obj) {return std::holds_alternative<String*>(obj);}
 inline bool is_pair(const Obj& obj) {return std::holds_alternative<Cons*>(obj);}
 inline bool is_vector(const Obj& obj) {return std::holds_alternative<Vector*>(obj);}
-inline bool is_primitive(const Obj& obj) {return std::holds_alternative<Builtin*>(obj);}
+inline bool is_builtin(const Obj& obj) {return std::holds_alternative<Builtin*>(obj);}
 inline bool is_procedure(const Obj& obj) {return std::holds_alternative<Procedure*>(obj);}
-inline bool is_callable(const Obj& obj) {return is_primitive(obj) || is_procedure(obj);}
+inline bool is_callable(const Obj& obj) {return is_builtin(obj) || is_procedure(obj);}
 inline bool is_null(const Obj& obj) {return std::holds_alternative<Null>(obj);}
 inline bool is_void(const Obj& obj) {return std::holds_alternative<Void>(obj);}
 
@@ -158,8 +158,8 @@ inline Cons* const& as_pair(const Obj& obj) {return std::get<Cons*>(obj);}
 inline Vector*& as_vector(Obj& obj) {return std::get<Vector*>(obj);}
 inline Vector* const& as_vector(const Obj& obj) {return std::get<Vector*>(obj);}
 
-inline Builtin*& as_primitive(Obj& obj) {return std::get<Builtin*>(obj);}
-inline Builtin* const& as_primitive(const Obj& obj) {return std::get<Builtin*>(obj);}
+inline Builtin*& as_builtin(Obj& obj) {return std::get<Builtin*>(obj);}
+inline Builtin* const& as_builtin(const Obj& obj) {return std::get<Builtin*>(obj);}
 
 inline Procedure*& as_procedure(Obj& obj) {return std::get<Procedure*>(obj);}
 inline Procedure* const& as_procedure(const Obj& obj) {return std::get<Procedure*>(obj);}
