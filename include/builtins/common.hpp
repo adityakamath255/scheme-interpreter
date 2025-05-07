@@ -25,7 +25,7 @@ assert_vec_type(const ArgList& args, const std::string& type) {
 
 inline void
 assert_callable(const Obj& obj) {
-  if (!is_procedure(obj) && !is_primitive(obj)) {
+  if (!is_procedure(obj) && !is_builtin(obj)) {
     throw std::runtime_error("incorrect type for " + stringify(obj) + ", expected procedure");
   }
 }

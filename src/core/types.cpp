@@ -101,21 +101,12 @@ equal(const Obj obj_0, const Obj obj_1) {
       },
 
       [=](Vector*) -> bool {
-        if (as_vector(obj_0)->data.size() != as_vector(obj_1)->data.size()) {
-          return false;
-        }
-        else {
-          auto itr_0 = as_vector(obj_0)->data.begin();
-          auto itr_1 = as_vector(obj_1)->data.begin();
-          while (itr_0 != as_vector(obj_0)->data.end()) {
-            if (!equal(*itr_0, *itr_1)) {
-              return false;
-            }
-            itr_0++;
-            itr_1++;
-          }
-          return true;
-        }
+        return std::equal(
+          as_vector(obj_0)->data.begin(),
+          as_vector(obj_0)->data.end(), 
+          as_vector(obj_1)->data.begin(), 
+          equal
+        );
       },
 
     }, obj_0);

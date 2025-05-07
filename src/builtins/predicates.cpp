@@ -47,12 +47,28 @@ BuiltinInstaller::install_predicates() {
 
   install("procedure?", [](const ArgList& args, Interpreter& interp) {
     assert_arg_count(args, 1, 1);
-    return is_procedure(args[0]) || is_primitive(args[0]);
+    return is_procedure(args[0]) || is_builtin(args[0]);
   });
 
   install("list?", [](const ArgList& args, Interpreter& interp) {
     assert_arg_count(args, 1, 1);
     return is_list(args[0]);
+  });
+
+  install("eq?", [](const ArgList& args, Interpreter& interp) {
+    assert_arg_count(args, 2, 2);
+    return args[0] == args[1];
+  });
+
+  install("equal?", [](const ArgList& args, Interpreter& interp) {
+    assert_arg_count(args, 2, 2);
+    return equal(args[0], args[1]);
+  });
+
+  install("string=?", [](const ArgList& args, Interpreter& interp) { 
+    assert_arg_count(args, 2, 2);
+    assert_vec_type<String*>(args, "string");
+    return as_string(args[0])->data == as_string(args[1])->data;
   });
 }
 

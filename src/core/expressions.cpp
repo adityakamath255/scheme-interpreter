@@ -96,6 +96,9 @@ make_quasiquoted_impl(Obj obj, Interpreter& interp) {
         assert_size(as_pair(obj), 2, 2, "unquoted");
         return build_ast(as_pair(obj)->at("cadr"), interp);
       }
+      else if (as_symbol(car) == interp.intern_symbol("unquote-splicing")) {
+        throw std::runtime_error("unquote-splicing not supported yet");
+      }
       else if (as_symbol(car) == interp.intern_symbol("quasiquote")) {
         assert_size(as_pair(obj), 2, 2, "quasiquoted");
         return interp.spawn<Quasiquoted>(obj);
@@ -126,6 +129,11 @@ make_quasiquoted(Cons *cons, Interpreter& interp) {
 static Expression*
 report_unquote(Cons*, Interpreter&) {
   throw std::runtime_error("misplaced aux keyword: unquote");
+}
+
+static Expression*
+report_unquote_splicing(Cons*, Interpreter&) {
+  throw std::runtime_error("misplaced aux keyword: unquote-splicing");
 }
 
 static Expression*
@@ -394,6 +402,7 @@ special_forms = {
   {"quote", make_quoted},
   {"quasiquote", make_quasiquoted},
   {"unquote", report_unquote},
+  {"unquote-splicing", report_unquote_splicing},
   {"set!", make_set},
   {"define", make_define},
   {"if", make_if},

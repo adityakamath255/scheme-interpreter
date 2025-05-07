@@ -25,8 +25,8 @@ to_variadic_args(ArgList args, const size_t size, Interpreter& interp) {
 EvalResult 
 apply(Obj p, ArgList args, Interpreter& interp) {
   while (true) {
-    if (is_primitive(p)) {
-      const auto func = *as_primitive(p);
+    if (is_builtin(p)) {
+      const auto func = *as_builtin(p);
       return func(args, interp);
     }
 
