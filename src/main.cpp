@@ -75,8 +75,11 @@ driver_loop(Interpreter& interp) {
 
 void
 run_file(Interpreter& interp, const char *filename, bool enter_driver_loop) {
-  std::ifstream in;
-  in.open(filename);
+  std::ifstream in(filename);
+  if (!in.is_open()) {
+      std::cerr << "ERROR: Could not open file '" << filename << "'" << std::endl;
+      return;
+  }
   while (true) {
     try {
       const std::string& input_expr = read(in);

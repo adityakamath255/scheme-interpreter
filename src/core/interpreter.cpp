@@ -3,7 +3,7 @@
 #include <core/expressions.hpp>
 #include <core/interpreter.hpp>
 #include <core/memory.hpp>
-#include "builtins/installer.hpp"
+#include <builtins/installer.hpp>
 #include <parsing/lexer.hpp>
 #include <parsing/parser.hpp>
 #include <unordered_map>
@@ -58,10 +58,10 @@ Interpreter::intern_symbol(const std::string_view str) {
   if (itr == intern_table.end()) {
     auto new_str = new std::string(str);
     intern_table.emplace(*new_str, new_str);
-    return Symbol(new_str);
+    return Symbol {new_str};
   }
   else {
-    return Symbol(itr->second);
+    return Symbol {itr->second};
   }
 }
 

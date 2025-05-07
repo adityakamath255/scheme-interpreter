@@ -40,6 +40,11 @@ BuiltinInstaller::install_predicates() {
     return is_string(args[0]);
   });
 
+  install("character?", [](const ArgList& args, Interpreter& interp) {
+    assert_arg_count(args, 1, 1);
+    return is_char(args[0]);
+  });
+
   install("procedure?", [](const ArgList& args, Interpreter& interp) {
     assert_arg_count(args, 1, 1);
     return is_procedure(args[0]) || is_primitive(args[0]);

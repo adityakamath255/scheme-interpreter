@@ -18,4 +18,4 @@ file(GLOB_RECURSE SOURCES
 
 add_executable(scheme ${SOURCES})
 
-target_compile_options(scheme PRIVATE -Ofast -march=native -Wall)
+target_compile_options(scheme PRIVATE -O3 -Wall)

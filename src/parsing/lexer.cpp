@@ -237,10 +237,22 @@ Lexer::hash_token() {
   else if (match('(')) {
     return make_token(Token::VEC_BEGIN);
   }
+  else if (match('\\')) {
+    return char_token();
+  }
   else {
     throw error("unidentified constant");
   }
 } 
+
+Token
+Lexer::char_token() {
+  start += 2;
+  while (!at_boundary()) {
+    advance();
+  }
+  return make_token(Token::CHAR);
+}
 
 Token
 Lexer::string_token() {

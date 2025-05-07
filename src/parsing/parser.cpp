@@ -71,6 +71,11 @@ Parser::number() {
   }
 }
 
+Obj 
+Parser::character() {
+  return curr_token().lexeme.front();
+}
+
 Obj
 Parser::string() {
   return interp.spawn<String>(std::string(curr_token().lexeme));
@@ -129,8 +134,9 @@ Parser::parse_atom() {
     case Token::SYMBOL:
       return symbol();
 
-    case Token::END: 
-    case Token::ERROR: 
+    case Token::CHAR:
+      return character();
+
     default:
       return Void {};
   }

@@ -55,7 +55,10 @@ BuiltinInstaller::install_data_functions() {
     return args[0] == args[1];
   });
 
-  // install("equal?", is_equal);
+  install("equal?", [](const ArgList& args, Interpreter& interp) {
+    assert_arg_count(args, 2, 2);
+    return equal(args[0], args[1]);
+  });
 
   install("not", [](const ArgList& args, Interpreter& interp) {
     assert_arg_count(args, 1, 1);
@@ -91,19 +94,7 @@ BuiltinInstaller::install_data_functions() {
 
   install("length", [](const ArgList& args, Interpreter& interp) {
     assert_arg_count(args, 1, 1);
-    if (is_null(args[0])) {
-      return 0.0;
-    }
-    else {
-      assert_obj_type<Cons*>(args[0], "list");
-      double ret = 0;
-      auto curr = args[0];
-      while (is_pair(curr)) {
-        ret++;
-        curr = as_pair(curr)->cdr;
-      }
-      return ret;
-    }
+    return (double) list_length(args[0]);
   });
 
   install("list-ref", [](const ArgList& args, Interpreter& interp) {
