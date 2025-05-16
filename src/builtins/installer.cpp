@@ -1,7 +1,7 @@
 #include <builtins/installer.hpp>
-#include <core/types.hpp>
-#include <core/expressions.hpp>
-#include <core/interpreter.hpp>
+#include <interpreter/types.hpp>
+#include <interpreter/expressions.hpp>
+#include <interpreter/interpreter.hpp>
 #include <functional>
 
 namespace Scheme {

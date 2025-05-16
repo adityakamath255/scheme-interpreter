@@ -1,7 +1,7 @@
-#include <core/types.hpp>
-#include <core/environment.hpp>
-#include <core/expressions.hpp>
-#include <core/memory.hpp>
+#include <interpreter/types.hpp>
+#include <interpreter/environment.hpp>
+#include <interpreter/expressions.hpp>
+#include <interpreter/memory.hpp>
 
 namespace Scheme {
 

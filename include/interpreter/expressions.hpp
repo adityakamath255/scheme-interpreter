@@ -1,7 +1,7 @@
 #pragma once
-#include <core/types.hpp>
-#include <core/environment.hpp>
-#include <core/interpreter.hpp>
+#include <interpreter/types.hpp>
+#include <interpreter/environment.hpp>
+#include <interpreter/interpreter.hpp>
 #include <variant>
 
 namespace Scheme {

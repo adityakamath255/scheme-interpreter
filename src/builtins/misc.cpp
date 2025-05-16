@@ -1,7 +1,7 @@
 #include <builtins/common.hpp>
 #include <builtins/installer.hpp>
-#include <core/expressions.hpp>
-#include <core/evaluation.hpp>
+#include <interpreter/expressions.hpp>
+#include <interpreter/evaluation.hpp>
 #include <iostream>
 #include <sstream>
 

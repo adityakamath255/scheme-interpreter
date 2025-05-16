@@ -1,6 +1,6 @@
 # Scheme Interpreter (C++23)
 
-A minimal yet robust Scheme interpreter written from scratch in C++23. This project aims for correctness, clarity, and faithfulness to Scheme's semantics without external dependencies or heavyweight abstractions.
+A minimal yet robust Scheme interpreter written from scratch in C++23. This project aims for correctness, clarity, and faithfulness to Scheme's semantics without heavyweight abstractions.
 
 ## Features
 

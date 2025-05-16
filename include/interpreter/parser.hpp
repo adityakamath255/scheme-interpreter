@@ -1,7 +1,7 @@
 #pragma once
-#include <parsing/lexer.hpp>
-#include <core/types.hpp>
-#include <core/interpreter.hpp>
+#include <interpreter/lexer.hpp>
+#include <interpreter/types.hpp>
+#include <interpreter/interpreter.hpp>
 
 namespace Scheme {
 

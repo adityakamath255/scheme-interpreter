@@ -1,5 +1,5 @@
-#include <core/types.hpp>
-#include <core/interpreter.hpp>
+#include <interpreter/types.hpp>
+#include <interpreter/interpreter.hpp>
 #include <iostream>
 #include <sstream>
 #include <fstream>

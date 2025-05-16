@@ -7,9 +7,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 include_directories(
     ${PROJECT_SOURCE_DIR}/include
-    ${PROJECT_SOURCE_DIR}/include/core
+    ${PROJECT_SOURCE_DIR}/include/interpreter
     ${PROJECT_SOURCE_DIR}/include/builtins
-    ${PROJECT_SOURCE_DIR}/include/parsing
 )
 
 file(GLOB_RECURSE SOURCES
@@ -19,3 +18,6 @@ file(GLOB_RECURSE SOURCES
 add_executable(scheme ${SOURCES})
 
 target_compile_options(scheme PRIVATE -O3 -Wall)
+
+add_subdirectory(third_party/replxx)
+target_link_libraries(scheme PRIVATE replxx)
