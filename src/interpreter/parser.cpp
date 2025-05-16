@@ -1,6 +1,6 @@
-#include <core/types.hpp>
-#include <parsing/lexer.hpp>
-#include <parsing/parser.hpp>
+#include <interpreter/types.hpp>
+#include <interpreter/lexer.hpp>
+#include <interpreter/parser.hpp>
 #include "interpreter.hpp"
 #include <cmath>
 #include <string_view>

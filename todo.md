@@ -1,8 +1,8 @@
+- more pleasant repl
 - add many more builtins
 - have more prevention of stack overflow
 - make sure define isn't in weird places
 - improve error reporting
 - optimized recycling
-- more pleasant repl
 - characters
 - static symbols

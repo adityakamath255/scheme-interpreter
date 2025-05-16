@@ -1,7 +1,7 @@
 #pragma once
-#include <core/types.hpp>
-#include <core/environment.hpp>
-#include <core/memory.hpp>
+#include <interpreter/types.hpp>
+#include <interpreter/environment.hpp>
+#include <interpreter/memory.hpp>
 #include <unordered_map>
 #include <string>
 #include <string_view>
