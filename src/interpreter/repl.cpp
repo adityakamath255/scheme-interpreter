@@ -4,13 +4,22 @@
 #include <stdexcept>
 #include <repl.hpp>
 
+BracketChecker::BracketChecker():
+  line {},
+  state_stk {State::Initial},
+  bracket_stk {},
+  block_comment_depth {0},
+  pos {0}
+{}
+
 std::optional<size_t>
-BracketChecker::read() {
+BracketChecker::read(const std::string_view line) {
+  this->line = line;
   pos = 0;
-  while (!at_end() && state != State::Finished) {
+  while (!at_end() && curr_state() != State::Finished) {
     process();
   }
-  if (state == State::Finished) {
+  if (curr_state() == State::Finished) {
     return pos;
   }
   else {
@@ -18,21 +27,66 @@ BracketChecker::read() {
   }
 }
 
+BracketChecker::State
+BracketChecker::curr_state() {
+  if (!state_stk.empty()) {
+    return state_stk.back();
+  }
+  else {
+    return State::Finished;
+  }
+}
+
+void
+BracketChecker::push_state(const State state) {
+  state_stk.push_back(state);
+}
+
+void 
+BracketChecker::pop_state() {
+  if (!state_stk.empty()) {
+    state_stk.pop_back();
+  }
+}
+
+void 
+BracketChecker::set_state(const State next_state) {
+  pop_state();
+  push_state(next_state);
+}
+
 bool 
 BracketChecker::at_end() const {
   return pos >= line.size();
 }
 
-void 
-BracketChecker::reset() {
-  set_state(State::Normal);
-  brackets.clear();
-  block_comment_depth = 0;
+static bool 
+matching_brackets(const char opening, const char closing) {
+  return 
+    (opening == '(' && closing == ')') ||
+    (opening == '[' && closing == ']');
 }
 
-void 
-BracketChecker::set_state(const State next_state) {
-  state = next_state;
+void
+BracketChecker::push_bracket(const char b) {
+  bracket_stk.push_back(b);
+  if (curr_state() != State::Expression) {
+    push_state(State::Expression);
+  }
+}
+
+void
+BracketChecker::pop_bracket(const char closing) {
+  const char opening = bracket_stk.back();
+  if (matching_brackets(opening, closing)) {
+    bracket_stk.pop_back();
+    if (bracket_stk.empty()) {
+      set_state(State::Finished);
+    }
+  }
+  else {
+    throw std::runtime_error("brackets do not match");
+  }
 }
 
 char 
@@ -57,9 +111,17 @@ BracketChecker::skip_line() {
 
 void
 BracketChecker::process() {
-  switch (state) {
-    case State::Normal:
-      process_normal();
+  switch (curr_state()) {
+    case State::Initial:
+      process_initial();
+      break;
+
+    case State::Term:
+      process_term();
+      break;
+
+    case State::Expression:
+      process_expression();
       break;
 
     case State::String:
@@ -74,12 +136,9 @@ BracketChecker::process() {
       process_line_comment();
       break;
 
-    case State::SeenHashInNormal:
-      process_seen_hash_from_normal();
+    case State::SeenHash:
+      process_seen_hash();
       break;
-
-    case State::SeenHashInBlockComment:
-      throw std::runtime_error("invalid state");
 
     case State::SeenPipe:
       process_seen_pipe();
@@ -95,19 +154,71 @@ BracketChecker::process() {
   }
 }
 
-void 
-BracketChecker::process_normal() {
+void
+BracketChecker::process_initial() {
   switch (advance()) {
+    case ' ':
+    case '\r':
+    case '\t':
+    case '\n':
+      break;
+
+    case '(':
+    case '[':
+      set_state(State::Expression);
+      retract();
+      break;
+
     case '"':
       set_state(State::String);
       break;
 
+    case '#':
+      set_state(State::SeenHash);
+
+    default:
+      set_state(State::Term);
+      retract();
+      break;
+  }
+}
+
+void 
+BracketChecker::process_term() {
+  switch (advance()) {
+    case ' ':
+    case '\r':
+    case '\t':
+    case '\n':
     case ';':
-      set_state(State::LineComment);
+    case '"':
+    case '(':
+    case '[':
+      set_state(State::Finished);
+      break;
+
+    case ')':
+    case ']':
+      throw std::runtime_error("unmatched closing bracket");
+
+    case '"':
+      push_state(State::String);
+  }
+}
+
+void 
+BracketChecker::process_expression() {
+  switch (const char c = advance()) {
+    case '"':
+      push_state(State::String);
+      break;
+
+    case ';':
+      skip_line();
       break;
 
     case '#':
-      set_state(State::SeenHashInNormal);
+      push_state(State::SeenHash);
       break;
 
     case '|':
@@ -115,7 +226,7 @@ BracketChecker::process_normal() {
 
     case '(':
     case '[':
-      push_bracket();
+      push_bracket(c);
       break;
 
     case ')':
@@ -136,7 +247,7 @@ BracketChecker::process_string() {
       break;
 
     case '"':
-      set_state(State::Normal);
+      pop_state(); 
       break;
 
   }
@@ -149,62 +260,45 @@ BracketChecker::process_escaped() {
 }
 
 void 
-BracketChecker::process_line_comment() {
-  skip_line();
-  set_state(State::Normal);
-}
-
-void 
-BracketChecker::process_seen_hash_from_normal() {
-  if (peek() == '|') {
-    set_state(State::BlockComment);
-    block_comment_depth = 1;
-  }
-  else {
-    set_state(State::Normal);
-    retract();
-  }
-}
-
-void 
-BracketChecker::process_seen_hash_from_block_comment() {
+BracketChecker::process_seen_hash() {
+  pop_state();
   if (advance() == '|') {
+    if (curr_state() != ) {
+      push_state(State::BlockComment);
+    }
     block_comment_depth++;
   }
   else {
-    set_state(State::BlockComment);
+    retract();
   }
 }
 
 void
 BracketChecker::process_seen_pipe() {
-  if (advance() == '#' && block_comment_depth > 0) {
+  pop_state();
+  if (advance() == '#') {
     block_comment_depth--;
     if (block_comment_depth == 0) {
-      set_state(State::Normal);
+      set_state(State::Expression);
     }
     else {
       set_state(State::BlockComment);
     }
   }
   else {
-    set_state(State::BlockComment);
+    retract();
   }
 }
 
 void
 BracketChecker::process_block_comment() {
   switch (advance()) {
-    case '\\':
-      set_state(State::Escaped);
-      break;
-
     case '#':
-      set_state(State::SeenHashInBlockComment);
+      push_state(State::SeenHash);
       break;
 
     case '|':
-      set_state(State::SeenPipe);
+      push_state(State::SeenPipe);
       break;
   }
 }
@@ -212,4 +306,5 @@ BracketChecker::process_block_comment() {
 void 
 BracketChecker::process_finished() {
   throw std::runtime_error("BracketChecker object needs to be reset");
+}
 }

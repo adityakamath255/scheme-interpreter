@@ -5,41 +5,46 @@
 class BracketChecker {
 private:
   enum class State {
-    Normal,
+    Initial,
+    Term,
+    Expression,
     String,
     Escaped,
-    LineComment,
-    SeenHashInNormal,
-    SeenHashInBlockComment,
+    SeenHash,
     SeenPipe,
     BlockComment,
     Finished,
   };
   
   std::string_view line;
-  State state = State::Normal;
-  std::vector<char> brackets;
-  size_t block_comment_depth = 0;
-  size_t pos = 0;
+  std::vector<State> state_stk;
+  std::vector<char> bracket_stk;
+  size_t block_comment_depth;
+  size_t pos;
+  bool concluded;
 
-  std::optional<size_t> read();
-  void reset();
-  void set_state(const State);
   bool at_end() const;
   char advance();
   void retract();
   void skip_line();
-  char peek() const;
-  void push_bracket();
-  void pop_bracket();
+  State curr_state();
+  void push_state(const State);
+  void pop_state();
+  void set_state(const State);
+  void push_bracket(const char);
+  void pop_bracket(const char);
   void process();
-  void process_normal();
+  void process_initial();
+  void process_term();
+  void process_expression();
   void process_string();
   void process_escaped();
-  void process_line_comment();
-  void process_seen_hash_from_normal();
-  void process_seen_hash_from_block_comment();
+  void process_seen_hash();
   void process_seen_pipe();
   void process_block_comment();
   void process_finished();
+
+public:
+  BracketChecker();
+  std::optional<size_t> read(const std::string_view);
 };
