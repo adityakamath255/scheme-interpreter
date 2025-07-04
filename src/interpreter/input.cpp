@@ -21,6 +21,7 @@ BracketChecker::BracketChecker():
 
 std::optional<size_t>
 BracketChecker::read(const std::string_view line) {
+  return line.size();
   this->line = line;
   pos = 0;
   while (!at_end() && curr_state() != State::Finished) {
@@ -307,54 +308,85 @@ BracketChecker::process_finished() {
   throw std::runtime_error("BracketChecker object needs to be reset");
 }
 
+std::optional<std::string>
+InputReader::get_expr() {
+  auto& buffer = get_buffer_ref();
+  BracketChecker checker;
+
+  while (true) {
+    if (const auto line = get_line()) {
+      if (const auto balance_point = checker.read(*line)) {
+        buffer.append(line->substr(0, *balance_point));
+        const std::string result = std::move(buffer);
+        buffer = line->substr(*balance_point);
+        return result;
+      }
+
+      else {
+        buffer.append(*line);
+        buffer.push_back('\n');
+      }
+    }
+
+    else {
+      return std::nullopt;
+    }
+  }
+}
+
 Repl::Repl():
-  buffer {}
+  rx()
 {
   rx.set_max_history_size(REPL_MAX_HISTORY_SIZE);
   rx.set_word_break_characters(" \t\r()[]\"';");
 }
 
-std::string
-Repl::get_expression() {
-  BracketChecker checker;
+std::optional<std::string>
+Repl::get_line() {
+  const char *prompt = buffer.empty() ? ">> " : ".. ";
 
-  while (true) {
-    const char *prompt = buffer.empty() ? ">> " : ".. ";
-    const auto line_result = rx.input(prompt);
-
-    if (!line_result) {
-      if (!buffer.empty()) {
-        throw std::runtime_error("EOF with unbalanced expression");
-        buffer.clear();
-      }
-      return "";
-    }
-
-    std::string line = line_result;
+  if (const auto line = rx.input(prompt)) {
     rx.history_add(line);
+    return line;
+  }
 
-    const auto balance_point = checker.read(line);
-
-    if (balance_point.has_value()) {
-      buffer.append(line.substr(0, *balance_point));
-      const std::string result = std::move(buffer);
-      buffer = line.substr(*balance_point);
-      return result;
-    }
-    else {
-      buffer.append(line);
-      buffer.push_back('\n');
-    }
+  else {
+    return std::nullopt;
   }
 }
 
 void
 Repl::print_result(const Obj result) {
-  std::cout << stringify(result) << std::endl;
+  if (!is_void(result)) {
+    std::cout << stringify(result) << std::endl;
+  }
 }
 
-Session::Session(Interpreter interp):
-  repl {Repl()},
+FileReader::FileReader(const char *filename, bool enter_repl):
+  stream(filename),
+  enter_repl {enter_repl}
+{
+  if (!stream.is_open()) {
+    throw std::runtime_error("could not open file: " + std::string(filename));
+  }
+}
+
+void FileReader::print_result(const Obj obj) {}
+
+std::optional<std::string>
+FileReader::get_line() {
+  std::string line;
+  if (std::getline(stream, line)) {
+    return line; 
+  }
+  else {
+    return std::nullopt;
+  }
+}
+
+
+Session::Session(std::unique_ptr<InputReader> input, std::unique_ptr<Interpreter> interp):
+  input {std::move(input)},
   interp {std::move(interp)}
 {}
 
@@ -362,22 +394,17 @@ void
 Session::run() {
   std::cout << "Scheme Interpreter - Press Ctrl+D to exit, Ctrl+C to clear line" << std::endl;
 
-  while (true) {
-    const std::string expr = repl.get_expression();
-
-    if (expr.empty()) {
-      std::cout << "\nExiting..." << std::endl;
-      break;
-    }
-
+  while (const auto expr = input->get_expr()) {
     try {
-      const Obj result = interp.interpret(expr);
-      repl.print_result(result);
+      const Obj result = interp->interpret(*expr);
+      input->print_result(result);
     }
     catch (const std::exception& e) {
-      std::cerr << "ERR: " << e.what() << std::endl;
+      std::cerr << "ERROR: " << e.what() << std::endl;
     }
   }
+
+  std::cout << "\nExiting..." << std::endl;
 }
 
 }

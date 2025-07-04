@@ -29,8 +29,6 @@ public:
   Interpreter(bool);
   ~Interpreter();
 
-  Interpreter(const Interpreter&) = delete
-
   bool is_profiled() {return profiling;}
   Environment *get_global_env() {return global_env;}
   Symbol intern_symbol(const std::string_view);

@@ -1,7 +1,10 @@
+#include <fstream>
+#include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
-#include <optional>
+
 #include <interpreter.hpp>
 #include <replxx.hxx>
 
@@ -54,24 +57,52 @@ public:
   std::optional<size_t> read(const std::string_view);
 };
 
-class Repl {
-private:  
-  replxx::Replxx rx;
+class InputReader {
+protected:
+  virtual std::string& get_buffer_ref() = 0; // avoiding having a buffer field to make this class an abstract interface
+  virtual std::optional<std::string> get_line() = 0;
+
+public:
+  virtual ~InputReader() = default;
+  std::optional<std::string> get_expr();
+  virtual void print_result(const Obj) = 0;
+};
+
+class FileReader : public InputReader {
+private:
   std::string buffer;
+  std::ifstream stream;
+  bool enter_repl;
+
+  std::string& get_buffer_ref() override { return buffer; }
+
+public:
+  FileReader(const char *, const bool);
+  std::optional<std::string> get_line() override;
+  void print_result(const Obj) override;
+};
+
+
+class Repl : public InputReader {
+private:  
+  std::string buffer;
+  replxx::Replxx rx;
+
+  std::string& get_buffer_ref() override { return buffer; }
 
 public:
   Repl();
-  std::string get_expression();
-  void print_result(const Obj);
+  std::optional<std::string> get_line() override;
+  void print_result(const Obj) override;
 };
 
 class Session {
 private:
-  Repl repl;
-  Interpreter interp;
+  std::unique_ptr<InputReader> input;
+  std::unique_ptr<Interpreter> interp;
 
 public:
-  Session(Interpreter);
+  Session(std::unique_ptr<InputReader> input, std::unique_ptr<Interpreter> interp);
   void run();
 };
 
