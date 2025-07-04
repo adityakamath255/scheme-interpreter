@@ -2,7 +2,14 @@
 #include <string_view>
 #include <vector>
 #include <stdexcept>
-#include <repl.hpp>
+#include <iostream>
+#include <input.hpp>
+#include <interpreter.hpp>
+#include <types.hpp>
+
+namespace Scheme {
+
+constexpr int REPL_MAX_HISTORY_SIZE = 1000;
 
 BracketChecker::BracketChecker():
   line {},
@@ -132,10 +139,6 @@ BracketChecker::process() {
       process_escaped();
       break;
 
-    case State::LineComment:
-      process_line_comment();
-      break;
-
     case State::SeenHash:
       process_seen_hash();
       break;
@@ -200,9 +203,6 @@ BracketChecker::process_term() {
     case ')':
     case ']':
       throw std::runtime_error("unmatched closing bracket");
-
-    case '"':
-      push_state(State::String);
   }
 }
 
@@ -231,7 +231,7 @@ BracketChecker::process_expression() {
 
     case ')':
     case ']':
-      pop_bracket();
+      pop_bracket(c);
       break;
 
     case EOF:
@@ -252,7 +252,6 @@ BracketChecker::process_string() {
 
   }
 }
-
 void
 BracketChecker::process_escaped() {
   advance();
@@ -263,7 +262,7 @@ void
 BracketChecker::process_seen_hash() {
   pop_state();
   if (advance() == '|') {
-    if (curr_state() != ) {
+    if (curr_state() != State::BlockComment) {
       push_state(State::BlockComment);
     }
     block_comment_depth++;
@@ -307,4 +306,78 @@ void
 BracketChecker::process_finished() {
   throw std::runtime_error("BracketChecker object needs to be reset");
 }
+
+Repl::Repl():
+  buffer {}
+{
+  rx.set_max_history_size(REPL_MAX_HISTORY_SIZE);
+  rx.set_word_break_characters(" \t\r()[]\"';");
+}
+
+std::string
+Repl::get_expression() {
+  BracketChecker checker;
+
+  while (true) {
+    const char *prompt = buffer.empty() ? ">> " : ".. ";
+    const auto line_result = rx.input(prompt);
+
+    if (!line_result) {
+      if (!buffer.empty()) {
+        throw std::runtime_error("EOF with unbalanced expression");
+        buffer.clear();
+      }
+      return "";
+    }
+
+    std::string line = line_result;
+    rx.history_add(line);
+
+    const auto balance_point = checker.read(line);
+
+    if (balance_point.has_value()) {
+      buffer.append(line.substr(0, *balance_point));
+      const std::string result = std::move(buffer);
+      buffer = line.substr(*balance_point);
+      return result;
+    }
+    else {
+      buffer.append(line);
+      buffer.push_back('\n');
+    }
+  }
+}
+
+void
+Repl::print_result(const Obj result) {
+  std::cout << stringify(result) << std::endl;
+}
+
+Session::Session(Interpreter interp):
+  repl {Repl()},
+  interp {std::move(interp)}
+{}
+
+void
+Session::run() {
+  std::cout << "Scheme Interpreter - Press Ctrl+D to exit, Ctrl+C to clear line" << std::endl;
+
+  while (true) {
+    const std::string expr = repl.get_expression();
+
+    if (expr.empty()) {
+      std::cout << "\nExiting..." << std::endl;
+      break;
+    }
+
+    try {
+      const Obj result = interp.interpret(expr);
+      repl.print_result(result);
+    }
+    catch (const std::exception& e) {
+      std::cerr << "ERR: " << e.what() << std::endl;
+    }
+  }
+}
+
 }

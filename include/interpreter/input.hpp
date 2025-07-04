@@ -1,6 +1,11 @@
+#include <string>
 #include <string_view>
 #include <vector>
 #include <optional>
+#include <interpreter.hpp>
+#include <replxx.hxx>
+
+namespace Scheme {
 
 class BracketChecker {
 private:
@@ -48,3 +53,26 @@ public:
   BracketChecker();
   std::optional<size_t> read(const std::string_view);
 };
+
+class Repl {
+private:  
+  replxx::Replxx rx;
+  std::string buffer;
+
+public:
+  Repl();
+  std::string get_expression();
+  void print_result(const Obj);
+};
+
+class Session {
+private:
+  Repl repl;
+  Interpreter interp;
+
+public:
+  Session(Interpreter);
+  void run();
+};
+
+}
