@@ -1,8 +1,9 @@
-#include <optional>
-#include <string_view>
-#include <vector>
-#include <stdexcept>
 #include <iostream>
+#include <fstream>
+#include <optional>
+#include <stack>
+#include <stdexcept>
+#include <string_view>
 #include <input.hpp>
 #include <interpreter.hpp>
 #include <types.hpp>
@@ -11,347 +12,321 @@ namespace Scheme {
 
 constexpr int REPL_MAX_HISTORY_SIZE = 1000;
 
-BracketChecker::BracketChecker():
-  line {},
-  state_stk {State::Initial},
-  bracket_stk {},
-  block_comment_depth {0},
-  pos {0}
-{}
+char 
+expected_closing(const char opening) {
+  return opening == '(' ? ')' : ']';
+}
 
-std::optional<size_t>
-BracketChecker::read(const std::string_view line) {
-  return line.size();
-  this->line = line;
-  pos = 0;
-  while (!at_end() && curr_state() != State::Finished) {
-    process();
-  }
-  if (curr_state() == State::Finished) {
+class BracketChecker {
+private:
+  std::string_view input;
+
+  size_t 
+  skip_whitespace(size_t pos) const {
+    while (pos < input.size()) {
+      const char c = input[pos];
+
+      switch (c) {
+        case ' ':
+        case '\t':
+        case '\r':
+        case '\n':
+          pos += 1;
+          break;
+
+        case ';':
+          pos = skip_line_comment(pos);
+          break;
+
+        default:
+          return pos;
+      }
+    }
+
     return pos;
+  }
+
+  size_t 
+  parse_term(size_t pos) const {
+    while (pos < input.size()) {
+      switch (input[pos]) {
+        case ' ':
+        case '\t':
+        case '\r':
+        case '\n':
+        case ';':
+        case '"':
+        case '(':
+        case '[':
+        case ')':
+        case ']':
+          return pos;
+
+        default:
+          pos += 1;
+
+      }
+    }
+
+    return pos;
+  }
+
+  std::optional<size_t> 
+  parse_expr(size_t pos) const {
+    const char opening = input[pos];
+    const char closing = expected_closing(opening);
+    std::stack<char> bracket_stk;
+    bracket_stk.push(closing);
+
+    pos += 1;
+
+    while (pos < input.size() && !bracket_stk.empty()) {
+      pos = skip_whitespace(pos);
+      if (pos >= input.size()) {
+        return std::nullopt;
+      }
+
+      const char c = input[pos];
+
+      switch (c) {
+        case ')':
+        case ']':
+          if (bracket_stk.empty() || c != bracket_stk.top()) {
+            throw std::runtime_error("mismatched brackets");
+          }
+
+          bracket_stk.pop();
+
+          pos += 1;
+
+          if (bracket_stk.empty()) {
+            return pos;
+          }
+
+          break;
+
+        case ';':
+          pos = skip_line_comment(pos);
+          break;
+
+        case '"':
+          if (const auto string_end = parse_str(pos)) {
+            pos = *string_end;
+          }
+          else {
+            return std::nullopt;
+          }
+          break;
+
+        case '#':
+          if (pos + 1 < input.size() && input[pos + 1] == '|') {
+            if (const auto comment_end = parse_block_comment(pos)) {
+              pos = *comment_end;
+            }
+            else {
+              return std::nullopt;
+            }
+          }
+          break;
+
+        case '(':
+        case '[':
+          bracket_stk.push(expected_closing(c));
+          pos += 1;
+          break;
+
+        default:
+          pos = parse_term(pos);
+      }
+    }
+
+    return 
+      bracket_stk.empty() ?
+      std::optional<size_t>(pos) :
+      std::nullopt;
+  }
+
+  std::optional<size_t> 
+  parse_str(size_t pos) const {
+    pos += 1;
+
+    while (pos < input.size()) {
+      const char c = input[pos];
+
+      if (c == '"') {
+        return pos + 1;
+      }
+      else if (c == '\\' && pos + 1 < input.size()) {
+        pos += 2;
+      }
+      else {
+        pos += 1;
+      }
+    }
+
+    return std::nullopt;
+  }
+
+  std::optional<size_t> 
+  parse_block_comment(size_t pos) const {
+    pos += 2;
+    int depth = 1;
+
+    while (pos < input.size() && depth > 0) {
+      if (pos + 1 < input.size()) {
+        if (input[pos] == '#' && input[pos + 1] == '|') {
+          depth += 1;
+          pos += 2;
+        }
+        else if (input[pos] == '|' && input[pos + 1] == '#') {
+          depth -= 1;
+          pos += 2;
+        }
+        else {
+          pos += 1;
+        }
+      }
+      else {
+        pos += 1;
+      }
+    }
+
+    return 
+      depth == 0 ? 
+      std::optional<size_t>(pos) : 
+      std::nullopt;
+  }
+
+  size_t 
+  skip_line_comment(size_t pos) const {
+    while (pos < input.size() && input[pos] != '\n') {
+      pos += 1;
+    }
+    return pos;
+  }
+
+
+public:
+  BracketChecker(const std::string_view input): input {input} {}
+
+  std::optional<size_t> 
+  check() const {
+    size_t pos = 0;
+
+    pos = skip_whitespace(pos);
+
+    if (pos >= input.size()) {
+      return std::nullopt;
+    }
+    else {
+      const char c = input[pos];
+
+      if (c == '(' || c == '[') {
+        return parse_expr(pos);
+      }
+      else if (c == '#' && pos + 1 < input.size() && input[pos + 1] == '|') {
+        return parse_block_comment(pos);
+      }
+      else if (c == '"') {
+        return parse_str(pos);
+      }
+      else {
+        return parse_term(pos);
+      }
+    }
+  }
+};
+
+FileReader::FileReader(const std::string& file_name, const bool enter_repl): 
+  curr_index {0},
+  enter_repl {enter_repl}
+{
+  std::ifstream is(file_name);
+  if (!is.is_open()) {
+    throw std::runtime_error("error opening file: " + std::string(file_name));
+  }
+  std::ostringstream os;
+  os << is.rdbuf();
+  file_data = os.str();
+}
+
+std::optional<std::string>
+FileReader::get_expr() {
+  const std::string_view view = file_data.substr(curr_index);
+  if (const auto next_index = BracketChecker(view).check()) {
+    const std::string ret = file_data.substr(curr_index, *next_index);
+    curr_index = *next_index;
+    return ret;
   }
   else {
     return std::nullopt;
   }
 }
 
-BracketChecker::State
-BracketChecker::curr_state() {
-  if (!state_stk.empty()) {
-    return state_stk.back();
-  }
-  else {
-    return State::Finished;
-  }
-}
-
 void
-BracketChecker::push_state(const State state) {
-  state_stk.push_back(state);
-}
-
-void 
-BracketChecker::pop_state() {
-  if (!state_stk.empty()) {
-    state_stk.pop_back();
-  }
-}
-
-void 
-BracketChecker::set_state(const State next_state) {
-  pop_state();
-  push_state(next_state);
-}
-
-bool 
-BracketChecker::at_end() const {
-  return pos >= line.size();
-}
-
-static bool 
-matching_brackets(const char opening, const char closing) {
-  return 
-    (opening == '(' && closing == ')') ||
-    (opening == '[' && closing == ']');
-}
-
-void
-BracketChecker::push_bracket(const char b) {
-  bracket_stk.push_back(b);
-  if (curr_state() != State::Expression) {
-    push_state(State::Expression);
-  }
-}
-
-void
-BracketChecker::pop_bracket(const char closing) {
-  const char opening = bracket_stk.back();
-  if (matching_brackets(opening, closing)) {
-    bracket_stk.pop_back();
-    if (bracket_stk.empty()) {
-      set_state(State::Finished);
-    }
-  }
-  else {
-    throw std::runtime_error("brackets do not match");
-  }
-}
-
-char 
-BracketChecker::advance() {
-  if (pos >= line.size()) {
-    return EOF;
-  }
-  else {
-    return line[pos++];
-  }
-}
-
-void
-BracketChecker::retract() {
-  pos--;
-}
-
-void 
-BracketChecker::skip_line() {
-  pos = line.size();
-}
-
-void
-BracketChecker::process() {
-  switch (curr_state()) {
-    case State::Initial:
-      process_initial();
-      break;
-
-    case State::Term:
-      process_term();
-      break;
-
-    case State::Expression:
-      process_expression();
-      break;
-
-    case State::String:
-      process_string();
-      break;
-
-    case State::Escaped:
-      process_escaped();
-      break;
-
-    case State::SeenHash:
-      process_seen_hash();
-      break;
-
-    case State::SeenPipe:
-      process_seen_pipe();
-      break;
-
-    case State::BlockComment:
-      process_block_comment();
-      break;
-
-    case State::Finished:
-      process_finished();
-      break;
-  }
-}
-
-void
-BracketChecker::process_initial() {
-  switch (advance()) {
-    case ' ':
-    case '\r':
-    case '\t':
-    case '\n':
-      break;
-
-    case '(':
-    case '[':
-      set_state(State::Expression);
-      retract();
-      break;
-
-    case '"':
-      set_state(State::String);
-      break;
-
-    case '#':
-      set_state(State::SeenHash);
-
-    default:
-      set_state(State::Term);
-      retract();
-      break;
-  }
-}
-
-void 
-BracketChecker::process_term() {
-  switch (advance()) {
-    case ' ':
-    case '\r':
-    case '\t':
-    case '\n':
-    case ';':
-    case '"':
-    case '(':
-    case '[':
-      set_state(State::Finished);
-      break;
-
-    case ')':
-    case ']':
-      throw std::runtime_error("unmatched closing bracket");
-  }
-}
-
-void 
-BracketChecker::process_expression() {
-  switch (const char c = advance()) {
-    case '"':
-      push_state(State::String);
-      break;
-
-    case ';':
-      skip_line();
-      break;
-
-    case '#':
-      push_state(State::SeenHash);
-      break;
-
-    case '|':
-      throw std::runtime_error("unexpected '|'");
-
-    case '(':
-    case '[':
-      push_bracket(c);
-      break;
-
-    case ')':
-    case ']':
-      pop_bracket(c);
-      break;
-
-    case EOF:
-      set_state(State::Finished);
-  }
-}
-
-void 
-BracketChecker::process_string() {
-  switch (advance()) {
-    case '\\':
-      set_state(State::Escaped);
-      break;
-
-    case '"':
-      pop_state(); 
-      break;
-
-  }
-}
-void
-BracketChecker::process_escaped() {
-  advance();
-  set_state(State::String);
-}
-
-void 
-BracketChecker::process_seen_hash() {
-  pop_state();
-  if (advance() == '|') {
-    if (curr_state() != State::BlockComment) {
-      push_state(State::BlockComment);
-    }
-    block_comment_depth++;
-  }
-  else {
-    retract();
-  }
-}
-
-void
-BracketChecker::process_seen_pipe() {
-  pop_state();
-  if (advance() == '#') {
-    block_comment_depth--;
-    if (block_comment_depth == 0) {
-      set_state(State::Expression);
-    }
-    else {
-      set_state(State::BlockComment);
-    }
-  }
-  else {
-    retract();
-  }
-}
-
-void
-BracketChecker::process_block_comment() {
-  switch (advance()) {
-    case '#':
-      push_state(State::SeenHash);
-      break;
-
-    case '|':
-      push_state(State::SeenPipe);
-      break;
-  }
-}
-
-void 
-BracketChecker::process_finished() {
-  throw std::runtime_error("BracketChecker object needs to be reset");
-}
-
-std::optional<std::string>
-InputReader::get_expr() {
-  auto& buffer = get_buffer_ref();
-  BracketChecker checker;
-
-  while (true) {
-    if (const auto line = get_line()) {
-      if (const auto balance_point = checker.read(*line)) {
-        buffer.append(line->substr(0, *balance_point));
-        const std::string result = std::move(buffer);
-        buffer = line->substr(*balance_point);
-        return result;
-      }
-
-      else {
-        buffer.append(*line);
-        buffer.push_back('\n');
-      }
-    }
-
-    else {
-      return std::nullopt;
-    }
-  }
-}
+FileReader::print_result(const Obj) {}
 
 Repl::Repl():
-  rx()
+  rx(),
+  pending_input {std::nullopt}
 {
   rx.set_max_history_size(REPL_MAX_HISTORY_SIZE);
   rx.set_word_break_characters(" \t\r()[]\"';");
 }
 
 std::optional<std::string>
-Repl::get_line() {
-  const char *prompt = buffer.empty() ? ">> " : ".. ";
+Repl::get_expr() {
+  std::string buffer;
+  std::string prompt = ">> ";
 
-  if (const auto line = rx.input(prompt)) {
-    rx.history_add(line);
-    return line;
-  }
+  while (true) {
+    if (pending_input) {
+      rx.set_preload_buffer(*pending_input);
+      pending_input = std::nullopt;
+    }
 
-  else {
-    return std::nullopt;
+    if (char const *line_cstr = rx.input(prompt)) {
+      std::string line(line_cstr);
+      rx.history_add(line);
+
+      if (!buffer.empty()) {
+        buffer += "\n";
+      }
+
+      const size_t start = buffer.find_first_not_of(" \t\r\n");
+      if (start == std::string::npos) {
+        buffer.clear();
+      }
+
+      else {
+        std::string_view trimmed = buffer.substr(start);
+        BracketChecker checker(trimmed);
+
+        if (const auto result = checker.check()) {
+          const size_t expr_end = start + result.value();
+          const std::string complete_expr = buffer.substr(start, result.value());
+          const size_t next_start = buffer.find_first_not_of(" \t\r\n", expr_end);
+
+          if (next_start != std::string::npos) {
+            pending_input = buffer.substr(next_start);
+          }
+
+          return complete_expr;
+        }
+
+        else {
+          buffer += line;
+        }
+
+        prompt = "..";
+      }
+    }
+    else {
+      if (!buffer.empty()) {
+        throw std::runtime_error("unexpected EOF; incomplete expression");
+      }
+      return std::nullopt;
+    }
   }
 }
 
@@ -361,29 +336,6 @@ Repl::print_result(const Obj result) {
     std::cout << stringify(result) << std::endl;
   }
 }
-
-FileReader::FileReader(const char *filename, bool enter_repl):
-  stream(filename),
-  enter_repl {enter_repl}
-{
-  if (!stream.is_open()) {
-    throw std::runtime_error("could not open file: " + std::string(filename));
-  }
-}
-
-void FileReader::print_result(const Obj obj) {}
-
-std::optional<std::string>
-FileReader::get_line() {
-  std::string line;
-  if (std::getline(stream, line)) {
-    return line; 
-  }
-  else {
-    return std::nullopt;
-  }
-}
-
 
 Session::Session(std::unique_ptr<InputReader> input, std::unique_ptr<Interpreter> interp):
   input {std::move(input)},
