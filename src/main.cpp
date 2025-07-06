@@ -6,9 +6,14 @@
 using namespace Scheme;
 
 std::unique_ptr<InputReader>
-make_reader(const char *filename) {
+make_reader(const std::optional<std::string>& filename, const bool enter_repl) {
   if (filename) {
-    return std::make_unique<FileReader>(filename);
+    if (enter_repl) {
+      return std::make_unique<CompositeReader>(*filename);
+    }
+    else {
+      return std::make_unique<FileReader>(*filename);
+    }
   }
   else {
     return std::make_unique<Repl>();
@@ -16,9 +21,9 @@ make_reader(const char *filename) {
 }
 
 Session
-make_session(const bool profiling, const bool enter_repl, const char *filename) {
+make_session(const bool profiling, const bool enter_repl, const std::optional<std::string>& filename) {
   return Session(
-    make_reader(filename), 
+    make_reader(filename, enter_repl), 
     std::make_unique<Interpreter>(profiling)
   );
 }
@@ -27,7 +32,7 @@ int
 main(const int argc, const char **argv) {
   bool profiling = false;
   bool enter_repl = true;
-  const char *filename = nullptr;
+  std::optional<std::string> filename = std::nullopt;
 
   for (int i = 1; i < argc; i++) {
     std::string arg = argv[i];
@@ -38,7 +43,7 @@ main(const int argc, const char **argv) {
       enter_repl = false;
     }
     else if (!filename) {
-      filename = argv[i];
+      filename = std::string(argv[i]);
     }
     else {
       std::cerr << "Usage: ./scheme [--profile] [--no-repl] [filename]" << std::endl;

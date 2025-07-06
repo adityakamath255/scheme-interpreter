@@ -19,7 +19,7 @@ expected_closing(const char opening) {
 
 class BracketChecker {
 private:
-  std::string input;
+  std::string_view input;
 
   size_t 
   skip_whitespace(size_t pos) const {
@@ -210,7 +210,7 @@ private:
 
 
 public:
-  BracketChecker(const std::string input): input {input} {}
+  BracketChecker(const std::string_view input): input {input} {}
 
   std::optional<size_t> 
   check() const {
@@ -251,15 +251,11 @@ FileReader::FileReader(const std::string& file_name):
   file_data = os.str();
 }
 
-bool
-FileReader::no_more_input() const {
-  return curr_index >= file_data.size();
-}
-
 std::optional<std::string>
 FileReader::get_expr() {
-  const std::string rest_file_data = file_data.substr(curr_index);
-  if (const auto delta_index = BracketChecker(rest_file_data).check()) {
+  const auto rest_file_data = std::string_view(file_data).substr(curr_index);
+  const BracketChecker checker(rest_file_data);
+  if (const auto delta_index = checker.check()) {
     const std::string ret = file_data.substr(curr_index, *delta_index);
     curr_index += *delta_index;
     return ret;
@@ -270,13 +266,7 @@ FileReader::get_expr() {
 }
 
 void
-FileReader::print_result(const Obj result) {
-  if (no_more_input()) {
-    if (!is_void(result)) {
-      std::cout << stringify(result) << std::endl;
-    }
-  }
-}
+FileReader::print_result(const Obj result) {}
 
 Repl::Repl():
   rx(),
@@ -308,20 +298,20 @@ Repl::get_expr() {
         buffer = line;
       }
 
-      const size_t start = buffer.find_first_not_of(" \t\r\n");
+      const size_t start = buffer.find_first_not_of(" \t\r\n)]");
       if (start == std::string::npos) {
         buffer.clear();
         prompt = ">> ";
       }
 
       else {
-        const std::string trimmed = buffer.substr(start);
+        const auto trimmed = std::string_view(buffer).substr(start);
         BracketChecker checker(trimmed);
 
         if (const auto result = checker.check()) {
           const size_t expr_end = start + *result;
           const std::string complete_expr = buffer.substr(start, *result);
-          const size_t next_start = buffer.find_first_not_of(" \t\r\n", expr_end);
+          const size_t next_start = buffer.find_first_not_of(" \t\r\n)]", expr_end);
 
           if (next_start != std::string::npos) {
             pending_input = buffer.substr(next_start);
@@ -351,6 +341,36 @@ Repl::print_result(const Obj result) {
   }
 }
 
+CompositeReader::CompositeReader(const std::string& file_name):
+  file_reader(file_name),
+  repl(),
+  file_done {false}
+{}
+
+std::optional<std::string>
+CompositeReader::get_expr() {
+  if (!file_done) {
+    if (const auto expr = file_reader.get_expr()) {
+      return expr;
+    }
+    else {
+      file_done = true;
+      std::cout << std::endl;
+      return repl.get_expr();
+    }
+  }
+  else {
+    return repl.get_expr();
+  }
+}
+
+void
+CompositeReader::print_result(const Obj result) {
+  if (file_done) {
+    repl.print_result(result);
+  }
+}
+
 Session::Session(std::unique_ptr<InputReader> input, std::unique_ptr<Interpreter> interp):
   input {std::move(input)},
   interp {std::move(interp)}
@@ -358,7 +378,7 @@ Session::Session(std::unique_ptr<InputReader> input, std::unique_ptr<Interpreter
 
 void
 Session::run() {
-  std::cout << "Scheme Interpreter - Press Ctrl+D to exit, Ctrl+C to clear line" << std::endl;
+  std::cout << "Scheme Interpreter - Press Ctrl+D to exit, Ctrl+C to clear line\n" << std::endl;
 
   while (const auto expr = input->get_expr()) {
     try {
@@ -370,7 +390,10 @@ Session::run() {
     }
   }
 
-  std::cout << "\nExiting..." << std::endl;
+  if (interp->is_profiled()) {
+    std::cout << std::endl << std::endl;
+    interp->print_timings();
+  }
 }
 
 }

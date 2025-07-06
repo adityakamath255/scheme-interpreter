@@ -17,8 +17,6 @@ private:
   std::string file_data;
   size_t curr_index;
 
-  bool no_more_input() const;
-
 public:
   FileReader(const std::string&);
   std::optional<std::string> get_expr() override;
@@ -35,6 +33,18 @@ public:
   std::optional<std::string> get_expr() override;
   void print_result(const Obj) override;
 
+};
+
+class CompositeReader : public InputReader {
+private:
+  FileReader file_reader;
+  Repl repl;
+  bool file_done;
+
+public:
+  CompositeReader(const std::string&);
+  std::optional<std::string> get_expr() override;
+  void print_result(const Obj) override;
 };
 
 class Session {

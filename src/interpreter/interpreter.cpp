@@ -117,7 +117,7 @@ Interpreter::interpret(const std::string& code) {
 void
 Interpreter::print_timings() const {
   using namespace std::chrono;
-  std::cout << "Profile:\n"
+  std::cout << "Profile:\n\n"
     << "Lexing:             " << duration_cast<microseconds>(lexing_time).count()             << " μs\n"
     << "Parsing:            " << duration_cast<microseconds>(parsing_time).count()            << " μs\n"
     << "AST Building:       " << duration_cast<microseconds>(ast_building_time).count()        << " μs\n"
