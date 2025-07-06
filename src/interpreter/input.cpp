@@ -3,14 +3,14 @@
 #include <optional>
 #include <stack>
 #include <stdexcept>
-#include <string_view>
+#include <string>
 #include <input.hpp>
 #include <interpreter.hpp>
 #include <types.hpp>
 
 namespace Scheme {
 
-constexpr int REPL_MAX_HISTORY_SIZE = 1000;
+constexpr int REPL_MAX_HISTORY_SIZE = 1024;
 
 char 
 expected_closing(const char opening) {
@@ -19,7 +19,7 @@ expected_closing(const char opening) {
 
 class BracketChecker {
 private:
-  std::string_view input;
+  std::string input;
 
   size_t 
   skip_whitespace(size_t pos) const {
@@ -207,14 +207,13 @@ private:
 
 
 public:
-  BracketChecker(const std::string_view input): input {input} {}
+  BracketChecker(const std::string input): input {input} {}
 
   std::optional<size_t> 
   check() const {
     size_t pos = 0;
 
     pos = skip_whitespace(pos);
-
     if (pos >= input.size()) {
       return std::nullopt;
     }
@@ -252,7 +251,7 @@ FileReader::FileReader(const std::string& file_name, const bool enter_repl):
 
 std::optional<std::string>
 FileReader::get_expr() {
-  const std::string_view view = file_data.substr(curr_index);
+  const std::string view = file_data.substr(curr_index);
   if (const auto next_index = BracketChecker(view).check()) {
     const std::string ret = file_data.substr(curr_index, *next_index);
     curr_index = *next_index;
@@ -271,7 +270,7 @@ Repl::Repl():
   pending_input {std::nullopt}
 {
   rx.set_max_history_size(REPL_MAX_HISTORY_SIZE);
-  rx.set_word_break_characters(" \t\r()[]\"';");
+  rx.set_word_break_characters(" \t\r()[]'\";");
 }
 
 std::optional<std::string>
@@ -290,32 +289,34 @@ Repl::get_expr() {
       rx.history_add(line);
 
       if (!buffer.empty()) {
-        buffer += "\n";
+        buffer += "\n" + line;
+      }
+      else {
+        buffer = line;
       }
 
       const size_t start = buffer.find_first_not_of(" \t\r\n");
       if (start == std::string::npos) {
         buffer.clear();
+        prompt = ">> ";
       }
 
       else {
-        std::string_view trimmed = buffer.substr(start);
+        const std::string trimmed = buffer.substr(start);
         BracketChecker checker(trimmed);
 
         if (const auto result = checker.check()) {
-          const size_t expr_end = start + result.value();
-          const std::string complete_expr = buffer.substr(start, result.value());
+          const size_t expr_end = start + *result;
+          const std::string complete_expr = buffer.substr(start, *result);
           const size_t next_start = buffer.find_first_not_of(" \t\r\n", expr_end);
 
           if (next_start != std::string::npos) {
             pending_input = buffer.substr(next_start);
           }
 
-          return complete_expr;
-        }
+          buffer.clear();
 
-        else {
-          buffer += line;
+          return complete_expr;
         }
 
         prompt = "..";
