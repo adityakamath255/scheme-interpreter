@@ -16,10 +16,11 @@ class FileReader : public InputReader {
 private:
   std::string file_data;
   size_t curr_index;
-  bool enter_repl;
+
+  bool no_more_input() const;
 
 public:
-  FileReader(const std::string&, const bool);
+  FileReader(const std::string&);
   std::optional<std::string> get_expr() override;
   void print_result(const Obj) override;
 };

@@ -127,6 +127,9 @@ private:
               return std::nullopt;
             }
           }
+          else {
+            pos += 1;
+          }
           break;
 
         case '(':
@@ -236,9 +239,8 @@ public:
   }
 };
 
-FileReader::FileReader(const std::string& file_name, const bool enter_repl): 
-  curr_index {0},
-  enter_repl {enter_repl}
+FileReader::FileReader(const std::string& file_name): 
+  curr_index {0}
 {
   std::ifstream is(file_name);
   if (!is.is_open()) {
@@ -249,12 +251,17 @@ FileReader::FileReader(const std::string& file_name, const bool enter_repl):
   file_data = os.str();
 }
 
+bool
+FileReader::no_more_input() const {
+  return curr_index >= file_data.size();
+}
+
 std::optional<std::string>
 FileReader::get_expr() {
-  const std::string view = file_data.substr(curr_index);
-  if (const auto next_index = BracketChecker(view).check()) {
-    const std::string ret = file_data.substr(curr_index, *next_index);
-    curr_index = *next_index;
+  const std::string rest_file_data = file_data.substr(curr_index);
+  if (const auto delta_index = BracketChecker(rest_file_data).check()) {
+    const std::string ret = file_data.substr(curr_index, *delta_index);
+    curr_index += *delta_index;
     return ret;
   }
   else {
@@ -263,7 +270,13 @@ FileReader::get_expr() {
 }
 
 void
-FileReader::print_result(const Obj) {}
+FileReader::print_result(const Obj result) {
+  if (no_more_input()) {
+    if (!is_void(result)) {
+      std::cout << stringify(result) << std::endl;
+    }
+  }
+}
 
 Repl::Repl():
   rx(),

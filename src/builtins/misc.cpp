@@ -18,6 +18,7 @@ BuiltinInstaller::install_misc_functions() {
   install("display", [](const ArgList& args, Interpreter& interp) {
     assert_arg_count(args, 1, 1);
     std::cout << stringify(args[0]);
+    std::cout.flush();
     return Void {};
   });
 

@@ -8,7 +8,7 @@ using namespace Scheme;
 std::unique_ptr<InputReader>
 make_reader(const char *filename) {
   if (filename) {
-    return std::make_unique<FileReader>(filename, false);
+    return std::make_unique<FileReader>(filename);
   }
   else {
     return std::make_unique<Repl>();
