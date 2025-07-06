@@ -20,7 +20,7 @@ A minimal yet robust Scheme interpreter written from scratch in C++23. This proj
 
 ## Architecture
 
-- **Lexer:** Minimal tokenizer based on string views. Fast but currently limited (no support for escaped strings or quasiquote syntax).
+- **Lexer:** Minimal tokenizer based on string views. 
 - **Parser:** Recursive descent parser with support for vectors, dotted pairs, quoted expressions.
 - **AST Nodes:** Represented as heap-allocated `Expression` subclasses with support for `TailCall` trampolining.
 - **Evaluator:** Iterative core that avoids call stack growth during tail-recursive execution.
@@ -31,9 +31,7 @@ A minimal yet robust Scheme interpreter written from scratch in C++23. This proj
 
 - **No macros** (`syntax-rules` or `define-syntax`) yet.
 - **No continuation support** (`call/cc`, etc.).
-- **No REPL history or line editing**.
 - **Only floating-point numbers** (no exact integers or rationals).
-- **Limited reader** (no support for quasiquote, unquote, or custom dispatch).
 
 ## Build Instructions
 
