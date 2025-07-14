@@ -378,12 +378,6 @@ make_or(Cons *cons, Interpreter& interp) {
   return interp.spawn<Or>(cons2exprs(cons->cdr, interp));
 }
 
-static Expression*
-make_cxr(Symbol tag, Cons *cons, Interpreter& interp) {
-  assert_size(cons, 2, 2, tag.get_name());
-  return interp.spawn<Cxr>(tag, build_ast(cons->at("cadr"), interp));
-}
-
 Expression*
 combine_expr(const Obj& seq, Interpreter& interp) {
   if (is_null(seq)) {
@@ -417,19 +411,6 @@ special_forms = {
   {"or", make_or},
 };
 
-static bool
-is_cxr(const std::string& s) {
-  if (s.front() != 'c' || s.back() != 'r') {
-    return false;
-  }
-  for (size_t i = 1; i < s.size() - 1; i++) {
-    if (s[i] != 'a' && s[i] != 'd') {
-      return false;
-    }
-  }
-  return true;
-}
-
 Expression*
 build_ast(const Obj& obj, Interpreter& interp) {
   if (is_pair(obj)) {
@@ -440,9 +421,6 @@ build_ast(const Obj& obj, Interpreter& interp) {
       if (found != special_forms.end()) {
         const auto func = found->second;
         return func(p, interp);
-      }
-      else if (is_cxr(tag.get_name())) {
-        return make_cxr(tag, p, interp);
       }
     }
     return make_application(p, interp);

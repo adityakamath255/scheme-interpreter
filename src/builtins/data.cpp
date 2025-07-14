@@ -4,52 +4,20 @@
 
 namespace Scheme {
 
-static Obj
-append_rec(const Obj& list1, const Obj& list2, Interpreter& interp) {
-  if (is_pair(list1)) {
-    return interp.spawn<Cons>(
-      as_pair(list1)->car,
-      append_rec(as_pair(list1)->cdr, list2, interp)
-    );
-  }
-  else {
-    return list2;
-  }
-}
-
-static Obj
-map_rec(Obj& fn, Obj& obj, Interpreter& interp) {
-  if (!is_pair(obj)) {
-    return obj;
-  }
-  else {
-    auto ls = as_pair(obj);
-    return interp.spawn<Cons>(
-      as_obj(apply(fn, ArgList({ls->car}), interp)), 
-      map_rec(fn, ls->cdr, interp)
-    );
-  }
-}
-
-static Obj
-filter_rec(Obj& fn, Obj& obj, Interpreter& interp) {
-  if (!is_pair(obj)) {
-    return obj;
-  }
-  else {
-    auto ls = as_pair(obj);
-    auto rest = filter_rec(fn, ls->cdr, interp);
-    if (is_true(as_obj(apply(fn, ArgList({ls->car}), interp)))) {
-      return interp.spawn<Cons>(ls->car, rest);
-    }
-    else {
-      return rest;
-    }
-  }
-}
-
 void 
 BuiltinInstaller::install_data_functions() {
+  install("car", [](const ArgList& args, Interpreter& interp) {
+    assert_arg_count(args, 1, 1);
+    assert_obj_type<Cons*>(args[0], "pair");
+    return as_pair(args[0])->car;
+  });
+
+  install("cdr", [](const ArgList& args, Interpreter& interp) {
+    assert_arg_count(args, 1, 1);
+    assert_obj_type<Cons*>(args[0], "pair");
+    return as_pair(args[0])->cdr;
+  });
+
   install("not", [](const ArgList& args, Interpreter& interp) {
     assert_arg_count(args, 1, 1);
     return is_false(args[0]);
@@ -107,16 +75,6 @@ BuiltinInstaller::install_data_functions() {
     else {
       throw std::runtime_error("longer list expected");
     }
-  });
-
-  install("append", [](const ArgList& args, Interpreter& interp) {
-    assert_arg_count(args, 1, MAX_ARGS);
-    assert_vec_type<Cons*>(args, "list");
-    Obj ret = Null {};
-    for (size_t i = args.size(); i-- > 0;) {
-      ret = append_rec(args[i], ret, interp);
-    }
-    return ret;
   });
 
   install("symbol->string", [](const ArgList& args, Interpreter& interp) {
@@ -194,25 +152,6 @@ BuiltinInstaller::install_data_functions() {
     assert_arg_count(args, 1, 1);
     assert_obj_type<Vector*>(args[0], "vector");
     return (double) as_vector(args[0])->data.size();
-  });
-
-  install("map", [](const ArgList& args, Interpreter& interp) {
-    assert_arg_count(args, 2, 2);
-    assert_callable(args[0]);
-    assert_list(args[1]);
-    auto fn = args[0];
-    auto ls = args[1];
-    auto ret = map_rec(fn, ls, interp);
-    return ret;
-  });
-
-  install("filter", [](const ArgList& args, Interpreter& interp) {
-    assert_arg_count(args, 2, 2);
-    assert_callable(args[0]);
-    assert_list(args[1]);
-    auto fn = args[0];
-    auto ls = args[1];
-    return filter_rec(fn, ls, interp);
   });
 
 }

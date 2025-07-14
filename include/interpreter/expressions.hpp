@@ -177,14 +177,6 @@ struct Or : public Expression {
   void push_children(MarkStack&) override;
 };
 
-struct Cxr : public Expression {
-  Symbol word;
-  Expression *expr;
-  Cxr(Symbol w, Expression *e): word {std::move(w)}, expr {e} {}
-  EvalResult eval(Environment*, Interpreter&) override;
-  void push_children(MarkStack&) override;
-};
-
 Expression *combine_expr(const Obj&, Interpreter&);
 Expression *build_ast(const Obj&, Interpreter&);
 

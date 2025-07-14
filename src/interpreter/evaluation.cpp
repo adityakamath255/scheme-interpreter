@@ -229,14 +229,4 @@ Or::eval(Environment *env, Interpreter& interp) {
   return false;
 }
 
-EvalResult
-Cxr::eval(Environment *env, Interpreter& interp) {
-  auto val = as_obj(expr->eval(env, interp));
-  if (!is_pair(val)) {
-    throw std::runtime_error(word.get_name() + " type error: expected cons");
-  }
-  auto found = as_pair(val);
-  return found->at(word.get_name());
-} 
-
 }

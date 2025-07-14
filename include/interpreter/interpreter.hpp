@@ -22,6 +22,7 @@ private:
   std::chrono::microseconds garbage_collecting_time {0};
 
   void install_global_environment();
+  void load_preamble();
 
 public:
   Allocator alloc;

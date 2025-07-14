@@ -6,6 +6,7 @@
 #include <interpreter/lexer.hpp>
 #include <interpreter/parser.hpp>
 #include <builtins/installer.hpp>
+#include <builtins/preamble.hpp>
 #include <unordered_map>
 #include <string>
 #include <string_view>
@@ -36,6 +37,11 @@ Interpreter::install_global_environment() {
   BuiltinInstaller(global_env, *this).install_all_functions();
 }
 
+void
+Interpreter::load_preamble() {
+  interpret(std::string(preamble));
+}
+
 Interpreter::Interpreter(bool profiling): 
   intern_table {},
   global_env {},
@@ -43,6 +49,7 @@ Interpreter::Interpreter(bool profiling):
   alloc {}
 {
   install_global_environment();
+  load_preamble();
 }
 
 Interpreter::~Interpreter() {

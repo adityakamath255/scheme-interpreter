@@ -154,11 +154,6 @@ Or::push_children(MarkStack& worklist) {
   }
 }
 
-void
-Cxr::push_children(MarkStack& worklist) {
-  worklist.push(expr);
-}
-
 void 
 Allocator::mark(const std::vector<HeapEntity*>& roots) {
   MarkStack worklist;
