@@ -274,6 +274,7 @@ Repl::Repl():
 {
   rx.set_max_history_size(REPL_MAX_HISTORY_SIZE);
   rx.set_word_break_characters(" \t\r()[]'\";");
+  rx.bind_key_internal(replxx::Replxx::KEY::control('C'), "kill_to_begining_of_line");
 }
 
 std::optional<std::string>
