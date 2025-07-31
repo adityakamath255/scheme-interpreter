@@ -323,7 +323,7 @@ Repl::get_expr() {
           return complete_expr;
         }
 
-        prompt = "..";
+        prompt = ".. ";
       }
     }
     else {
